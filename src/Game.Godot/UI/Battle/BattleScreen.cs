@@ -38,36 +38,6 @@ public partial class BattleScreen : Control
 	private const double SkillNameFloatDelaySeconds = 0.1d;
 	private const double SkillImpactDelaySeconds = 0.8d;
 	private const double SkillImpactFloatDelaySeconds = 0.1d;
-	private static readonly string[] LegendEffectSfxIds =
-	[
-		"音效.奥义1",
-		"音效.奥义2",
-		"音效.奥义3",
-		"音效.奥义4",
-		"音效.奥义5",
-		"音效.奥义6",
-	];
-	private static readonly string[] LegendMaleVoiceSfxIds =
-	[
-		"音效.猛男",
-		"音效.男",
-		"音效.男2",
-		"音效.男3",
-		"音效.男4",
-		"音效.男5",
-		"音效.男-哼",
-		"音效.年轻男",
-	];
-	private static readonly string[] LegendFemaleVoiceSfxIds =
-	[
-		"音效.女",
-		"音效.女2",
-		"音效.女3",
-		"音效.女4",
-		"音效.女的奸笑",
-		"音效.敢点老娘",
-	];
-
 	[Export]
 	public PackedScene BattleSkillBoxScene { get; set; } = null!;
 
@@ -88,7 +58,7 @@ public partial class BattleScreen : Control
 	private readonly List<string> _logLines = [];
 
 	private BattleDefinition? _battleDefinition;
-	private IReadOnlyList<string> _selectedCharacterIds = [];
+	private SpecialBattleRequest? _battleRequest;
 	private BattleState? _state;
 	private BattleFlowOrchestrator? _orchestrator;
 	private bool _isConfigured;
@@ -208,14 +178,7 @@ public partial class BattleScreen : Control
 		ArgumentException.ThrowIfNullOrWhiteSpace(battleId);
 		ArgumentNullException.ThrowIfNull(selectedCharacterIds);
 
-		_battleDefinition = GameRoot.ContentRepository.GetBattle(battleId);
-		_selectedCharacterIds = selectedCharacterIds.ToArray();
-		_isConfigured = true;
-
-		if (IsInsideTree())
-		{
-			StartBattle();
-		}
+		Configure(new OrdinaryBattleRequest(battleId, selectedCharacterIds.ToArray()));
 	}
 
 	public async Task<bool> AwaitBattleAsync(CancellationToken cancellationToken = default)
@@ -245,13 +208,13 @@ public partial class BattleScreen : Control
 
 	private async void StartBattle()
 	{
-		if (_battleDefinition is null)
+		if (_battleDefinition is null || _battleRequest is null)
 		{
 			throw new InvalidOperationException("Battle screen has not been configured.");
 		}
 
 		ApplyBattlePresentation(_battleDefinition);
-		_state = GameRoot.BattleService.BuildBattleState(_battleDefinition, _selectedCharacterIds);
+		_state = GameRoot.BattleService.BuildBattleState(_battleRequest);
 		_orchestrator = new BattleFlowOrchestrator(this, _state);
 		ApplyBattleSettings(_settingsStore.LoadOrDefault());
 		_logLines.Clear();
@@ -490,6 +453,22 @@ public partial class BattleScreen : Control
 
 				await _orchestrator.TryUseItemAsync(item, target.Id);
 				return;
+		}
+	}
+
+	public void Configure(SpecialBattleRequest request)
+	{
+		ArgumentNullException.ThrowIfNull(request);
+		ArgumentException.ThrowIfNullOrWhiteSpace(request.BattleId);
+		ArgumentNullException.ThrowIfNull(request.SelectedCharacterIds);
+
+		_battleDefinition = GameRoot.ContentRepository.GetBattle(request.BattleId);
+		_battleRequest = request;
+		_isConfigured = true;
+
+		if (IsInsideTree())
+		{
+			StartBattle();
 		}
 	}
 
@@ -1034,9 +1013,9 @@ public partial class BattleScreen : Control
 		private static void PlayLegendIntroSfx(CharacterGender gender)
 		{
 			AudioManager.Instance.PlaySfx(PickRandom(gender == CharacterGender.Female
-				? LegendFemaleVoiceSfxIds
-				: LegendMaleVoiceSfxIds));
-			AudioManager.Instance.PlaySfx(PickRandom(LegendEffectSfxIds));
+				? GameRoot.Config.LegendFemaleVoiceSfxIds
+				: GameRoot.Config.LegendMaleVoiceSfxIds));
+			AudioManager.Instance.PlaySfx(PickRandom(GameRoot.Config.LegendEffectSfxIds));
 		}
 
 		private static string PickRandom(IReadOnlyList<string> resourceIds) =>
@@ -1287,9 +1266,9 @@ public partial class BattleScreen : Control
 		_uiState.EndBattle();
 		AppendLog(isWin ? "战斗胜利。" : "战斗失败。");
 		OrdinaryBattleVictorySettlement? settlement = null;
-		if (isWin && _state is not null)
+		if (isWin && _state is not null && _battleRequest is not null)
 		{
-			settlement = GameRoot.BattleService.PreviewOrdinaryVictorySettlement(_state);
+			settlement = GameRoot.BattleService.PreviewVictorySettlement(_state, _battleRequest);
 			GameRoot.BattleService.ApplyOrdinaryVictorySettlement(_state, settlement);
 		}
 

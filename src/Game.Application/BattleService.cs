@@ -31,41 +31,6 @@ public sealed class BattleService
         "五毒教弟子",
     ];
 
-    private static readonly string[] RandomTalentPoolIds =
-    [
-        "清心",
-        "自我主义",
-        "金钟罩",
-        "阴谋家",
-        "轻功大师",
-        "飘然",
-        "破甲",
-        "至空至明",
-        "好色",
-        "大小姐",
-    ];
-
-    private static readonly string[] CrazyAttackTalentPoolIds =
-    [
-        "破甲",
-        "铁拳无双",
-        "嗜血狂魔",
-    ];
-
-    private static readonly string[] CrazyDefenceTalentPoolIds =
-    [
-        "金钟罩",
-        "真气护体",
-        "清心",
-    ];
-
-    private static readonly string[] CrazyOtherTalentPoolIds =
-    [
-        "轻功大师",
-        "飘然",
-        "至空至明",
-    ];
-
     private readonly GameSession _session;
 
     public BattleService(GameSession session)
@@ -78,6 +43,25 @@ public sealed class BattleService
     private IContentRepository ContentRepository => _session.ContentRepository;
     private CharacterService CharacterService => _session.CharacterService;
     private int PlayerTeam => _session.Config.BattlePlayerTeam;
+    private GameConfig Config => _session.Config;
+
+    public BattleState BuildBattleState(SpecialBattleRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var battle = ContentRepository.GetBattle(request.BattleId);
+        return request switch
+        {
+            OrdinaryBattleRequest ordinary => BuildBattleState(battle, ordinary.SelectedCharacterIds),
+            ArenaBattleRequest arena => BuildArenaBattleState(battle, arena.SelectedCharacterIds, arena.HardLevel),
+            ZhenlongqijuBattleRequest zhenlongqiju => BuildZhenlongqijuBattleState(
+                battle,
+                zhenlongqiju.SelectedCharacterIds,
+                zhenlongqiju.Level),
+            _ => throw new InvalidOperationException(
+                $"Unsupported special battle request type '{request.GetType().Name}'."),
+        };
+    }
 
     public BattleState BuildBattleState(string battleId, IReadOnlyList<string> selectedCharacterIds)
     {
@@ -85,10 +69,80 @@ public sealed class BattleService
         return BuildBattleState(ContentRepository.GetBattle(battleId), selectedCharacterIds);
     }
 
+    public BattleState BuildArenaBattleState(
+        BattleDefinition battle,
+        IReadOnlyList<string> selectedCharacterIds,
+        int hardLevel)
+    {
+        ArgumentNullException.ThrowIfNull(battle);
+        ArgumentNullException.ThrowIfNull(selectedCharacterIds);
+        ArgumentOutOfRangeException.ThrowIfLessThan(hardLevel, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(hardLevel, 6);
+
+        return BuildBattleStateCore(
+            battle,
+            selectedCharacterIds,
+            (participant, index, slotCharacters, tempFactory) =>
+                participant.Team == PlayerTeam
+                    ? ResolveParticipantCharacter(participant, index, slotCharacters, tempFactory)
+                    : CreateArenaOpponentCharacter(hardLevel, index, tempFactory),
+            (_, index, tempFactory) =>
+                CreateArenaOpponentCharacter(hardLevel, index + battle.Participants.Count, tempFactory));
+    }
+
+    public BattleState BuildZhenlongqijuBattleState(
+        BattleDefinition battle,
+        IReadOnlyList<string> selectedCharacterIds,
+        int level)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
+
+        var state = BuildBattleState(battle, selectedCharacterIds);
+        foreach (var enemyUnit in state.Units.Where(unit => unit.Team != PlayerTeam))
+        {
+            PowerUpZhenlongqijuEnemy(enemyUnit.Character, level);
+        }
+
+        return state;
+    }
+
     public BattleState BuildBattleState(BattleDefinition battle, IReadOnlyList<string> selectedCharacterIds)
     {
         ArgumentNullException.ThrowIfNull(battle);
         ArgumentNullException.ThrowIfNull(selectedCharacterIds);
+
+        return BuildBattleStateCore(
+            battle,
+            selectedCharacterIds,
+            ResolveParticipantCharacter,
+            CreateRandomParticipantCharacter);
+    }
+
+    public OrdinaryBattleVictorySettlement PreviewVictorySettlement(
+        BattleState state,
+        SpecialBattleRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(request);
+
+        return request switch
+        {
+            ZhenlongqijuBattleRequest zhenlongqiju =>
+                PreviewZhenlongqijuVictorySettlement(state, zhenlongqiju.Level),
+            _ => PreviewOrdinaryVictorySettlement(state),
+        };
+    }
+
+    private BattleState BuildBattleStateCore(
+        BattleDefinition battle,
+        IReadOnlyList<string> selectedCharacterIds,
+        Func<BattleParticipantDefinition, int, IReadOnlyList<CharacterInstance?>, EquipmentInstanceFactory, CharacterInstance?> participantResolver,
+        Func<BattleRandomParticipantDefinition, int, EquipmentInstanceFactory, CharacterInstance> randomParticipantResolver)
+    {
+        ArgumentNullException.ThrowIfNull(battle);
+        ArgumentNullException.ThrowIfNull(selectedCharacterIds);
+        ArgumentNullException.ThrowIfNull(participantResolver);
+        ArgumentNullException.ThrowIfNull(randomParticipantResolver);
 
         var units = new List<BattleUnit>();
         var tempFactory = new EquipmentInstanceFactory();
@@ -98,7 +152,7 @@ public sealed class BattleService
 
         foreach (var (participant, index) in battle.Participants.Select(static (participant, index) => (participant, index)))
         {
-            var character = ResolveParticipantCharacter(participant, index, slotCharacters, tempFactory);
+            var character = participantResolver(participant, index, slotCharacters, tempFactory);
             if (character is null)
             {
                 continue;
@@ -114,7 +168,7 @@ public sealed class BattleService
 
         foreach (var (participant, index) in battle.RandomParticipants.Select(static (participant, index) => (participant, index)))
         {
-            var character = CreateRandomParticipantCharacter(participant, index, tempFactory);
+            var character = randomParticipantResolver(participant, index, tempFactory);
             units.Add(CreateUnit(
                 $"random_{index}_{character.Id}",
                 character,
@@ -175,6 +229,26 @@ public sealed class BattleService
         }
 
         _session.Events.Publish(new InventoryChangedEvent());
+    }
+
+    public OrdinaryBattleVictorySettlement PreviewZhenlongqijuVictorySettlement(
+        BattleState state,
+        int level)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
+
+        var rewardUnits = GetRewardEligiblePlayerUnits(state).ToArray();
+        var settlement = OrdinaryBattleVictorySettlementCalculator.Calculate(
+            state,
+            0d,
+            PlayerTeam,
+            rewardUnits.Length);
+        return settlement with
+        {
+            Gold = level / 2 + 1,
+            Drops = GenerateZhenlongqijuDrops(level),
+        };
     }
 
     private CharacterInstance CreateRandomParticipantCharacter(
@@ -238,6 +312,7 @@ public sealed class BattleService
         character.InternalSkills.Clear();
         character.EquipInternalSkill(null);
 
+        // Legacy raises NPC skill levels by round and clamps levels globally; it does not assign per-instance max levels here.
         character.ExternalSkills.Add(new ExternalSkillInstance(externalSkill, character, true)
         {
             Level = Random.Shared.Next(1, 7),
@@ -286,6 +361,26 @@ public sealed class BattleService
         return character;
     }
 
+    private CharacterInstance CreateArenaOpponentCharacter(
+        int hardLevel,
+        int index,
+        EquipmentInstanceFactory tempFactory)
+    {
+        var candidates = ContentRepository.GetCharacters()
+            .Where(character => character.ArenaEnabled && IsArenaHardLevelMatch(character.Level, hardLevel))
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            throw new InvalidOperationException($"Arena hard level '{hardLevel}' has no arena-enabled character candidates.");
+        }
+
+        var definition = PickRandom(candidates);
+        return CharacterMapper.CreateInitial(
+            $"arena_{hardLevel}_{index}_{definition.Id}",
+            definition,
+            tempFactory);
+    }
+
     private CharacterInstance? ResolveParticipantCharacter(
         BattleParticipantDefinition participant,
         int index,
@@ -322,12 +417,12 @@ public sealed class BattleService
         switch (State.Adventure.Difficulty)
         {
             case GameDifficulty.Hard:
-                TryAddRandomTalent(character, RandomTalentPoolIds);
+                TryAddRandomTalent(character, Config.EnemyRandomTalentIds);
                 break;
             case GameDifficulty.Crazy:
-                TryAddRandomTalent(character, CrazyAttackTalentPoolIds);
-                TryAddRandomTalent(character, CrazyDefenceTalentPoolIds);
-                TryAddRandomTalent(character, CrazyOtherTalentPoolIds);
+                TryAddRandomTalent(character, Config.EnemyRandomTalentCrazy1Ids);
+                TryAddRandomTalent(character, Config.EnemyRandomTalentCrazy2Ids);
+                TryAddRandomTalent(character, Config.EnemyRandomTalentCrazy3Ids);
                 break;
         }
     }
@@ -410,6 +505,15 @@ public sealed class BattleService
         return level > tier * 5;
     }
 
+    private static bool IsArenaHardLevelMatch(int level, int hardLevel) =>
+        hardLevel switch
+        {
+            >= 1 and <= 4 => level > (hardLevel - 1) * 5 && level <= hardLevel * 5,
+            5 => level >= 25 && level < 30,
+            6 => level >= 30,
+            _ => false,
+        };
+
     private static void SetBaseStat(CharacterInstance character, StatType statType, int value)
     {
         if (value <= 0)
@@ -429,6 +533,157 @@ public sealed class BattleService
         }
 
         return items[Random.Shared.Next(0, items.Count)];
+    }
+
+    private IReadOnlyList<OrdinaryBattleRewardDrop> GenerateZhenlongqijuDrops(int level)
+    {
+        var drops = new List<OrdinaryBattleRewardDrop>();
+        AddRandomExternalSkillFragmentDrop(drops, skill => skill.Hard < 8d);
+        if (Random.Shared.NextDouble() < 0.5d)
+        {
+            AddRandomExternalSkillFragmentDrop(drops, skill => skill.Hard < 8d);
+        }
+
+        for (var attempt = 0; attempt < level; attempt++)
+        {
+            if (Random.Shared.NextDouble() < 0.3d)
+            {
+                AddRandomExternalSkillFragmentDrop(drops, skill => skill.Hard >= 8d);
+                break;
+            }
+        }
+
+        for (var attempt = 0; attempt < level; attempt++)
+        {
+            if (Random.Shared.NextDouble() < 0.3d)
+            {
+                var equipment = PickConfiguredZhenlongqijuEquipment();
+                drops.Add(new OrdinaryBattleEquipmentRewardDrop(
+                    equipment,
+                    GenerateFixedEquipmentRolls(equipment, 4)));
+                break;
+            }
+        }
+
+        return drops;
+    }
+
+    private void AddRandomExternalSkillFragmentDrop(
+        List<OrdinaryBattleRewardDrop> drops,
+        Func<ExternalSkillDefinition, bool> predicate)
+    {
+        var candidates = ContentRepository.GetExternalSkills()
+            .Where(predicate)
+            .Select(skill => $"{skill.Id}残章")
+            .Where(fragmentId => ContentRepository.TryGetItem(fragmentId, out _))
+            .Select(ContentRepository.GetItem)
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            return;
+        }
+
+        drops.Add(new OrdinaryBattleStackRewardDrop(PickRandom(candidates), 1));
+    }
+
+    private EquipmentDefinition PickConfiguredZhenlongqijuEquipment()
+    {
+        var candidates = Config.ZhenlongWeaponRewardIds
+            .Concat(Config.ZhenlongArmorRewardIds)
+            .Concat(Config.ZhenlongAccessoryRewardIds)
+            .Distinct(StringComparer.Ordinal)
+            .Select(ResolveConfiguredZhenlongEquipment)
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            throw new InvalidOperationException("Zhenlongqiju equipment reward requires at least one configured equipment definition.");
+        }
+
+        return PickRandom(candidates);
+    }
+
+    private EquipmentDefinition ResolveConfiguredZhenlongEquipment(string equipmentId)
+    {
+        if (string.IsNullOrWhiteSpace(equipmentId))
+        {
+            throw new InvalidOperationException("Zhenlongqiju equipment reward id cannot be empty.");
+        }
+
+        return ContentRepository.GetItem(equipmentId.Trim()) as EquipmentDefinition
+            ?? throw new InvalidOperationException(
+                $"Zhenlongqiju equipment reward '{equipmentId}' is not an equipment definition.");
+    }
+
+    private IReadOnlyList<GeneratedEquipmentAffixRoll> GenerateFixedEquipmentRolls(
+        EquipmentDefinition equipment,
+        int rollCount)
+    {
+        var rolls = new List<GeneratedEquipmentAffixRoll>(rollCount);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < rollCount; index++)
+        {
+            for (var attempt = 0; attempt < 1024; attempt++)
+            {
+                var roll = EquipmentRandomAffixGenerator.GenerateSingleRoll(
+                    equipment,
+                    ContentRepository,
+                    State.Adventure.Round);
+                if (keys.Add(roll.Key))
+                {
+                    rolls.Add(roll);
+                    break;
+                }
+            }
+        }
+
+        return rolls;
+    }
+
+    private void PowerUpZhenlongqijuEnemy(CharacterInstance character, int level)
+    {
+        if (level <= 0)
+        {
+            return;
+        }
+
+        var maxResourceBonus = checked(level * 2000);
+        character.AddBaseStat(StatType.MaxHp, maxResourceBonus + character.GetBaseStat(StatType.MaxHp) * level / 10);
+        character.AddBaseStat(StatType.MaxMp, maxResourceBonus + character.GetBaseStat(StatType.MaxMp) * level / 10);
+
+        foreach (var stat in new[]
+        {
+            StatType.Bili,
+            StatType.Shenfa,
+            StatType.Gengu,
+            StatType.Dingli,
+            StatType.Fuyuan,
+            StatType.Wuxing,
+            StatType.Quanzhang,
+            StatType.Daofa,
+            StatType.Jianfa,
+            StatType.Qimen,
+        })
+        {
+            character.AddBaseStat(stat, Random.Shared.Next(level * 2, level * 4 + 1));
+        }
+
+        var skillLevelBonus = level < 5
+            ? 0
+            : Random.Shared.Next(level / 5, Math.Max(level / 5 + 1, level / 3 + 1));
+        if (skillLevelBonus > 0)
+        {
+            foreach (var skill in character.ExternalSkills)
+            {
+                skill.Level += skillLevelBonus;
+            }
+
+            foreach (var skill in character.InternalSkills)
+            {
+                skill.Level += skillLevelBonus;
+            }
+        }
+
+        character.RebuildSnapshot();
     }
 
     private CharacterInstance? ResolvePartyCharacter(string characterId) =>

@@ -23,6 +23,7 @@ public partial class CombatantSelectPanel : JyPanel
 	private Label _confirmButtonLabel = null!;
 
 	private readonly HashSet<string> _requiredIds = new(StringComparer.Ordinal);
+	private readonly HashSet<string> _forbiddenIds = new(StringComparer.Ordinal);
 	private readonly HashSet<string> _selectedIds = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, CombatantSelectCard> _cards = new(StringComparer.Ordinal);
 	private string _battleId = string.Empty;
@@ -62,17 +63,34 @@ public partial class CombatantSelectPanel : JyPanel
 		Configure(Game.ContentRepository.GetBattle(battleId));
 	}
 
-	public void Configure(BattleDefinition battle)
+	public void Configure(BattleDefinition battle) => Configure(battle, EmptyForbiddenSet);
+
+	public void Configure(BattleDefinition battle, IReadOnlySet<string> forbiddenCharacterIds)
 	{
 		ArgumentNullException.ThrowIfNull(battle);
+		ArgumentNullException.ThrowIfNull(forbiddenCharacterIds);
 
 		_battleId = battle.Id;
 		_deploySlotCount = CountPlayerDeploySlots(battle);
 		_requiredIds.Clear();
+		_forbiddenIds.Clear();
 		_selectedIds.Clear();
+		foreach (var forbiddenId in forbiddenCharacterIds)
+		{
+			if (!string.IsNullOrWhiteSpace(forbiddenId))
+			{
+				_forbiddenIds.Add(forbiddenId);
+			}
+		}
+
 		foreach (var characterId in battle.RequiredCharacterIds)
 		{
 			if (string.IsNullOrWhiteSpace(characterId))
+			{
+				continue;
+			}
+
+			if (!Game.State.Party.ContainsMember(characterId))
 			{
 				continue;
 			}
@@ -127,8 +145,9 @@ public partial class CombatantSelectPanel : JyPanel
 		foreach (var member in members)
 		{
 			var isRequired = _requiredIds.Contains(member.Id);
+			var isForbidden = _forbiddenIds.Contains(member.Id) && !isRequired;
 			var isSelected = _selectedIds.Contains(member.Id);
-			var card = CreateCard(member, isSelected, isRequired);
+			var card = CreateCard(member, isSelected, isRequired, isForbidden);
 			_gridContainer.AddChild(card);
 			_cards[member.Id] = card;
 		}
@@ -139,7 +158,8 @@ public partial class CombatantSelectPanel : JyPanel
 	private CombatantSelectCard CreateCard(
 		CharacterInstance character,
 		bool isSelected,
-		bool isRequired)
+		bool isRequired,
+		bool isForbidden)
 	{
 		if (CharacterCardScene is null)
 		{
@@ -153,7 +173,7 @@ public partial class CombatantSelectPanel : JyPanel
 			throw new InvalidOperationException("Combatant select card scene root must be CombatantSelectCard.");
 		}
 
-		card.Setup(character, isSelected, isRequired);
+		card.Setup(character, isSelected, isRequired, isForbidden);
 		card.SelectionRequested += ToggleSelection;
 		return card;
 	}
@@ -162,6 +182,12 @@ public partial class CombatantSelectPanel : JyPanel
 	{
 		if (_requiredIds.Contains(characterId))
 		{
+			return;
+		}
+
+		if (_forbiddenIds.Contains(characterId))
+		{
+			RefreshFooter("该角色本轮不能重复出战。");
 			return;
 		}
 
@@ -228,17 +254,14 @@ public partial class CombatantSelectPanel : JyPanel
 			return "必选角色数量超过可部署人数。";
 		}
 
-		var missingRequired = _requiredIds
-			.Where(requiredId => !Game.State.Party.ContainsMember(requiredId))
-			.ToArray();
-		if (missingRequired.Length > 0)
-		{
-			return $"必选角色不在当前队伍：{string.Join("、", missingRequired)}";
-		}
-
 		if (_selectedIds.Count == 0)
 		{
 			return "至少选择1名角色。";
+		}
+
+		if (_selectedIds.Any(selectedId => _forbiddenIds.Contains(selectedId) && !_requiredIds.Contains(selectedId)))
+		{
+			return "已选择角色中包含本轮禁选角色。";
 		}
 
 		if (_selectedIds.Count > _deploySlotCount)
@@ -276,4 +299,6 @@ public partial class CombatantSelectPanel : JyPanel
 			participant.Team == PlayerTeam &&
 			participant.PartyIndex is not null &&
 			participant.CharacterId is null);
+
+	private static IReadOnlySet<string> EmptyForbiddenSet { get; } = new HashSet<string>(StringComparer.Ordinal);
 }

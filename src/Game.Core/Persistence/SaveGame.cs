@@ -19,9 +19,10 @@ public sealed record SaveGame(
     WorldTriggerStateRecord? WorldTriggerState = null,
     StoryStateRecord? StoryState = null,
     JournalRecord? Journal = null,
-    ShopStateRecord? ShopState = null)
+    ShopStateRecord? ShopState = null,
+    SpecialBattleStateRecord? SpecialBattleState = null)
 {
-    public const int CurrentVersion = 19;
+    public const int CurrentVersion = 21;
 
     public static SaveGame Create(
         AdventureState adventure,
@@ -36,7 +37,8 @@ public sealed record SaveGame(
         WorldTriggerState worldTriggerState,
         StoryState? storyState = null,
         JournalState? journal = null,
-        ShopState? shopState = null)
+        ShopState? shopState = null,
+        SpecialBattleState? specialBattleState = null)
     {
         ArgumentNullException.ThrowIfNull(adventure);
         ArgumentNullException.ThrowIfNull(party);
@@ -64,16 +66,19 @@ public sealed record SaveGame(
             worldTriggerState.ToRecord(),
             (storyState ?? new StoryState()).ToRecord(),
             (journal ?? new JournalState()).ToRecord(),
-            (shopState ?? new ShopState()).ToRecord());
+            (shopState ?? new ShopState()).ToRecord(),
+            (specialBattleState ?? new SpecialBattleState()).ToRecord());
     }
 
     public AdventureState RestoreAdventureState() =>
         Game.Core.Model.AdventureState.Restore(Adventure);
 
-    public IReadOnlyDictionary<string, CharacterInstance> RestoreCharacters(IContentRepository contentRepository)
+    public IReadOnlyDictionary<string, CharacterInstance> RestoreCharacters(
+        IContentRepository contentRepository,
+        GameConfig? config = null)
     {
         return Characters
-            .Select(record => CharacterMapper.FromRecord(record, contentRepository))
+            .Select(record => CharacterMapper.FromRecord(record, contentRepository, config))
             .ToDictionary(character => character.Id, StringComparer.Ordinal);
     }
 
@@ -112,4 +117,7 @@ public sealed record SaveGame(
 
     public JournalState RestoreJournal() =>
         JournalState.Restore(Journal);
+
+    public SpecialBattleState RestoreSpecialBattleState() =>
+        Game.Core.Model.SpecialBattleState.Restore(SpecialBattleState);
 }

@@ -21,7 +21,8 @@ public sealed class GameSession
         Game.Core.Story.IRuntimeHost storyRuntimeHost,
         IDiagnosticLogger? logger = null,
         GameProfile? initialProfile = null,
-        GameConfig? config = null)
+        GameConfig? config = null,
+        GameSettings? settings = null)
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(contentRepository);
@@ -29,6 +30,7 @@ public sealed class GameSession
         State = initialState;
         Profile = initialProfile ?? new GameProfile();
         Config = config ?? new GameConfig();
+        Settings = settings ?? new GameSettings();
         ContentRepository = contentRepository;
         SaveGameService = new SaveGameService(this, logger);
         ProfileService = new ProfileService(this, logger);
@@ -41,6 +43,7 @@ public sealed class GameSession
         ShopService = new ShopService(this);
         EquipmentRefinementService = new EquipmentRefinementService(this);
         BattleService = new BattleService(this);
+        SpecialBattleService = new SpecialBattleService(this);
         WorldTriggerService = new WorldTriggerService(this);
         MapService = new MapService(this);
         StoryTimeKeyExpirationService = new StoryTimeKeyExpirationService(this);
@@ -51,6 +54,7 @@ public sealed class GameSession
     public GameState State { get; private set; }
     public GameProfile Profile { get; private set; }
     public GameConfig Config { get; }
+    public GameSettings Settings { get; }
     public IContentRepository ContentRepository { get; }
     public SaveGameService SaveGameService { get; }
     public ProfileService ProfileService { get; }
@@ -63,6 +67,7 @@ public sealed class GameSession
     public ShopService ShopService { get; }
     public EquipmentRefinementService EquipmentRefinementService { get; }
     public BattleService BattleService { get; }
+    public SpecialBattleService SpecialBattleService { get; }
     public WorldTriggerService WorldTriggerService { get; }
     public MapService MapService { get; }
     public StoryTimeKeyExpirationService StoryTimeKeyExpirationService { get; }

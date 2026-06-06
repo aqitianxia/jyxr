@@ -205,6 +205,26 @@ public sealed class SessionEventsTests
     }
 
     [Fact]
+    public async Task StoryCommandDispatcher_SetTimeKeyAllowsMissingTargetStory()
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        var dispatcher = new StoryCommandDispatcher(session, new RecordingRuntimeHost());
+
+        await dispatcher.ExecuteCommandAsync(
+            "set_time_key",
+            [
+                ExprValue.FromString("cooldown"),
+                ExprValue.FromNumber(2),
+            ],
+            default);
+
+        var timeKey = Assert.Single(session.State.Story.TimeKeys.Values);
+        Assert.Equal("cooldown", timeKey.Key);
+        Assert.Equal(2, timeKey.LimitDays);
+        Assert.Empty(timeKey.TargetStoryId);
+    }
+
+    [Fact]
     public async Task StoryCommandDispatcher_ChangeFemaleName_CreatesReserveCharacterWhenInactive()
     {
         var femaleDefinition = TestContentFactory.CreateCharacterDefinition("女主");
@@ -545,21 +565,11 @@ public sealed class SessionEventsTests
 
         await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("whac_a_mole")], default);
         await dispatcher.ExecuteCommandAsync("newbie", [], default);
-        await dispatcher.ExecuteCommandAsync("tower", [ExprValue.FromString("tower")], default);
-        await dispatcher.ExecuteCommandAsync("huashan", [ExprValue.FromString("huashan")], default);
-        await dispatcher.ExecuteCommandAsync("trial", [ExprValue.FromString("trial")], default);
-        await dispatcher.ExecuteCommandAsync("zhenlongqiju", [], default);
-        await dispatcher.ExecuteCommandAsync("arena", [ExprValue.FromString("arena_单挑战")], default);
 
         Assert.Equal(
             [
                 "game指令暂未实现",
                 "newbie指令暂未实现",
-                "tower指令暂未实现",
-                "huashan指令暂未实现",
-                "trial指令暂未实现",
-                "zhenlongqiju指令暂未实现",
-                "arena指令暂未实现",
             ],
             publishedEvents.OfType<ToastRequestedEvent>().Select(evt => evt.Message).ToArray());
     }
@@ -738,6 +748,27 @@ public sealed class SessionEventsTests
         Assert.Equal(CharacterLevelProgression.GetTotalExperienceRequiredForLevel(4) + 7, hero.Experience);
         Assert.Equal(13, hero.GetBaseStat(StatType.Bili));
         Assert.Equal(6, hero.UnspentStatPoints);
+    }
+
+    [Fact]
+    public void CharacterService_LevelUp_ReachesMaxLevelForInitialHigherLevelCharacter()
+    {
+        var defaultGrowth = TestContentFactory.CreateGrowTemplate("default");
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero", level: 2);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            growTemplates: [defaultGrowth]);
+        var state = new GameState();
+        var hero = TestContentFactory.CreateCharacterInstance("hero", heroDefinition, state.EquipmentInstanceFactory);
+        state.Party.AddMember(hero);
+        var session = new GameSession(state, repository);
+
+        session.CharacterService.LevelUp("hero", 30);
+
+        Assert.Equal(CharacterLevelProgression.DefaultMaxLevel, hero.Level);
+        Assert.Equal(
+            CharacterLevelProgression.GetTotalExperienceRequiredForLevel(CharacterLevelProgression.DefaultMaxLevel),
+            hero.Experience);
     }
 
     [Fact]

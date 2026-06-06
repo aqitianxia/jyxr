@@ -79,7 +79,7 @@ command arg1 arg2 ...
 | `log` | `text` | 追加江湖日志，并记录当前时间快照。 | `log "踏入江湖"` |
 | `set_flag` | `variableName` | 设置剧情布尔变量为 `true`。 | `set_flag 初遇女主` |
 | `clear_flag` | `variableName` | 移除剧情变量。 | `clear_flag 初遇女主` |
-| `set_time_key` | `key limitDays targetStoryId` | 创建限时剧情 key，到期后触发目标剧情。 | `set_time_key 夜探 3 original_夜探失败` |
+| `set_time_key` | `key limitDays [targetStoryId]` | 创建限时剧情 key；严格超过天数后移除，存在目标剧情时才触发跳转。 | `set_time_key 夜探 3 original_夜探失败` |
 | `clear_time_key` | `key` | 移除限时剧情 key。 | `clear_time_key 夜探` |
 | `world_trigger` | `on/off` | 开启或阻塞世界触发入口。 | `world_trigger off` |
 
@@ -88,7 +88,7 @@ command arg1 arg2 ...
 | 指令 | 参数 | 效果 | 示例 |
 | --- | --- | --- | --- |
 | `daode` | `delta` | 调整道德。 | `daode 5` |
-| `haogan` | `delta` | 调整好感。 | `haogan -3` |
+| `haogan` | `delta` / `targetId delta` | 调整默认女主好感，或调整指定剧情关系目标的好感。 | `haogan 李文秀 5` |
 | `menpai` | `sectId` | 设置门派 id。 | `menpai 星宿派` |
 | `rank` | `...` | 当前注册为空操作，用于兼容已有剧情。 | `rank 1` |
 | `touch` | `...` | 当前注册为空操作，用于兼容已有剧情。 | `touch foo` |

@@ -156,6 +156,33 @@ public sealed class SaveGameTests
     }
 
     [Fact]
+    public void SaveGame_RoundTripsSpecialBattleState()
+    {
+        var specialBattle = new SpecialBattleState();
+        specialBattle.MarkTrialCompleted("阿青");
+        specialBattle.AddTowerRewardClaim("华山论剑", "华山第一战", "倚天剑");
+        specialBattle.AddTowerRewardClaim("华山论剑", "华山第一战", "倚天剑");
+
+        var saveGame = SaveGame.Create(
+            new AdventureState(),
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            new MapEventProgressState(),
+            new WorldTriggerState(),
+            specialBattleState: specialBattle);
+
+        var restored = saveGame.RestoreSpecialBattleState();
+
+        Assert.True(restored.IsTrialCompleted("阿青"));
+        Assert.Equal(2, restored.GetTowerRewardClaimCount("华山论剑", "华山第一战", "倚天剑"));
+    }
+
+    [Fact]
     public void SaveGame_SerializesBaseStatKeysUsingStableEnumNames()
     {
         var definition = TestContentFactory.CreateCharacterDefinition("hero_knight");
@@ -375,7 +402,6 @@ public sealed class SaveGameTests
         Assert.Equal(5, timeKey.LimitDays);
         Assert.Equal("襄阳_超时", timeKey.TargetStoryId);
         Assert.Equal(6, timeKey.DeadlineAt.Day);
-        Assert.False(timeKey.Triggered);
     }
 
     [Fact]
