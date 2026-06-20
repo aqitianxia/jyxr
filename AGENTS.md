@@ -296,9 +296,10 @@
 - `BattleEvent` 输出结构化战斗事件，Godot 战斗 UI 根据事件播放飘字与日志。
 - `src/Game.Godot/UI/Battle` 当前提供战斗界面、棋盘、单位视图、技能栏、物品面板、飘字和 UI 状态机。
 - 地图 `battle` 事件和剧情 battle 命令当前会先打开出战选择，再进入 `BattleScreen`，不再使用胜负确认弹窗模拟。
-- `assets/animation`、`assets/art/atlas`、`assets/art/atlas_texture` 保存由 legacy 资源导入的战斗单位/技能动画与图集资源。
+- `assets/animation`、`assets/art/atlas`、`assets/art/atlas_texture` 保存已导入的 legacy 战斗单位/技能动画与图集资源。
 - `AssetResolver` 当前支持从 `assets/animation/combatant` 与 `assets/animation/skill` 加载角色战斗动画库和技能动画库。
-- `tools/LegacyAnimationImporter` 是当前 legacy 战斗动画资源导入工具。
+- legacy 战斗动画导入工具已移除；后续如需重新导入，应按当前资源结构重建工具，而不是恢复旧导入器。
+- `tools/PublishGodotCSharpHotfix.ps1` 用于发布 Godot C# 热更补丁程序集到已导出的 Windows 数据目录，并把同一批补丁文件复制到 `export/patch`。
 - 战斗系统仍是原型；AI 行动、正式战场结算、胜负回写、奖励/失败投影和完整演出控制器还未正式建模。
 
 ## 当前地图与剧情接线
