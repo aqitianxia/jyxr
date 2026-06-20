@@ -1,5 +1,7 @@
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Core.Model;
+using Game.Core.Model.Skills;
 using Godot;
 using Game.Godot.Assets;
 using Game.Godot.Map;
@@ -76,6 +78,7 @@ public partial class UIRoot : Control
 	private ToastPanel _toastPanel = null!;
 	private HintBox _hintBox = null!;
 	private ConfirmDialog _confirmDialog = null!;
+	private DetailPanelHost _detailPanelHost = null!;
 	private SessionEvents? _sessionEvents;
 	private readonly List<IDisposable> _sessionSubscriptions = [];
 	private readonly LocalProfileStore _profileStore = new();
@@ -97,6 +100,7 @@ public partial class UIRoot : Control
 		_toastPanel = GetNode<ToastPanel>("%ToastPanel");
 		_hintBox = GetNode<HintBox>("%HintBox");
 		_confirmDialog = GetNode<ConfirmDialog>("%ConfirmDialog");
+		_detailPanelHost = GetNode<DetailPanelHost>("%DetailPanelHost");
 		Instance = this;
 	}
 	
@@ -208,6 +212,23 @@ public partial class UIRoot : Control
 	public Control ShowGameOverScreen() => ShowMainPanel(GameOverScreenScene, "game over screen");
 
 	public Control ShowGameFinScreen() => ShowMainPanel(GameFinScreenScene, "game fin screen");
+
+	public Control ShowSkillDetailPanel(SkillInstance skill) => _detailPanelHost.ShowSkill(skill);
+
+	public Control ShowInventoryEntryDetailPanel(
+		InventoryEntry entry,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.ShowInventoryEntry(entry, action);
+
+	public Control ShowEquipmentDetailPanel(
+		EquipmentInstance equipment,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.Show(DetailPanelContentFactory.CreateEquipment(equipment, action));
+
+	public Control ShowShopProductDetailPanel(
+		ShopProductView product,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.ShowShopProduct(product, action);
 
 	public Control ShowSaveSlotSelectionPanel(SaveSlotPanelMode mode) =>
 		ShowPopupPanel(SaveSlotSelectionPanelScene, "save slot selection panel", panel =>

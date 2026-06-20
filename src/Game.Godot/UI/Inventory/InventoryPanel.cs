@@ -116,12 +116,19 @@ public partial class InventoryPanel : JyPanel
 	private void OnEntrySelected(InventoryEntry entry)
 	{
 		var analysis = Game.ItemUseService.Analyze(entry);
-		if (!analysis.IsSupported)
-		{
-			UIRoot.Instance.ShowSuggestion(analysis.Message);
-			return;
-		}
+		var action = new DetailPanelAction(
+			analysis.IsSupported ? ResolveEntryActionLabel(entry) : "不可使用",
+			analysis.IsSupported,
+			() =>
+			{
+				ShowTargetSelectionPanel(entry);
+				return Task.CompletedTask;
+			});
+		UIRoot.Instance.ShowInventoryEntryDetailPanel(entry, action);
+	}
 
+	private void ShowTargetSelectionPanel(InventoryEntry entry)
+	{
 		if (ItemTargetSelectionPanelScene is null)
 		{
 			throw new InvalidOperationException("ItemTargetSelectionPanelScene is not assigned.");
@@ -137,6 +144,9 @@ public partial class InventoryPanel : JyPanel
 		panel.Configure(entry);
 		UIRoot.Instance.ModalLayer.AddChild(panel);
 	}
+
+	private static string ResolveEntryActionLabel(InventoryEntry entry) =>
+		entry.Definition.Type == ItemType.Equipment ? "装备" : "使用";
 
 	private void UpdateCategoryButtons()
 	{

@@ -80,6 +80,7 @@ public partial class CharacterPanel : JyPanel
 		_prevCharacterButton.Pressed += () => SwitchCharacter(-1);
 		_nextCharacterButton.Pressed += () => SwitchCharacter(1);
 		_skillTab.SkillToggleRequested += OnSkillToggleRequested;
+		_skillTab.SkillDetailRequested += OnSkillDetailRequested;
 		_subscriptions.Add(Game.Session.Events.Subscribe<CharacterChangedEvent>(OnCharacterChanged));
 
 		if (!string.IsNullOrWhiteSpace(CharacterId))
@@ -151,6 +152,11 @@ public partial class CharacterPanel : JyPanel
 				Game.CharacterService.EquipInternalSkill(CharacterId, internalSkill.Id);
 				break;
 		}
+	}
+
+	private static void OnSkillDetailRequested(SkillInstance skill)
+	{
+		UIRoot.Instance.ShowSkillDetailPanel(skill);
 	}
 
 	private void OnCharacterChanged(CharacterChangedEvent sessionEvent)

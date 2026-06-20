@@ -5,9 +5,10 @@ using Godot;
 
 namespace Game.Godot.UI;
 
-public partial class SkillBox : Control
+public partial class SkillBox : Button
 {
 	public event Action<SkillInstance>? ToggleRequested;
+	public event Action<SkillInstance>? DetailRequested;
 
 	[Export]
 	public PackedScene TooltipScene { get; set; } = null!;
@@ -30,6 +31,7 @@ public partial class SkillBox : Control
 		_avatar = GetNode<TextureRect>("%Avatar");
 		_activeButton = GetNode<TextureButton>("%ActiveButton");
 		_checkMark = GetNode<TextureRect>("%CheckMark");
+		Pressed += OnPressed;
 		_activeButton.Pressed += OnActiveButtonPressed;
 		Refresh();
 	}
@@ -96,6 +98,14 @@ public partial class SkillBox : Control
 		_formNameLabel.Visible = false;
 		_levelLabel.Visible = ShouldShowLevel(_skill);
 		_levelLabel.Text = _skill.Level.ToString(CultureInfo.InvariantCulture);
+	}
+
+	private void OnPressed()
+	{
+		if (_skill is not null)
+		{
+			DetailRequested?.Invoke(_skill);
+		}
 	}
 
 	private void OnActiveButtonPressed()
