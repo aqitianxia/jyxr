@@ -46,8 +46,8 @@ public static class ItemDescriptionFormatter
         AppendDescription(builder, equipment.Description);
         AppendSection(builder, "装备要求：", ItemRequirementFormatter.FormatLinesCn(equipment.Requirements, contentRepository), "red");
         AppendSection(builder, "使用效果：", ItemUseEffectFormatter.FormatLinesCn(equipment.UseEffects, contentRepository), "yellow");
-        AppendSection(builder, "装备词条：", AffixFormatter.FormatEquipmentLinesCn(equipment.Affixes, contentRepository), "yellow");
-        AppendSection(builder, "附加词条：", AffixFormatter.FormatEquipmentLinesCn(extraAffixes, contentRepository), "green");
+        AppendPrefixedSection(builder, "装备词条：", AffixFormatter.FormatEquipmentLinesCn(equipment.Affixes, contentRepository), "yellow", "◇ ");
+        AppendPrefixedSection(builder, "附加词条：", AffixFormatter.FormatEquipmentLinesCn(extraAffixes, contentRepository), "green", "◆ ");
         AppendCooldown(builder, equipment.Cooldown);
         return builder.ToString().TrimEnd('\n');
     }
@@ -83,6 +83,52 @@ public static class ItemDescriptionFormatter
         {
             AppendLine(builder, Colorize(color, line));
         }
+    }
+
+    private static void AppendPrefixedSection(
+        StringBuilder builder,
+        string title,
+        IReadOnlyList<string> lines,
+        string color,
+        string prefix)
+    {
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        if (builder.Length > 0)
+        {
+            builder.Append('\n');
+        }
+
+        AppendLine(builder, Colorize(color, title));
+        foreach (var line in lines)
+        {
+            AppendLine(builder, Colorize(color, PrefixLine(prefix, line)));
+        }
+    }
+
+    private static string PrefixLine(string prefix, string line)
+    {
+        var normalizedLine = line.Replace("\r\n", "\n").Replace('\r', '\n');
+        var parts = normalizedLine.Split('\n');
+        if (parts.Length == 1)
+        {
+            return prefix + normalizedLine;
+        }
+
+        var builder = new StringBuilder(prefix.Length + normalizedLine.Length + parts.Length * 2);
+        builder.Append(prefix);
+        builder.Append(parts[0]);
+        for (var index = 1; index < parts.Length; index++)
+        {
+            builder.Append('\n');
+            builder.Append("  ");
+            builder.Append(parts[index]);
+        }
+
+        return builder.ToString();
     }
 
     private static void AppendCooldown(StringBuilder builder, int cooldown)

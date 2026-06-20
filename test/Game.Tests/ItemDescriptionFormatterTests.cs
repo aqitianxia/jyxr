@@ -125,8 +125,8 @@ public sealed class ItemDescriptionFormatterTests
         Assert.Contains("[color=red]剑法 >= 25[/color]", text, StringComparison.Ordinal);
         Assert.Contains("[color=red]身法 >= 20[/color]", text, StringComparison.Ordinal);
         Assert.Contains("[color=yellow]装备词条：[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]攻击力 +40，暴击率 +2%[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]天赋「剑系装备」\n使用剑法以外的武功，有伤害减益。[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=yellow]◇ 攻击力 +40，暴击率 +2%[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=yellow]◇ 天赋「剑系装备」\n  使用剑法以外的武功，有伤害减益。[/color]", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -173,10 +173,10 @@ public sealed class ItemDescriptionFormatterTests
         var text = ItemDescriptionFormatter.FormatBbCodeCn(instance, fullRepository);
 
         Assert.Contains("[color=yellow]装备词条：[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]防御力 +18[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=yellow]◇ 防御力 +18[/color]", text, StringComparison.Ordinal);
         Assert.Contains("[color=green]附加词条：[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=green]奥义「鬼影迷踪」威力 +12%，触发率 +5%[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=green]天赋「ghost_step」\n行动如鬼魅。[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=green]◆ 奥义「鬼影迷踪」威力 +12%，触发率 +5%[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=green]◆ 天赋「ghost_step」\n  行动如鬼魅。[/color]", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public sealed class ItemDescriptionFormatterTests
         var woodenBlade = repository.GetEquipment("木刀");
         var equipmentText = ItemDescriptionFormatter.FormatBbCodeCn(woodenBlade, repository);
         Assert.Contains("[color=yellow]装备词条：[/color]", equipmentText, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]攻击力 +8，暴击率 +1%[/color]", equipmentText, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]天赋「刀系装备」\n使用刀法以外的武功，有伤害减益。[/color]", equipmentText, StringComparison.Ordinal);
+        Assert.Contains("[color=yellow]◇ 攻击力 +8，暴击率 +1%[/color]", equipmentText, StringComparison.Ordinal);
+        Assert.Contains("[color=yellow]◇ 天赋「刀系装备」\n  使用刀法以外的武功，有伤害减益。[/color]", equipmentText, StringComparison.Ordinal);
     }
 }
