@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://qq8i1hc2ns12"]
 
 [ext_resource type="Script" uid="uid://b26rtcod4xv7t" path="res://src/Game.Godot/UI/UIRoot.cs" id="1_ui_root"]
-[ext_resource type="Script" path="res://src/Game.Godot/UI/DetailPanelHost.cs" id="2_detail_host"]
+[ext_resource type="Script" path="res://src/Game.Godot/UI/Detail/DetailPanelHost.cs" id="2_detail_host"]
 [ext_resource type="PackedScene" uid="uid://jon61teprdc7" path="res://scenes/ui/party_panel/party_panel.tscn" id="2_party_panel"]
 [ext_resource type="PackedScene" uid="uid://c7xwca038g3px" path="res://scenes/ui/character_panel/character_panel.tscn" id="3_i0hgf"]
 [ext_resource type="PackedScene" uid="uid://beqsxw0hmqwm" path="res://scenes/ui/story/story_dialogue_panel.tscn" id="4_story_dialogue"]
