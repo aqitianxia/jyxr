@@ -1,5 +1,7 @@
 namespace Game.Godot.Persistence;
 
+using global::Game.Godot.Settings;
+
 public sealed record UserSettingsRecord(
 	int Version,
 	bool ShowBattleHp,
@@ -8,9 +10,10 @@ public sealed record UserSettingsRecord(
 	bool BattleSpeedUp,
 	int BattleSpeedMultiplier,
 	bool MusicEnabled,
-	bool SfxEnabled)
+	bool SfxEnabled,
+	ScreenAspectMode ScreenAspectMode)
 {
-	public const int CurrentVersion = 2;
+	public const int CurrentVersion = 3;
 
 	public static UserSettingsRecord Default { get; } = new(
 		CurrentVersion,
@@ -20,5 +23,6 @@ public sealed record UserSettingsRecord(
 		BattleSpeedUp: false,
 		BattleSpeedMultiplier: 2,
 		MusicEnabled: true,
-		SfxEnabled: true);
+		SfxEnabled: true,
+		ScreenAspectMode: ScreenAspectMode.Unlimited);
 }

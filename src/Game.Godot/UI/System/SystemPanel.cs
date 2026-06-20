@@ -22,6 +22,7 @@ public partial class SystemPanel : Control
 	private CheckBox _battleSpeedUpCheckBox = null!;
 	private HSlider _battleSpeedMultiplierSlider = null!;
 	private Label _battleSpeedMultiplierValueLabel = null!;
+	private OptionButton _screenAspectOptionButton = null!;
 	private CheckBox _musicCheckBox = null!;
 	private CheckBox _sfxCheckBox = null!;
 	private Control _consoleRoot = null!;
@@ -36,7 +37,7 @@ public partial class SystemPanel : Control
 
 	public override void _Ready()
 	{
-		_consoleRoot = GetNode<Control>("ConsoleVBox");
+		_consoleRoot = GetNode<Control>("%ConsoleVBox");
 		_consoleInput = GetNode<LineEdit>("%ConsoleInput");
 		_consoleOutput = GetNode<RichTextLabel>("%ConsoleOutput");
 		_executeButton = GetNode<Button>("%ExecuteButton");
@@ -52,6 +53,7 @@ public partial class SystemPanel : Control
 		_battleSpeedUpCheckBox = GetNode<CheckBox>("%BattleSpeedUpCheckBox");
 		_battleSpeedMultiplierSlider = GetNode<HSlider>("%BattleSpeedMultiplierSlider");
 		_battleSpeedMultiplierValueLabel = GetNode<Label>("%BattleSpeedMultiplierValueLabel");
+		_screenAspectOptionButton = GetNode<OptionButton>("%ScreenAspectOptionButton");
 		_musicCheckBox = GetNode<CheckBox>("%MusicCheckBox");
 		_sfxCheckBox = GetNode<CheckBox>("%SfxCheckBox");
 
@@ -68,9 +70,11 @@ public partial class SystemPanel : Control
 		_autoBattleCheckBox.Toggled += enabled => OnSettingToggled("自动战斗", enabled);
 		_battleSpeedUpCheckBox.Toggled += enabled => OnSettingToggled("战斗加速", enabled);
 		_battleSpeedMultiplierSlider.ValueChanged += OnBattleSpeedMultiplierChanged;
+		_screenAspectOptionButton.ItemSelected += OnScreenAspectSelected;
 		_musicCheckBox.Toggled += enabled => OnSettingToggled("音乐", enabled);
 		_sfxCheckBox.Toggled += enabled => OnSettingToggled("音效", enabled);
 
+		PopulateScreenAspectOptions();
 		LoadSettings();
 		ApplyConsoleConfig();
 	}
@@ -126,6 +130,7 @@ public partial class SystemPanel : Control
 		_battleSpeedUpCheckBox.SetPressedNoSignal(settings.BattleSpeedUp);
 		_battleSpeedMultiplierSlider.SetValueNoSignal(ClampBattleSpeedMultiplier(settings.BattleSpeedMultiplier));
 		UpdateBattleSpeedMultiplierLabel((int)_battleSpeedMultiplierSlider.Value);
+		SelectScreenAspectNoSignal(settings.ScreenAspectMode);
 		_musicCheckBox.SetPressedNoSignal(settings.MusicEnabled);
 		_sfxCheckBox.SetPressedNoSignal(settings.SfxEnabled);
 	}
@@ -144,6 +149,28 @@ public partial class SystemPanel : Control
 		SaveSettings(_settings);
 	}
 
+	private void OnScreenAspectSelected(long index)
+	{
+		var mode = ReadSelectedScreenAspect();
+		if (_settings.ScreenAspectMode == mode)
+		{
+			return;
+		}
+
+		try
+		{
+			_settings = ReadSettingsFromControls();
+			UserSettingsApplier.Apply(_settings);
+			SaveSettings(_settings);
+			AppendConsoleLine("设置", $"画面尺寸：{FormatScreenAspect(mode)}");
+		}
+		catch (Exception exception)
+		{
+			Game.Logger.Error("Failed to apply screen aspect setting.", exception);
+			AppendConsoleLine("错误", exception.Message);
+		}
+	}
+
 	private UserSettingsRecord ReadSettingsFromControls() => new(
 		UserSettingsRecord.CurrentVersion,
 		_showBattleHpCheckBox.ButtonPressed,
@@ -152,7 +179,8 @@ public partial class SystemPanel : Control
 		_battleSpeedUpCheckBox.ButtonPressed,
 		ClampBattleSpeedMultiplier((int)Math.Round(_battleSpeedMultiplierSlider.Value)),
 		_musicCheckBox.ButtonPressed,
-		_sfxCheckBox.ButtonPressed);
+		_sfxCheckBox.ButtonPressed,
+		ReadSelectedScreenAspect());
 
 	private void UpdateBattleSpeedMultiplierLabel(int multiplier)
 	{
@@ -161,6 +189,61 @@ public partial class SystemPanel : Control
 
 	private static int ClampBattleSpeedMultiplier(int multiplier) =>
 		Math.Clamp(multiplier, MinBattleSpeedMultiplier, MaxBattleSpeedMultiplier);
+
+	private void PopulateScreenAspectOptions()
+	{
+		_screenAspectOptionButton.Clear();
+		AddScreenAspectOption("无限制", ScreenAspectMode.Unlimited);
+		AddScreenAspectOption("16:9", ScreenAspectMode.Ratio16x9);
+		AddScreenAspectOption("18:9", ScreenAspectMode.Ratio18x9);
+		AddScreenAspectOption("20:9", ScreenAspectMode.Ratio20x9);
+	}
+
+	private void AddScreenAspectOption(string label, ScreenAspectMode mode)
+	{
+		var index = _screenAspectOptionButton.ItemCount;
+		_screenAspectOptionButton.AddItem(label);
+		_screenAspectOptionButton.SetItemMetadata(index, (int)mode);
+	}
+
+	private ScreenAspectMode ReadSelectedScreenAspect()
+	{
+		var selected = _screenAspectOptionButton.Selected;
+		if (selected < 0)
+		{
+			return ScreenAspectMode.Unlimited;
+		}
+
+		var metadata = _screenAspectOptionButton.GetItemMetadata(selected);
+		return metadata.VariantType == Variant.Type.Int
+			? (ScreenAspectMode)metadata.AsInt32()
+			: ScreenAspectMode.Unlimited;
+	}
+
+	private void SelectScreenAspectNoSignal(ScreenAspectMode mode)
+	{
+		for (var index = 0; index < _screenAspectOptionButton.ItemCount; index++)
+		{
+			var metadata = _screenAspectOptionButton.GetItemMetadata(index);
+			if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)mode)
+			{
+				_screenAspectOptionButton.Select(index);
+				return;
+			}
+		}
+
+		_screenAspectOptionButton.Select(0);
+	}
+
+	private static string FormatScreenAspect(ScreenAspectMode mode) =>
+		mode switch
+		{
+			ScreenAspectMode.Unlimited => "无限制",
+			ScreenAspectMode.Ratio16x9 => "16:9",
+			ScreenAspectMode.Ratio18x9 => "18:9",
+			ScreenAspectMode.Ratio20x9 => "20:9",
+			_ => mode.ToString(),
+		};
 
 	private void OnExecutePressed() => SubmitConsoleCommand(_consoleInput.Text);
 
