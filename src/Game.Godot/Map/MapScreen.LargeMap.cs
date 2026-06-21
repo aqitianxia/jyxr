@@ -19,6 +19,7 @@ public partial class MapScreen
 	private static readonly Vector2 LargeMapWorldSize = new(LargeMapWorldWidth, LargeMapWorldHeight);
 
 	private SubViewportContainer _largeMapViewportContainer = null!;
+	private Control _largeMapGestureArea = null!;
 	private Sprite2D _largeMapBackground = null!;
 	private Camera2D _largeMapCamera = null!;
 	private Control _cloud = null!;
@@ -33,12 +34,13 @@ public partial class MapScreen
 	private void InitializeLargeMapNodes()
 	{
 		_largeMapViewportContainer = GetNode<SubViewportContainer>("%LargeMapViewportContainer");
+		_largeMapGestureArea = GetNode<Control>("%LargeMapGestureArea");
 		_largeMapBackground = GetNode<Sprite2D>("%LargeMapBackground");
 		_largeMapCamera = GetNode<Camera2D>("%LargeMapCamera");
 		_cloud = GetNode<Control>("%Cloud");
 		_mapEntitySlots = GetNode<Control>("%MapEntitySlots");
 		_mapPin = GetNode<Control>("%MapPin");
-		_largeMapViewportContainer.GuiInput += HandleLargeMapGuiInput;
+		_largeMapGestureArea.GuiInput += HandleLargeMapGuiInput;
 		_mapBigTab.Resized += UpdateLargeMapDisplayTransform;
 		UpdateLargeMapDisplayTransform();
 	}
@@ -106,6 +108,8 @@ public partial class MapScreen
 
 	private void LayoutLargeMapWorld()
 	{
+		_largeMapGestureArea.Position = Vector2.Zero;
+		_largeMapGestureArea.Size = _largeMapWorldSize;
 		_cloud.Position = Vector2.Zero;
 		_cloud.Size = _largeMapWorldSize;
 		ResizeLargeMapBackground();
@@ -178,25 +182,25 @@ public partial class MapScreen
 
 		if (@event is InputEventScreenTouch screenTouch)
 		{
-			HandleLargeMapScreenTouch(screenTouch, screenTouch.Position);
+			HandleLargeMapScreenTouch(screenTouch, ScreenToLargeMapViewportPosition(screenTouch.Position));
 			return;
 		}
 
 		if (@event is InputEventScreenDrag screenDrag)
 		{
-			HandleLargeMapScreenDrag(screenDrag, screenDrag.Position);
+			HandleLargeMapScreenDrag(screenDrag, ScreenToLargeMapViewportPosition(screenDrag.Position));
 			return;
 		}
 
 		if (@event is InputEventMouseButton mouseButton)
 		{
-			HandleLargeMapMouseButton(mouseButton, mouseButton.Position);
+			HandleLargeMapMouseButton(mouseButton, ScreenToLargeMapViewportPosition(mouseButton.Position));
 			return;
 		}
 
 		if (@event is InputEventMouseMotion mouseMotion)
 		{
-			HandleLargeMapMouseMotion(mouseMotion, mouseMotion.Position);
+			HandleLargeMapMouseMotion(mouseMotion, ScreenToLargeMapViewportPosition(mouseMotion.Position));
 		}
 	}
 
@@ -362,6 +366,9 @@ public partial class MapScreen
 
 	private Vector2 LargeMapViewportToWorldPosition(Vector2 viewportPosition) =>
 		_largeMapCamera.Position + (viewportPosition - _largeMapWorldSize * 0.5f) / _largeMapCamera.Zoom.X;
+
+	private Vector2 ScreenToLargeMapViewportPosition(Vector2 screenPosition) =>
+		_largeMapViewportContainer.GetGlobalTransformWithCanvas().AffineInverse() * screenPosition;
 
 	private void ResetLargeMapCamera()
 	{
