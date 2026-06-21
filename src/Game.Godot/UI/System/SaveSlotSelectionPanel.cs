@@ -154,9 +154,7 @@ public partial class SaveSlotSelectionPanel : JyPanel
 		}
 
 		Game.LoadSave(envelope.SaveGame);
-		ReloadCurrentMap();
-		UIRoot.Instance.ShowToast("已读取自动存档");
-		QueueFree();
+		CompleteLoad("已读取自动存档");
 	}
 
 	private async Task SaveToSlotAsync(int slotIndex)
@@ -172,7 +170,7 @@ public partial class SaveSlotSelectionPanel : JyPanel
 
 		_saveStore.SaveCurrentSession(slotIndex);
 		UIRoot.Instance.ShowToast($"已写入存档{slotIndex}");
-		QueueFree();
+		UIRoot.Instance.CloseMainPanel();
 	}
 
 	private async Task DeleteSlotAsync(int slotIndex)
@@ -212,9 +210,14 @@ public partial class SaveSlotSelectionPanel : JyPanel
 		}
 
 		Game.LoadSave(envelope.SaveGame);
+		CompleteLoad($"已读取存档{slotIndex}");
+	}
+
+	private void CompleteLoad(string toastText)
+	{
 		ReloadCurrentMap();
-		UIRoot.Instance.ShowToast($"已读取存档{slotIndex}");
-		QueueFree();
+		UIRoot.Instance.ShowToast(toastText);
+		UIRoot.Instance.CloseMainPanel();
 	}
 
 	private static void ReloadCurrentMap()
