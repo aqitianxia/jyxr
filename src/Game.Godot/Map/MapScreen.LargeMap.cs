@@ -21,6 +21,7 @@ public partial class MapScreen
 	private SubViewportContainer _largeMapViewportContainer = null!;
 	private Control _largeMapGestureArea = null!;
 	private Sprite2D _largeMapBackground = null!;
+	private ColorRect _largeMapTimeDim = null!;
 	private Camera2D _largeMapCamera = null!;
 	private Control _cloud = null!;
 	private Control _mapEntitySlots = null!;
@@ -36,6 +37,7 @@ public partial class MapScreen
 		_largeMapViewportContainer = GetNode<SubViewportContainer>("%LargeMapViewportContainer");
 		_largeMapGestureArea = GetNode<Control>("%LargeMapGestureArea");
 		_largeMapBackground = GetNode<Sprite2D>("%LargeMapBackground");
+		_largeMapTimeDim = GetNode<ColorRect>("%LargeMapTimeDim");
 		_largeMapCamera = GetNode<Camera2D>("%LargeMapCamera");
 		_cloud = GetNode<Control>("%Cloud");
 		_mapEntitySlots = GetNode<Control>("%MapEntitySlots");
@@ -51,6 +53,7 @@ public partial class MapScreen
 		ResizeLargeMapWorld();
 		ResetLargeMapCamera();
 		SetLargeMapBackground(result.Map.Picture);
+		ApplyLargeMapTimeLighting();
 		ClearChildren(_mapEntitySlots);
 
 		foreach (var location in result.Locations)
@@ -78,6 +81,7 @@ public partial class MapScreen
 
 		if (texture is null)
 		{
+			_largeMapTimeDim.Hide();
 			return;
 		}
 
@@ -90,6 +94,19 @@ public partial class MapScreen
 
 		_largeMapBackground.Position = Vector2.Zero;
 		ResizeLargeMapBackground();
+	}
+
+	private void ApplyLargeMapTimeLighting()
+	{
+		if (!_largeMapBackground.Visible || _largeMapBackground.Texture is null)
+		{
+			_largeMapTimeDim.Hide();
+			return;
+		}
+
+		var dimAlpha = MapTimeLighting.GetDimAlpha(Game.State.Clock.TimeSlot);
+		_largeMapTimeDim.Color = new Color(0f, 0f, 0f, dimAlpha);
+		_largeMapTimeDim.Visible = dimAlpha > 0f;
 	}
 
 	private void UpdateLargeMapDisplayTransform()
@@ -112,8 +129,11 @@ public partial class MapScreen
 		_largeMapGestureArea.Size = _largeMapWorldSize;
 		_cloud.Position = Vector2.Zero;
 		_cloud.Size = _largeMapWorldSize;
+		_largeMapTimeDim.Position = Vector2.Zero;
+		_largeMapTimeDim.Size = _largeMapWorldSize;
 		ResizeLargeMapBackground();
 		UpdateLargeMapPositions();
+		ApplyLargeMapTimeLighting();
 	}
 
 	private void ResizeLargeMapBackground()

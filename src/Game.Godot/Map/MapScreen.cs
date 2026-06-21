@@ -1,5 +1,6 @@
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Godot.Assets;
 using Game.Godot.Persistence;
 using Game.Godot.UI;
 using Godot;
@@ -24,11 +25,14 @@ public partial class MapScreen : Control
 	private Control _mapBigTab = null!;
 	private Control _mapSmallTab = null!;
 	private Control _cameraButton = null!;
+	private TextureRect _smallMapBackground = null!;
+	private ColorRect _smallMapTimeDim = null!;
 	private HBoxContainer _mapEntityList = null!;
 	private Control _bottomBox = null!;
 	private RichTextLabel _mapDescriptionLabel = null!;
 	private TextureRect _pinAvatar = null!;
 	private MapInteractionResult? _pendingInteraction;
+	private IDisposable? _clockChangedSubscription;
 	private bool _isStoryPresentationActive;
 
 	public override void _Ready()
@@ -36,11 +40,14 @@ public partial class MapScreen : Control
 		_mapBigTab = GetNode<Control>("%MapBigTab");
 		_mapSmallTab = GetNode<Control>("%MapSmallTab");
 		InitializeLargeMapNodes();
+		_smallMapBackground = GetNode<TextureRect>("%SmallMapBackground");
+		_smallMapTimeDim = GetNode<ColorRect>("%SmallMapTimeDim");
 		_cameraButton = GetNode<Control>("%CameraButton");
 		_mapEntityList = GetNode<HBoxContainer>("%MapEntityList");
 		_bottomBox = GetNode<Control>("%BottomBox");
 		_mapDescriptionLabel = GetNode<RichTextLabel>("%MapDescriptionLabel");
 		_pinAvatar = GetNode<TextureRect>("%PinAvatar");
+		_clockChangedSubscription = Game.Session.Events.Subscribe<ClockChangedEvent>(OnClockChanged);
 
 		if (_pendingInitialResult is not null)
 		{
@@ -51,6 +58,26 @@ public partial class MapScreen : Control
 		}
 
 		ShowMap(InitialMapId);
+	}
+
+	public override void _ExitTree()
+	{
+		_clockChangedSubscription?.Dispose();
+		_clockChangedSubscription = null;
+	}
+
+	private void OnClockChanged(ClockChangedEvent _)
+	{
+		if (_mapBigTab.Visible)
+		{
+			ApplyLargeMapTimeLighting();
+			return;
+		}
+
+		if (_mapSmallTab.Visible)
+		{
+			ApplySmallMapTimeLighting();
+		}
 	}
 
 	public void SetStoryPresentationActive(bool active)
@@ -102,7 +129,7 @@ public partial class MapScreen : Control
 
 		if (result.Map.Kind == MapKind.Large)
 		{
-			World.Instance.SetBackground(null);
+			World.Instance.SetBackground(result.Map.Picture);
 			_mapBigTab.Show();
 			_mapSmallTab.Hide();
 			FillLargeMap(result);
@@ -121,6 +148,7 @@ public partial class MapScreen : Control
 
 	private void FillSmallMap(MapEnterResult result)
 	{
+		SetSmallMapBackground(result.Map.Picture);
 		ClearChildren(_mapEntityList);
 
 		foreach (var location in result.Locations)
@@ -288,6 +316,34 @@ public partial class MapScreen : Control
 		return true;
 	}
 
+	private void SetSmallMapBackground(string? resourceId)
+	{
+		var texture = AssetResolver.LoadTextureResource(resourceId);
+		_smallMapBackground.Texture = texture;
+		_smallMapBackground.Visible = texture is not null && !_isStoryPresentationActive;
+
+		if (texture is null)
+		{
+			_smallMapTimeDim.Hide();
+			return;
+		}
+
+		ApplySmallMapTimeLighting();
+	}
+
+	private void ApplySmallMapTimeLighting()
+	{
+		if (_isStoryPresentationActive || !_smallMapBackground.Visible || _smallMapBackground.Texture is null)
+		{
+			_smallMapTimeDim.Hide();
+			return;
+		}
+
+		var dimAlpha = MapTimeLighting.GetDimAlpha(Game.State.Clock.TimeSlot);
+		_smallMapTimeDim.Color = new Color(0f, 0f, 0f, dimAlpha);
+		_smallMapTimeDim.Visible = dimAlpha > 0f;
+	}
+
 	private async Task RunStoryAsync(string? storyId)
 	{
 		if (string.IsNullOrWhiteSpace(storyId))
@@ -333,6 +389,17 @@ public partial class MapScreen : Control
 	{
 		if (_isStoryPresentationActive)
 		{
+			if (_mapBigTab.Visible)
+			{
+				_largeMapViewportContainer.Hide();
+			}
+
+			if (_mapSmallTab.Visible)
+			{
+				_smallMapBackground.Hide();
+				_smallMapTimeDim.Hide();
+			}
+
 			_cloud.Hide();
 			_mapEntitySlots.Hide();
 			_mapPin.Hide();
@@ -344,6 +411,7 @@ public partial class MapScreen : Control
 
 		if (_mapBigTab.Visible)
 		{
+			_largeMapViewportContainer.Show();
 			_cloud.Show();
 			_mapEntitySlots.Show();
 			_mapPin.Show();
@@ -356,8 +424,10 @@ public partial class MapScreen : Control
 		_cloud.Hide();
 		_mapEntitySlots.Hide();
 		_mapPin.Hide();
+		_smallMapBackground.Visible = _smallMapBackground.Texture is not null;
+		ApplySmallMapTimeLighting();
 		_mapEntityList.Show();
 		_bottomBox.Show();
-		_cameraButton.Show();
+		//_cameraButton.Show();
 	}
 }
