@@ -25,11 +25,9 @@ outline_color = Color(0, 0, 0, 1)
 
 [node name="SkillBox" type="Button" unique_id=1974211336]
 custom_minimum_size = Vector2(210, 210)
-layout_mode = 3
-anchors_preset = 0
 offset_right = 210.0
 offset_bottom = 210.0
-mouse_filter = 0
+mouse_filter = 1
 flat = true
 script = ExtResource("1_script")
 TooltipScene = ExtResource("2_tooltip")
