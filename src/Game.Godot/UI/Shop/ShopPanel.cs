@@ -36,6 +36,7 @@ public partial class ShopPanel : JyPanel
 	private Button _sellModeButton = null!;
 	private Button _leaveButton = null!;
 	private CheckBox _quickBuyCheckBox = null!;
+	private CheckBox _quickSellCheckBox = null!;
 	private Label _categoryLabel = null!;
 	private Label _countLabel = null!;
 	private GridContainer _gridContainer = null!;
@@ -53,6 +54,7 @@ public partial class ShopPanel : JyPanel
 		_sellModeButton = GetNode<Button>("%SellModeButton");
 		_leaveButton = GetNode<Button>("%LeaveButton");
 		_quickBuyCheckBox = GetNode<CheckBox>("%QuickBuyCheckBox");
+		_quickSellCheckBox = GetNode<CheckBox>("%QuickSellCheckBox");
 		_categoryLabel = GetNode<Label>("%CategoryLabel");
 		_countLabel = GetNode<Label>("%CountLabel");
 		_gridContainer = GetNode<GridContainer>("%GridContainer");
@@ -208,6 +210,18 @@ public partial class ShopPanel : JyPanel
 	private void OnProductSelected(ShopProductView product)
 	{
 		var canBuy = CanBuy(product);
+		if (_quickBuyCheckBox.ButtonPressed)
+		{
+			if (!canBuy)
+			{
+				UIRoot.Instance.ShowSuggestion("当前不可购买。");
+				return;
+			}
+
+			_ = BuyProductAsync(product);
+			return;
+		}
+
 		UIRoot.Instance.ShowShopProductDetailPanel(
 			product,
 			new DetailPanelAction(
@@ -220,15 +234,6 @@ public partial class ShopPanel : JyPanel
 	{
 		try
 		{
-			if (!_quickBuyCheckBox.ButtonPressed)
-			{
-				var confirmed = await UIRoot.Instance.ShowConfirmAsync($"花费 {FormatProductPrice(product)} 购买【{product.DisplayName}】？");
-				if (!confirmed)
-				{
-					return;
-				}
-			}
-
 			var result = Game.ShopService.Buy(_shopId, product.ProductIndex);
 			HandleTransactionResult(result, showToast: false);
 		}
@@ -243,6 +248,18 @@ public partial class ShopPanel : JyPanel
 	{
 		var sellPrice = Game.ShopService.GetSellPrice(entry.Definition);
 		var canSell = entry.Definition.CanDrop && sellPrice > 0;
+		if (_quickSellCheckBox.ButtonPressed)
+		{
+			if (!canSell)
+			{
+				UIRoot.Instance.ShowSuggestion("当前不可卖。");
+				return;
+			}
+
+			_ = SellInventoryEntryAsync(entry);
+			return;
+		}
+
 		UIRoot.Instance.ShowInventoryEntryDetailPanel(
 			entry,
 			new DetailPanelAction(
@@ -255,13 +272,6 @@ public partial class ShopPanel : JyPanel
 	{
 		try
 		{
-			var sellPrice = Game.ShopService.GetSellPrice(entry.Definition);
-			var confirmed = await UIRoot.Instance.ShowConfirmAsync($"卖出【{entry.Definition.Name}】获得 {sellPrice} 银两？");
-			if (!confirmed)
-			{
-				return;
-			}
-
 			var result = Game.ShopService.Sell(entry);
 			HandleTransactionResult(result, showToast: true);
 		}

@@ -76,7 +76,7 @@ public sealed class ShopService
         State.Shop.AddPurchasedQuantity(product.PurchaseKey, quantity);
         _session.Events.Publish(new CurrencyChangedEvent());
         _session.InventoryService.AddItem(product.Item, quantity);
-        return ShopTransactionResult.Succeeded($"买入【{product.DisplayName}】 x{quantity}");
+        return ShopTransactionResult.Succeeded(FormatTransactionMessage("买入", product.DisplayName, quantity));
     }
 
     public ShopTransactionResult Sell(InventoryEntry entry, int quantity = 1)
@@ -118,7 +118,7 @@ public sealed class ShopService
         State.Currency.AddSilver(totalPrice);
         _session.Events.Publish(new InventoryChangedEvent());
         _session.Events.Publish(new CurrencyChangedEvent());
-        return ShopTransactionResult.Succeeded($"卖出【{entry.Definition.Name}】 x{quantity}");
+        return ShopTransactionResult.Succeeded(FormatTransactionMessage("卖出", entry.Definition.Name, quantity));
     }
 
     public int GetSellPrice(ItemDefinition item)
@@ -180,6 +180,11 @@ public sealed class ShopService
 
     private static string BuildPurchaseKey(string shopId, int productIndex, string contentId) =>
         $"{shopId}|{productIndex}|{contentId}";
+
+    private static string FormatTransactionMessage(string verb, string itemName, int quantity) =>
+        quantity == 1
+            ? $"{verb}【{itemName}】"
+            : $"{verb}【{itemName}】 x{quantity}";
 }
 
 public enum ShopCurrencyKind

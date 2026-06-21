@@ -25,6 +25,7 @@ public sealed class ShopServiceTests
         var result = session.ShopService.Buy(shop.Id, productIndex: 0);
 
         Assert.True(result.Success);
+        Assert.Equal("买入【herb】", result.Message);
         Assert.Equal(60, session.State.Currency.Silver);
         Assert.True(session.State.Inventory.ContainsStack(herb));
         Assert.Equal(1, session.State.Shop.PurchasedQuantities.Single().Value);
@@ -123,10 +124,30 @@ public sealed class ShopServiceTests
         var result = session.ShopService.Sell(entry);
 
         Assert.True(result.Success);
+        Assert.Equal("卖出【herb】", result.Message);
         Assert.Equal(15, session.State.Currency.Silver);
         Assert.Equal(1, session.State.Inventory.GetStack(herb).Quantity);
         Assert.Contains(publishedEvents, static sessionEvent => sessionEvent is CurrencyChangedEvent);
         Assert.Contains(publishedEvents, static sessionEvent => sessionEvent is InventoryChangedEvent);
+    }
+
+    [Fact]
+    public void TransactionMessages_IncludeQuantityOnlyWhenGreaterThanOne()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop", new ShopProductDefinition
+        {
+            ContentId = herb.Id,
+            Price = 40,
+        });
+        var session = CreateSession([herb], [shop], silver: 100);
+
+        var buyResult = session.ShopService.Buy(shop.Id, productIndex: 0, quantity: 2);
+        var entry = session.State.Inventory.GetStack(herb);
+        var sellResult = session.ShopService.Sell(entry, quantity: 2);
+
+        Assert.Equal("买入【herb】 x2", buyResult.Message);
+        Assert.Equal("卖出【herb】 x2", sellResult.Message);
     }
 
     [Fact]

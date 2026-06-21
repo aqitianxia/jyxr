@@ -74,7 +74,20 @@ theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 30
 text = "快速买入"
 
-[node name="ModeButtons" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="5" unique_id=100000006]
+[node name="QuickSellCheckBox" type="CheckBox" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="5" unique_id=100000033]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 104.0
+offset_top = 184.0
+offset_right = 386.0
+offset_bottom = 256.0
+theme_override_colors/font_color = Color(0.82, 0.95, 0.05, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 30
+text = "快速卖出"
+
+[node name="ModeButtons" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="6" unique_id=100000006]
 layout_mode = 0
 offset_left = 834.0
 offset_top = 60.0
@@ -103,7 +116,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 38
 text = "离开"
 
-[node name="CategoryButtons" type="VBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="6" unique_id=100000010]
+[node name="CategoryButtons" type="VBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="7" unique_id=100000010]
 layout_mode = 0
 offset_left = 384.0
 offset_top = 204.0
@@ -210,7 +223,7 @@ theme_override_styles/hover = SubResource("1_button_normal")
 theme_override_styles/disabled = SubResource("1_button_normal")
 text = "功能道具"
 
-[node name="GoodsPanel" type="Panel" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="7" unique_id=100000020]
+[node name="GoodsPanel" type="Panel" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="8" unique_id=100000020]
 layout_mode = 0
 offset_left = 610.0
 offset_top = 174.0
@@ -270,7 +283,7 @@ theme_override_font_sizes/font_size = 32
 text = "当前分类下没有物品。"
 horizontal_alignment = 1
 
-[node name="PromptLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="8" unique_id=100000027]
+[node name="PromptLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="9" unique_id=100000027]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 462.0
@@ -283,7 +296,7 @@ theme_override_constants/outline_size = 7
 theme_override_font_sizes/font_size = 46
 text = "客官需要买点什么？"
 
-[node name="CurrencyBar" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="9" unique_id=100000028]
+[node name="CurrencyBar" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="10" unique_id=100000028]
 layout_mode = 0
 offset_left = 1320.0
 offset_top = 940.0

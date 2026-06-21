@@ -27,6 +27,7 @@ public partial class ConfirmDialog : Control
 		_completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		_contentLabel.Text = text;
 		Show();
+		MoveToFront();
 
 		try
 		{
