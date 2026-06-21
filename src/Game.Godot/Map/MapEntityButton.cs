@@ -17,7 +17,7 @@ public partial class MapEntityButton : Button
 	private TextureRect _avatar = null!;
 	private Label _nameLabel = null!;
 	private TextureRect _notice = null!;
-	private PopupPanel? _mobileTooltipPopup;
+	private Control? _mobileTooltip;
 
 	private (string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)? _location;
 
@@ -41,6 +41,19 @@ public partial class MapEntityButton : Button
 	public override void _ExitTree()
 	{
 		CloseMobileTooltip();
+	}
+
+	public override void _Input(InputEvent @event)
+	{
+		if (!IsMobileTooltipArmed() || !IsMobileTooltipDismissInput(@event, out var position))
+		{
+			return;
+		}
+
+		if (!GetGlobalRect().HasPoint(position))
+		{
+			CloseMobileTooltip();
+		}
 	}
 
 	public void Setup((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
@@ -123,17 +136,13 @@ public partial class MapEntityButton : Button
 
 		CloseMobileTooltip();
 
-		var popup = new PopupPanel
-		{
-			ThemeTypeVariation = "TooltipPanel"
-		};
 		var content = CreateTooltip(text);
-		popup.AddChild(content);
-		AddChild(popup);
+		IgnoreMouseInputRecursive(content);
+		AddChild(content);
 
-		_mobileTooltipPopup = popup;
+		_mobileTooltip = content;
 		_activeMobileTooltipOwner = this;
-		PopupMobileTooltip(popup, content);
+		PositionMobileTooltip(content);
 	}
 
 	private Control CreateTooltip(string text)
@@ -152,7 +161,7 @@ public partial class MapEntityButton : Button
 		return tooltip;
 	}
 
-	private void PopupMobileTooltip(PopupPanel popup, Control content)
+	private void PositionMobileTooltip(Control content)
 	{
 		var tooltipSize = content.GetCombinedMinimumSize();
 		var viewportRect = GetViewportRect();
@@ -174,15 +183,17 @@ public partial class MapEntityButton : Button
 			offset.Y = -tooltipSize.Y;
 		}
 
-		popup.Popup(new Rect2I(
-			(Vector2I)(GlobalPosition + offset),
-			(Vector2I)tooltipSize));
+		content.Position = offset;
+		content.CustomMinimumSize = tooltipSize;
+		content.Size = tooltipSize;
+		content.ZIndex = 1000;
+		content.ZAsRelative = false;
 	}
 
 	private bool IsMobileTooltipArmed() =>
 		_activeMobileTooltipOwner == this &&
-		_mobileTooltipPopup is not null &&
-		GodotObject.IsInstanceValid(_mobileTooltipPopup);
+		_mobileTooltip is not null &&
+		GodotObject.IsInstanceValid(_mobileTooltip);
 
 	private void CloseMobileTooltip()
 	{
@@ -191,15 +202,43 @@ public partial class MapEntityButton : Button
 			_activeMobileTooltipOwner = null;
 		}
 
-		var popup = _mobileTooltipPopup;
-		_mobileTooltipPopup = null;
-		if (popup is null || !GodotObject.IsInstanceValid(popup))
+		var tooltip = _mobileTooltip;
+		_mobileTooltip = null;
+		if (tooltip is null || !GodotObject.IsInstanceValid(tooltip))
 		{
 			return;
 		}
 
-		popup.Hide();
-		popup.QueueFree();
+		tooltip.QueueFree();
+	}
+
+	private static bool IsMobileTooltipDismissInput(InputEvent @event, out Vector2 position)
+	{
+		switch (@event)
+		{
+			case InputEventScreenTouch { Pressed: true } screenTouch:
+				position = screenTouch.Position;
+				return true;
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
+				position = mouseButton.Position;
+				return true;
+			default:
+				position = default;
+				return false;
+		}
+	}
+
+	private static void IgnoreMouseInputRecursive(Control control)
+	{
+		control.MouseFilter = MouseFilterEnum.Ignore;
+
+		foreach (var child in control.GetChildren())
+		{
+			if (child is Control childControl)
+			{
+				IgnoreMouseInputRecursive(childControl);
+			}
+		}
 	}
 
 	private static string ResolveLocationName(MapLocationDefinition location) =>
