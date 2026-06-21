@@ -11,6 +11,8 @@ public partial class MapScreen
 	private const float LargeMapWorldHeight = 1080f;
 	private const float LargeMapSourceWidth = 800f;
 	private const float LargeMapSourceHeight = 600f;
+	private const float LargeMapDesignOffsetX = -15f;
+	private const float LargeMapDesignOffsetY = -52f;
 	private const float LargeMapMinZoom = 1f;
 	private const float LargeMapMaxZoom = 3f;
 	private const float LargeMapZoomStep = 1.15f;
@@ -36,6 +38,7 @@ public partial class MapScreen
 		_cloud = GetNode<Control>("%Cloud");
 		_mapEntitySlots = GetNode<Control>("%MapEntitySlots");
 		_mapPin = GetNode<Control>("%MapPin");
+		_largeMapViewportContainer.GuiInput += HandleLargeMapGuiInput;
 		_mapBigTab.Resized += UpdateLargeMapDisplayTransform;
 		UpdateLargeMapDisplayTransform();
 	}
@@ -154,12 +157,18 @@ public partial class MapScreen
 		}
 	}
 
-	private Vector2 MapSourceToWorldPosition(MapPosition sourcePosition) =>
-		new(
-			sourcePosition.X / LargeMapSourceWidth * _largeMapWorldSize.X,
-			sourcePosition.Y / LargeMapSourceHeight * _largeMapWorldSize.Y);
+	private Vector2 MapSourceToWorldPosition(MapPosition sourcePosition)
+	{
+		var designPosition = new Vector2(
+			sourcePosition.X / LargeMapSourceWidth * LargeMapWorldWidth + LargeMapDesignOffsetX,
+			sourcePosition.Y / LargeMapSourceHeight * LargeMapWorldHeight + LargeMapDesignOffsetY);
 
-	public override void _UnhandledInput(InputEvent @event)
+		return new Vector2(
+			designPosition.X / LargeMapWorldWidth * _largeMapWorldSize.X,
+			designPosition.Y / LargeMapWorldHeight * _largeMapWorldSize.Y);
+	}
+
+	private void HandleLargeMapGuiInput(InputEvent @event)
 	{
 		if (!_mapBigTab.Visible || _isStoryPresentationActive)
 		{
@@ -169,41 +178,41 @@ public partial class MapScreen
 
 		if (@event is InputEventScreenTouch screenTouch)
 		{
-			HandleLargeMapScreenTouch(screenTouch);
+			HandleLargeMapScreenTouch(screenTouch, screenTouch.Position);
 			return;
 		}
 
 		if (@event is InputEventScreenDrag screenDrag)
 		{
-			HandleLargeMapScreenDrag(screenDrag);
+			HandleLargeMapScreenDrag(screenDrag, screenDrag.Position);
 			return;
 		}
 
 		if (@event is InputEventMouseButton mouseButton)
 		{
-			HandleLargeMapMouseButton(mouseButton);
+			HandleLargeMapMouseButton(mouseButton, mouseButton.Position);
 			return;
 		}
 
 		if (@event is InputEventMouseMotion mouseMotion)
 		{
-			HandleLargeMapMouseMotion(mouseMotion);
+			HandleLargeMapMouseMotion(mouseMotion, mouseMotion.Position);
 		}
 	}
 
-	private void HandleLargeMapScreenTouch(InputEventScreenTouch screenTouch)
+	private void HandleLargeMapScreenTouch(InputEventScreenTouch screenTouch, Vector2 viewportPosition)
 	{
 		if (screenTouch.Pressed)
 		{
-			if (!IsInsideLargeMapViewport(screenTouch.Position))
+			if (!IsInsideLargeMapViewport(viewportPosition))
 			{
 				return;
 			}
 
-			_largeMapTouches[screenTouch.Index] = screenTouch.Position;
+			_largeMapTouches[screenTouch.Index] = viewportPosition;
 			if (_largeMapTouches.Count == 1)
 			{
-				_isDraggingLargeMap = !IsPointerOverLargeMapInteractive(screenTouch.Position);
+				_isDraggingLargeMap = !IsPointerOverLargeMapInteractive(viewportPosition);
 				if (_isDraggingLargeMap)
 				{
 					GetViewport().SetInputAsHandled();
@@ -228,14 +237,14 @@ public partial class MapScreen
 		}
 	}
 
-	private void HandleLargeMapScreenDrag(InputEventScreenDrag screenDrag)
+	private void HandleLargeMapScreenDrag(InputEventScreenDrag screenDrag, Vector2 viewportPosition)
 	{
 		if (!_largeMapTouches.TryGetValue(screenDrag.Index, out var previousPosition))
 		{
 			return;
 		}
 
-		_largeMapTouches[screenDrag.Index] = screenDrag.Position;
+		_largeMapTouches[screenDrag.Index] = viewportPosition;
 		if (_largeMapTouches.Count > 1)
 		{
 			var pinchDistance = GetLargeMapTouchDistance();
@@ -254,17 +263,17 @@ public partial class MapScreen
 			return;
 		}
 
-		PanLargeMap(screenDrag.Position, previousPosition);
+		PanLargeMap(viewportPosition, previousPosition);
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void HandleLargeMapMouseButton(InputEventMouseButton mouseButton)
+	private void HandleLargeMapMouseButton(InputEventMouseButton mouseButton, Vector2 viewportPosition)
 	{
-		var isInsideLargeMap = IsInsideLargeMapViewport(mouseButton.Position);
+		var isInsideLargeMap = IsInsideLargeMapViewport(viewportPosition);
 
 		if (mouseButton.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
 		{
-			if (!isInsideLargeMap || IsPointerBlockedByForegroundControl())
+			if (!isInsideLargeMap)
 			{
 				return;
 			}
@@ -272,7 +281,7 @@ public partial class MapScreen
 			var zoomFactor = mouseButton.ButtonIndex == MouseButton.WheelUp
 				? LargeMapZoomStep
 				: 1f / LargeMapZoomStep;
-			ZoomLargeMap(zoomFactor, mouseButton.Position);
+			ZoomLargeMap(zoomFactor, viewportPosition);
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -286,8 +295,7 @@ public partial class MapScreen
 		{
 			_isDraggingLargeMap =
 				isInsideLargeMap &&
-				!IsPointerBlockedByForegroundControl() &&
-				!IsPointerOverLargeMapInteractive(mouseButton.Position);
+				!IsPointerOverLargeMapInteractive(viewportPosition);
 			if (_isDraggingLargeMap)
 			{
 				GetViewport().SetInputAsHandled();
@@ -304,48 +312,40 @@ public partial class MapScreen
 		}
 	}
 
-	private void HandleLargeMapMouseMotion(InputEventMouseMotion mouseMotion)
+	private void HandleLargeMapMouseMotion(InputEventMouseMotion mouseMotion, Vector2 viewportPosition)
 	{
 		if (!_isDraggingLargeMap)
 		{
 			return;
 		}
 
-		if (IsPointerBlockedByForegroundControl())
-		{
-			ResetLargeMapInputState();
-			return;
-		}
-
-		PanLargeMap(mouseMotion.Position, mouseMotion.Position - mouseMotion.Relative);
+		PanLargeMap(viewportPosition, viewportPosition - mouseMotion.Relative);
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void PanLargeMap(Vector2 currentScreenPosition, Vector2 previousScreenPosition)
+	private void PanLargeMap(Vector2 currentViewportPosition, Vector2 previousViewportPosition)
 	{
-		var currentViewportPosition = ScreenToLargeMapViewportPosition(currentScreenPosition);
-		var previousViewportPosition = ScreenToLargeMapViewportPosition(previousScreenPosition);
 		var zoom = MathF.Max(_largeMapCamera.Zoom.X, LargeMapMinZoom);
 		_largeMapCamera.Position -= (currentViewportPosition - previousViewportPosition) / zoom;
 		ClampLargeMapCamera();
 	}
 
-	private void ZoomLargeMap(float zoomFactor, Vector2 screenPosition)
+	private void ZoomLargeMap(float zoomFactor, Vector2 viewportPosition)
 	{
-		var worldPositionBeforeZoom = ScreenToLargeMapWorldPosition(screenPosition);
+		var worldPositionBeforeZoom = LargeMapViewportToWorldPosition(viewportPosition);
 		var zoom = Mathf.Clamp(_largeMapCamera.Zoom.X * zoomFactor, LargeMapMinZoom, LargeMapMaxZoom);
 		_largeMapCamera.Zoom = new Vector2(zoom, zoom);
-		var worldPositionAfterZoom = ScreenToLargeMapWorldPosition(screenPosition);
+		var worldPositionAfterZoom = LargeMapViewportToWorldPosition(viewportPosition);
 		_largeMapCamera.Position += worldPositionBeforeZoom - worldPositionAfterZoom;
 		ClampLargeMapCamera();
 	}
 
-	private bool IsInsideLargeMapViewport(Vector2 screenPosition) =>
-		new Rect2(Vector2.Zero, _largeMapWorldSize).HasPoint(ScreenToLargeMapViewportPosition(screenPosition));
+	private bool IsInsideLargeMapViewport(Vector2 viewportPosition) =>
+		new Rect2(Vector2.Zero, _largeMapWorldSize).HasPoint(viewportPosition);
 
-	private bool IsPointerOverLargeMapInteractive(Vector2 screenPosition)
+	private bool IsPointerOverLargeMapInteractive(Vector2 viewportPosition)
 	{
-		var worldPosition = ScreenToLargeMapWorldPosition(screenPosition);
+		var worldPosition = LargeMapViewportToWorldPosition(viewportPosition);
 
 		foreach (var child in _mapEntitySlots.GetChildren())
 		{
@@ -360,25 +360,8 @@ public partial class MapScreen
 		return _mapPin.Visible && new Rect2(_mapPin.Position, _mapPin.Size).HasPoint(worldPosition);
 	}
 
-	private bool IsPointerBlockedByForegroundControl()
-	{
-		var hoveredControl = GetViewport().GuiGetHoveredControl();
-		if (hoveredControl is null)
-		{
-			return false;
-		}
-
-		return hoveredControl != this && !IsAncestorOf(hoveredControl);
-	}
-
-	private Vector2 ScreenToLargeMapWorldPosition(Vector2 screenPosition)
-	{
-		var viewportPosition = ScreenToLargeMapViewportPosition(screenPosition);
-		return _largeMapCamera.Position + (viewportPosition - _largeMapWorldSize * 0.5f) / _largeMapCamera.Zoom.X;
-	}
-
-	private Vector2 ScreenToLargeMapViewportPosition(Vector2 screenPosition) =>
-		_largeMapViewportContainer.GetGlobalTransformWithCanvas().AffineInverse() * screenPosition;
+	private Vector2 LargeMapViewportToWorldPosition(Vector2 viewportPosition) =>
+		_largeMapCamera.Position + (viewportPosition - _largeMapWorldSize * 0.5f) / _largeMapCamera.Zoom.X;
 
 	private void ResetLargeMapCamera()
 	{
