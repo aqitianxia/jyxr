@@ -79,9 +79,9 @@ public partial class CharacterEquipmentTab : Control
 
 	private void ConnectSlot(JyButton slotButton, CharacterEquipmentBox equipmentBox, EquipmentSlotType slotType)
 	{
-		slotButton.Pressed += () => ShowEquipmentSelection(slotType);
+		slotButton.Pressed += () => OpenSlot(slotType);
 		slotButton.GuiInput += inputEvent => OnSlotGuiInput(inputEvent, slotType);
-		equipmentBox.EquipmentPrimaryClicked += () => ShowEquipmentSelection(slotType);
+		equipmentBox.EquipmentPrimaryClicked += () => OpenSlot(slotType);
 		equipmentBox.EquipmentSecondaryClicked += () => Unequip(slotType);
 	}
 
@@ -94,6 +94,36 @@ public partial class CharacterEquipmentTab : Control
 
 		Unequip(slotType);
 		GetViewport().SetInputAsHandled();
+	}
+
+	private void OpenSlot(EquipmentSlotType slotType)
+	{
+		if (_character is null)
+		{
+			return;
+		}
+
+		var equipment = _character.GetEquipment(slotType);
+		if (equipment is null)
+		{
+			ShowEquipmentSelection(slotType);
+			return;
+		}
+
+		ShowEquipmentDetail(slotType, equipment);
+	}
+
+	private void ShowEquipmentDetail(EquipmentSlotType slotType, EquipmentInstance equipment)
+	{
+		var action = new DetailPanelAction(
+			"卸下",
+			true,
+			() =>
+			{
+				Unequip(slotType);
+				return Task.CompletedTask;
+			});
+		UIRoot.Instance.ShowEquipmentDetailPanel(equipment, action);
 	}
 
 	private void ShowEquipmentSelection(EquipmentSlotType slotType)

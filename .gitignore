@@ -10,6 +10,7 @@ TestResults/
 *.ncrunch*
 .idea/
 .vscode/
+.codex-temp
 artifacts/
 coverage/
 *.coverage

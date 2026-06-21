@@ -1,7 +1,8 @@
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Core.Model;
+using Game.Core.Model.Skills;
 using Godot;
-using Game.Godot.Assets;
 using Game.Godot.Map;
 using Game.Godot.Persistence;
 using Game.Godot.UI.Battle;
@@ -19,7 +20,7 @@ public partial class UIRoot : Control
 	public PackedScene PartyPanelScene { get; set; } = null!;
 
 	[Export]
-	public PackedScene CharacterPanelScene { get; set; } = null!;
+	public PackedScene CharacterRosterPanelScene { get; set; } = null!;
 
 	[Export]
 	public PackedScene InventoryPanelScene { get; set; } = null!;
@@ -76,6 +77,7 @@ public partial class UIRoot : Control
 	private ToastPanel _toastPanel = null!;
 	private HintBox _hintBox = null!;
 	private ConfirmDialog _confirmDialog = null!;
+	private DetailPanelHost _detailPanelHost = null!;
 	private SessionEvents? _sessionEvents;
 	private readonly List<IDisposable> _sessionSubscriptions = [];
 	private readonly LocalProfileStore _profileStore = new();
@@ -97,6 +99,7 @@ public partial class UIRoot : Control
 		_toastPanel = GetNode<ToastPanel>("%ToastPanel");
 		_hintBox = GetNode<HintBox>("%HintBox");
 		_confirmDialog = GetNode<ConfirmDialog>("%ConfirmDialog");
+		_detailPanelHost = GetNode<DetailPanelHost>("%DetailPanelHost");
 		Instance = this;
 	}
 	
@@ -112,7 +115,14 @@ public partial class UIRoot : Control
 
 	public void HideHud() => _hud?.Hide();
 
-	public void SetToastSuppressed(bool suppressed) => _isToastSuppressed = suppressed;
+	public void SetToastSuppressed(bool suppressed)
+	{
+		_isToastSuppressed = suppressed;
+		if (suppressed)
+		{
+			_toastPanel.Clear();
+		}
+	}
 
 	public void SetHudSuppressed(bool suppressed)
 	{
@@ -186,15 +196,15 @@ public partial class UIRoot : Control
 
 	public Control ShowPartyPanel() => ShowMainPanel(PartyPanelScene, "party panel");
 
-	public Control ShowCharacterPanel(string characterId) =>
-		ShowPopupPanel(CharacterPanelScene, "character panel", panel =>
+	public Control ShowCharacterRosterPanel(string characterId) =>
+		ShowPopupPanel(CharacterRosterPanelScene, "character roster panel", panel =>
 		{
-			if (panel is not CharacterPanel characterPanel)
+			if (panel is not CharacterRosterPanel characterRosterPanel)
 			{
-				throw new InvalidOperationException("Character panel scene root must be CharacterPanel.");
+				throw new InvalidOperationException("Character roster panel scene root must be CharacterRosterPanel.");
 			}
 
-			characterPanel.CharacterId = characterId;
+			characterRosterPanel.CharacterId = characterId;
 		});
 
 	public Control ShowInventoryPanel() => ShowMainPanel(InventoryPanelScene, "inventory panel");
@@ -208,6 +218,23 @@ public partial class UIRoot : Control
 	public Control ShowGameOverScreen() => ShowMainPanel(GameOverScreenScene, "game over screen");
 
 	public Control ShowGameFinScreen() => ShowMainPanel(GameFinScreenScene, "game fin screen");
+
+	public Control ShowSkillDetailPanel(SkillInstance skill) => _detailPanelHost.ShowSkill(skill);
+
+	public Control ShowInventoryEntryDetailPanel(
+		InventoryEntry entry,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.ShowInventoryEntry(entry, action);
+
+	public Control ShowEquipmentDetailPanel(
+		EquipmentInstance equipment,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.Show(DetailPanelContentFactory.CreateEquipment(equipment, action));
+
+	public Control ShowShopProductDetailPanel(
+		ShopProductView product,
+		DetailPanelAction? action = null) =>
+		_detailPanelHost.ShowShopProduct(product, action);
 
 	public Control ShowSaveSlotSelectionPanel(SaveSlotPanelMode mode) =>
 		ShowPopupPanel(SaveSlotSelectionPanelScene, "save slot selection panel", panel =>
@@ -251,13 +278,19 @@ public partial class UIRoot : Control
 		ArgumentException.ThrowIfNullOrWhiteSpace(battleId);
 		ArgumentNullException.ThrowIfNull(forbiddenCharacterIds);
 
+		var battle = Game.ContentRepository.GetBattle(battleId);
+		if (CountPlayerDeploySlots(battle) == 0)
+		{
+			return Array.Empty<string>();
+		}
+
 		if (CombatantSelectPanelScene.Instantiate() is not CombatantSelectPanel panel)
 		{
 			throw new InvalidOperationException("Combatant select panel scene root must be CombatantSelectPanel.");
 		}
 
 		ModalLayer.AddChild(panel);
-		panel.Configure(Game.ContentRepository.GetBattle(battleId), forbiddenCharacterIds);
+		panel.Configure(battle, forbiddenCharacterIds);
 		return await panel.AwaitDeploymentAsync(cancellationToken);
 	}
 
@@ -422,6 +455,12 @@ public partial class UIRoot : Control
 	}
 
 	private static IReadOnlySet<string> EmptyForbiddenSet { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+	private static int CountPlayerDeploySlots(BattleDefinition battle) =>
+		battle.Participants.Count(participant =>
+			participant.Team == Game.Config.BattlePlayerTeam &&
+			participant.PartyIndex is not null &&
+			participant.CharacterId is null);
 
 	private async Task<bool> ShowBattleScreenCoreAsync(
 		Action<BattleScreen> configure,

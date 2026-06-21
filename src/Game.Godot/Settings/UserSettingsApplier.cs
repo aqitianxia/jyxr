@@ -7,6 +7,8 @@ public static class UserSettingsApplier
 {
 	private const string BgmBusName = "Bgm";
 	private const string SfxBusName = "SFX";
+	private const int DefaultViewportWidth = 1920;
+	private const int DefaultViewportHeight = 1080;
 
 	public static void Apply(UserSettingsRecord settings)
 	{
@@ -19,6 +21,7 @@ public static class UserSettingsApplier
 
 		ApplyBusEnabled(BgmBusName, settings.MusicEnabled);
 		ApplyBusEnabled(SfxBusName, settings.SfxEnabled);
+		ApplyScreenAspect(settings.ScreenAspectMode);
 	}
 
 	private static void ApplyBusEnabled(string busName, bool enabled)
@@ -31,4 +34,30 @@ public static class UserSettingsApplier
 
 		AudioServer.SetBusMute(busIndex, !enabled);
 	}
+
+	private static void ApplyScreenAspect(ScreenAspectMode mode)
+	{
+		if (Engine.GetMainLoop() is not SceneTree tree)
+		{
+			return;
+		}
+
+		var window = tree.Root;
+		var size = ResolveContentScaleSize(mode);
+		window.ContentScaleMode = Window.ContentScaleModeEnum.CanvasItems;
+		window.ContentScaleAspect = mode == ScreenAspectMode.Unlimited
+			? Window.ContentScaleAspectEnum.Expand
+			: Window.ContentScaleAspectEnum.Keep;
+		window.ContentScaleSize = size;
+	}
+
+	private static Vector2I ResolveContentScaleSize(ScreenAspectMode mode) =>
+		mode switch
+		{
+			ScreenAspectMode.Unlimited => new Vector2I(DefaultViewportWidth, DefaultViewportHeight),
+			ScreenAspectMode.Ratio16x9 => new Vector2I(DefaultViewportWidth, DefaultViewportHeight),
+			ScreenAspectMode.Ratio18x9 => new Vector2I(2160, DefaultViewportHeight),
+			ScreenAspectMode.Ratio20x9 => new Vector2I(2400, DefaultViewportHeight),
+			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported screen aspect mode."),
+		};
 }

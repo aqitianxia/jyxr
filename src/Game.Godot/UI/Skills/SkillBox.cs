@@ -5,9 +5,10 @@ using Godot;
 
 namespace Game.Godot.UI;
 
-public partial class SkillBox : Control
+public partial class SkillBox : Button
 {
 	public event Action<SkillInstance>? ToggleRequested;
+	public event Action<SkillInstance>? DetailRequested;
 
 	[Export]
 	public PackedScene TooltipScene { get; set; } = null!;
@@ -21,6 +22,7 @@ public partial class SkillBox : Control
 
 	private SkillInstance? _skill;
 	private bool _isInteractive;
+	private bool _showToggleButton = true;
 
 	public override void _Ready()
 	{
@@ -30,15 +32,17 @@ public partial class SkillBox : Control
 		_avatar = GetNode<TextureRect>("%Avatar");
 		_activeButton = GetNode<TextureButton>("%ActiveButton");
 		_checkMark = GetNode<TextureRect>("%CheckMark");
+		Pressed += OnPressed;
 		_activeButton.Pressed += OnActiveButtonPressed;
 		Refresh();
 	}
 
-	public void Setup(SkillInstance skill, bool isInteractive)
+	public void Setup(SkillInstance skill, bool isInteractive, bool showToggleButton = true)
 	{
 		ArgumentNullException.ThrowIfNull(skill);
 		_skill = skill;
 		_isInteractive = isInteractive;
+		_showToggleButton = showToggleButton;
 		TooltipText = skill.Name;
 		Refresh();
 	}
@@ -86,9 +90,9 @@ public partial class SkillBox : Control
 			return;
 		}
 
-		_activeButton.Visible = true;
-		_activeButton.Disabled = !_isInteractive || !CanToggle(_skill);
-		_checkMark.Visible = _skill.IsActive;
+		_activeButton.Visible = _showToggleButton;
+		_activeButton.Disabled = !_showToggleButton || !_isInteractive || !CanToggle(_skill);
+		_checkMark.Visible = _showToggleButton && _skill.IsActive;
 		_avatar.Texture = ResolveTexture(_skill) ?? _avatar.Texture;
 		_nameLabel.Visible = true;
 		_nameLabel.Text = _skill.Name;
@@ -96,6 +100,14 @@ public partial class SkillBox : Control
 		_formNameLabel.Visible = false;
 		_levelLabel.Visible = ShouldShowLevel(_skill);
 		_levelLabel.Text = _skill.Level.ToString(CultureInfo.InvariantCulture);
+	}
+
+	private void OnPressed()
+	{
+		if (_skill is not null)
+		{
+			DetailRequested?.Invoke(_skill);
+		}
 	}
 
 	private void OnActiveButtonPressed()
