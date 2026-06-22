@@ -26,7 +26,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_t803o")
 
-[node name="BackGround" type="TextureRect" parent="." unique_id=2084013287]
+[node name="Background" type="TextureRect" parent="." unique_id=2084013287]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

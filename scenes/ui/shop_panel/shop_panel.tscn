@@ -3,7 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://d1unjwj8fihty" path="res://scenes/ui/base/jy_panel.tscn" id="1_panel"]
 [ext_resource type="Script" uid="uid://ecqwf6cyhgrm" path="res://src/Game.Godot/UI/Shop/ShopPanel.cs" id="2_script"]
 [ext_resource type="PackedScene" uid="uid://klid4fbotbmo" path="res://scenes/ui/shop_panel/shop_item_box.tscn" id="3_item_box"]
-[ext_resource type="Texture2D" uid="uid://cguhj5812a2hr" path="res://assets/art/map/shop.jpg" id="4_shop_bg"]
 [ext_resource type="Texture2D" uid="uid://csplcrelb0rev" path="res://assets/art/ui/shopkeeper.png" id="5_keeper"]
 [ext_resource type="Texture2D" uid="uid://jjbxbs51fduu" path="res://assets/art/misc/moji3.png" id="6_filter_button"]
 
@@ -14,7 +13,10 @@ texture = ExtResource("6_filter_button")
 script = ExtResource("2_script")
 ShopItemBoxScene = ExtResource("3_item_box")
 
-[node name="BackgroundTexture" type="TextureRect" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="0" unique_id=100000001]
+[node name="Background" parent="." index="1" unique_id=2084013287]
+visible = false
+
+[node name="BackgroundTexture" type="TextureRect" parent="." index="2" unique_id=1540520976]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -22,12 +24,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("4_shop_bg")
+pivot_offset_ratio = Vector2(0.5, 0.5)
 expand_mode = 1
-stretch_mode = 6
 
-[node name="BackgroundDim" type="ColorRect" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="1" unique_id=100000002]
+[node name="BackgroundDim" type="ColorRect" parent="." index="3" unique_id=100000002]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,7 +37,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.32)
 
-[node name="Shopkeeper" type="TextureRect" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="2" unique_id=100000003]
+[node name="Shopkeeper" type="TextureRect" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="0" unique_id=100000003]
 layout_mode = 0
 offset_left = 66.0
 offset_top = 180.0
@@ -48,7 +48,7 @@ texture = ExtResource("5_keeper")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TitleLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="3" unique_id=100000004]
+[node name="TitleLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="1" unique_id=100000004]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 480.0
@@ -61,33 +61,33 @@ theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 48
 text = "商店"
 
-[node name="QuickBuyCheckBox" type="CheckBox" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="4" unique_id=100000005]
+[node name="QuickBuyCheckBox" type="CheckBox" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="2" unique_id=100000005]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 104.0
-offset_top = 126.0
-offset_right = 386.0
-offset_bottom = 198.0
+offset_left = 105.0
+offset_top = 55.0
+offset_right = 355.0
+offset_bottom = 155.0
 theme_override_colors/font_color = Color(0.82, 0.95, 0.05, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 40
 text = "快速买入"
 
-[node name="QuickSellCheckBox" type="CheckBox" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="5" unique_id=100000033]
+[node name="QuickSellCheckBox" type="CheckBox" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="3" unique_id=100000033]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 104.0
-offset_top = 184.0
-offset_right = 386.0
-offset_bottom = 256.0
+offset_left = 105.0
+offset_top = 166.0
+offset_right = 355.0
+offset_bottom = 266.0
 theme_override_colors/font_color = Color(0.82, 0.95, 0.05, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 40
 text = "快速卖出"
 
-[node name="ModeButtons" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="6" unique_id=100000006]
+[node name="ModeButtons" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="4" unique_id=100000006]
 layout_mode = 0
 offset_left = 834.0
 offset_top = 60.0
@@ -116,7 +116,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 38
 text = "离开"
 
-[node name="CategoryButtons" type="VBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="7" unique_id=100000010]
+[node name="CategoryButtons" type="VBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="5" unique_id=100000010]
 layout_mode = 0
 offset_left = 384.0
 offset_top = 204.0
@@ -223,7 +223,7 @@ theme_override_styles/hover = SubResource("1_button_normal")
 theme_override_styles/disabled = SubResource("1_button_normal")
 text = "功能道具"
 
-[node name="GoodsPanel" type="Panel" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="8" unique_id=100000020]
+[node name="GoodsPanel" type="Panel" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="6" unique_id=100000020]
 layout_mode = 0
 offset_left = 610.0
 offset_top = 174.0
@@ -283,7 +283,7 @@ theme_override_font_sizes/font_size = 32
 text = "当前分类下没有物品。"
 horizontal_alignment = 1
 
-[node name="PromptLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="9" unique_id=100000027]
+[node name="PromptLabel" type="Label" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="7" unique_id=100000027]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 462.0
@@ -296,7 +296,7 @@ theme_override_constants/outline_size = 7
 theme_override_font_sizes/font_size = 46
 text = "客官需要买点什么？"
 
-[node name="CurrencyBar" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="10" unique_id=100000028]
+[node name="CurrencyBar" type="HBoxContainer" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="8" unique_id=100000028]
 layout_mode = 0
 offset_left = 1320.0
 offset_top = 940.0
@@ -342,7 +342,7 @@ theme_override_font_sizes/font_size = 38
 text = "0"
 vertical_alignment = 1
 
-[node name="CloseButton" parent="." index="3" unique_id=962603895]
+[node name="CloseButton" parent="." index="5" unique_id=962603895]
 visible = false
 PressOffset = Vector2(2, 2)
 PressColor = Color(0.8, 0.8, 0.8, 1)
