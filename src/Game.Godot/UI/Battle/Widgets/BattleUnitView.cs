@@ -73,7 +73,8 @@ public partial class BattleUnitView : Node2D
 		UpdateBuffList(unit.Buffs);
 		_tooltipHitArea.TooltipText = $"生命 {unit.Hp}/{unit.MaxHp}\n内力 {unit.Mp}/{unit.MaxMp}\n怒气 {unit.Rage}/{BattleUnit.MaxRage}";
 		_activeArrow.Visible = unit.IsActing;
-		Modulate = unit.IsAlive ? Colors.White : new Color(1f, 1f, 1f, 0.35f);
+		Visible = unit.IsAlive;
+		Modulate = Colors.White;
 	}
 
 	public async void ShowSpeech(string text)
