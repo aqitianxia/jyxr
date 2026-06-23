@@ -132,7 +132,13 @@ public partial class BattleSettlementPanel : JyPanel
 		}
 
 		itemBox.Setup(entry);
+		itemBox.EntrySelected += OnRewardEntrySelected;
 		return itemBox;
+	}
+
+	private static void OnRewardEntrySelected(InventoryEntry entry)
+	{
+		UIRoot.Instance.ShowInventoryEntryDetailPanel(entry);
 	}
 
 	private void ClearGrid()
