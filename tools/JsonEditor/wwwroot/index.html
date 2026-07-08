@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JYXR JSON 编辑器</title>
+  <link rel="stylesheet" href="/styles.css?v=20260706-mod-switch-1">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">JYXR JSON 编辑器</div>
+        <div id="workspacePath" class="path-line"></div>
+      </div>
+      <div class="top-actions">
+        <label class="mod-selector">
+          <span>当前 MOD</span>
+          <select id="modSelect"></select>
+        </label>
+        <button id="formatButton" type="button">格式化</button>
+        <button id="validateButton" type="button">校验</button>
+        <button id="saveButton" type="button" class="primary">保存</button>
+      </div>
+    </header>
+
+    <main class="workspace-grid">
+      <aside class="sidebar">
+        <div class="tab-row" role="tablist" aria-label="文件类型">
+          <button id="dataTab" type="button" class="tab active">数据</button>
+          <button id="storyTab" type="button" class="tab">剧情</button>
+          <button id="assetsTab" type="button" class="tab">资产</button>
+        </div>
+        <input id="fileSearch" class="search" type="search" placeholder="搜索文件">
+        <div id="fileList" class="file-list" aria-label="文件列表"></div>
+      </aside>
+
+      <section class="editor-pane">
+        <div class="pane-header">
+          <div id="currentPath" class="current-path">未选择文件</div>
+          <div id="dirtyState" class="dirty-state"></div>
+        </div>
+        <div class="editor-tools">
+          <button id="formModeButton" type="button">表单</button>
+          <button id="jsonModeButton" type="button">JSON</button>
+          <input id="contentSearch" class="content-search" type="search" placeholder="搜索当前文件">
+          <button id="findPreviousButton" type="button">上一个</button>
+          <button id="findNextButton" type="button">下一个</button>
+          <div id="searchState" class="tool-state"></div>
+        </div>
+        <div id="formView" class="form-view hidden"></div>
+        <div id="storyView" class="story-view hidden"></div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <div class="statusbar">
+          <div id="cursorState">行 1，列 1</div>
+          <div id="saveState"></div>
+        </div>
+      </section>
+
+      <aside class="inspector">
+        <section>
+          <div class="section-title">校验</div>
+          <div id="validationBox" class="message muted">等待校验</div>
+        </section>
+        <section>
+          <div class="section-title">索引</div>
+          <div id="indexBox" class="index-box muted">正在建立索引</div>
+        </section>
+        <section>
+          <div class="section-title">选中</div>
+          <div id="selectionBox" class="index-box muted">选中 JSON 字符串后显示定义</div>
+        </section>
+        <section>
+          <div class="section-title">对白头像助手</div>
+          <div id="speakerToolBox" class="static-tool"></div>
+        </section>
+        <section>
+          <div class="section-title">头像检查</div>
+          <div id="portraitCheckBox" class="static-tool"></div>
+        </section>
+        <section>
+          <div class="section-title">角色 / 物品检查</div>
+          <div id="characterCheckBox" class="static-tool"></div>
+        </section>
+        <section>
+          <div class="section-title">资产</div>
+          <div id="assetPreview" class="asset-preview muted">未选择资产</div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/app.js?v=20260706-mod-switch-1"></script>
+</body>
+</html>
