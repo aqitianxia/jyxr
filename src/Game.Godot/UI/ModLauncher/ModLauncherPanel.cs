@@ -1,4 +1,5 @@
 using Game.Application.Mods;
+using Game.Godot.Platform;
 using Godot;
 
 namespace Game.Godot.UI.ModLauncher;
@@ -12,6 +13,8 @@ public partial class ModLauncherPanel : Control
 	private ModShowcasePage _showcasePage = null!;
 	private Label _clientVersionLabel = null!;
 	private ProjectDataRoot _projectDataRoot = null!;
+	private AndroidExternalStorageAccess? _androidStorage;
+	private bool _waitingForAndroidStoragePermission;
 
 	public override void _Ready()
 	{
@@ -20,10 +23,74 @@ public partial class ModLauncherPanel : Control
 		_clientVersionLabel = GetNode<Label>("%ClientVersionLabel");
 
 		_clientVersionLabel.Text = $"XR客户端版本: {ClientVersion}";
-		_refreshButton.Pressed += RefreshMods;
+		_refreshButton.Pressed += OnRefreshRequested;
 		_showcasePage.StartRequested += OnStartRequested;
 
 		_projectDataRoot = ProjectDataRoot.FromPath(ResolveProjectDataRootPath());
+		if (IsAndroidRuntime())
+		{
+			InitializeAndroidProjectDataRoot();
+			return;
+		}
+
+		RefreshMods();
+	}
+
+	public override void _Notification(int what)
+	{
+		if (what != NotificationApplicationResumed || !_waitingForAndroidStoragePermission)
+		{
+			return;
+		}
+
+		_waitingForAndroidStoragePermission = false;
+		InitializeAndroidProjectDataRoot();
+	}
+
+	private void OnRefreshRequested()
+	{
+		if (IsAndroidRuntime())
+		{
+			InitializeAndroidProjectDataRoot();
+			return;
+		}
+
+		RefreshMods();
+	}
+
+	private void InitializeAndroidProjectDataRoot()
+	{
+		_androidStorage ??= AndroidExternalStorageAccess.Create();
+		_projectDataRoot = ProjectDataRoot.FromPath(_androidStorage.GetProjectDataRootPath());
+
+		if (!_androidStorage.IsAvailable)
+		{
+			_showcasePage.Configure([]);
+			OS.Alert("Android 存储插件未注册，无法访问外置 MOD 目录。请重新安装 Android 模板补丁后导出。", "Android 存储不可用");
+			return;
+		}
+
+		if (!_androidStorage.IsAllFilesAccessGranted())
+		{
+			_showcasePage.Configure([]);
+			_waitingForAndroidStoragePermission = true;
+			OS.Alert("需要授予“所有文件访问权限”，用于读取 /storage/emulated/0/JYXR 下的 MOD、存档和设置。授权后请返回游戏。", "需要存储权限");
+			if (!_androidStorage.OpenAllFilesAccessSettings())
+			{
+				_waitingForAndroidStoragePermission = false;
+				OS.Alert(_androidStorage.GetDebugState(), "无法打开权限设置");
+			}
+
+			return;
+		}
+
+		if (!_androidStorage.EnsureProjectDataDirectories())
+		{
+			_showcasePage.Configure([]);
+			OS.Alert(_androidStorage.GetDebugState(), "创建 JYXR 目录失败");
+			return;
+		}
+
 		RefreshMods();
 	}
 
@@ -78,11 +145,16 @@ public partial class ModLauncherPanel : Control
 			return ProjectSettings.GlobalizePath("res://");
 		}
 
-		if (OS.HasFeature("android") || OS.HasFeature("web_android"))
+		if (IsAndroidRuntime())
 		{
 			return AndroidProjectDataRootPath;
 		}
 
 		return Path.GetDirectoryName(OS.GetExecutablePath()) ?? OS.GetUserDataDir();
+	}
+
+	private static bool IsAndroidRuntime()
+	{
+		return OS.HasFeature("android") || OS.HasFeature("web_android");
 	}
 }
