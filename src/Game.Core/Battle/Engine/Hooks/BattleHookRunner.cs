@@ -26,26 +26,18 @@ internal sealed class BattleHookRunner(
         var context = new BattleHookContext(engine, state, timing, unit, random, executionMode);
         configure?.Invoke(context);
 
-        var entries = new List<HookExecutionEntry>();
-        var sequence = 0;
-        entries.AddRange(unit.Character.GetHooks(timing)
-            .Where(MatchesFilter)
-            .Select(hook => new HookExecutionEntry(hook, null, sequence++)));
-
-        foreach (var buff in unit.GetActiveBuffs())
-        {
-            entries.AddRange(buff.Definition.Affixes
-                .OfType<HookAffix>()
-                .Where(hook => hook.Timing == timing)
-                .Where(MatchesFilter)
-                .Select(hook => new HookExecutionEntry(hook, buff, sequence++)));
-        }
+        var entries = state.ProjectionResolver.GetHooks(unit, timing)
+            .Where(entry => MatchesFilter(entry.Hook))
+            .ToList();
 
         RunHooks(
             context,
             entries
                 .OrderByDescending(static entry => entry.Hook.Priority)
-                .ThenBy(static entry => entry.Sequence)
+                .ThenBy(static entry => entry.Origin.LayerOrder)
+                .ThenBy(entry => entry.Provider is null ? int.MaxValue : FindUnitOrder(state, entry.Provider))
+                .ThenBy(static entry => entry.AffixOrder)
+                .ThenBy(static entry => entry.SourceSequence)
                 .ToList(),
             recordEvents);
 
@@ -56,7 +48,7 @@ internal sealed class BattleHookRunner(
 
     private void RunHooks(
         BattleHookContext context,
-        IReadOnlyList<HookExecutionEntry> entries,
+        IReadOnlyList<ActiveHookEntry> entries,
         bool recordEvents)
     {
         if (entries.Count == 0)
@@ -70,7 +62,7 @@ internal sealed class BattleHookRunner(
                 BattleTraceKind.HooksTriggered,
                 context.Unit.Id,
                 context.Timing,
-                BuildHookLabels(entries.Select(static entry => entry.Hook).ToList()),
+                BuildHookLabels(entries),
                 context.State.CurrentExecutionScope));
         }
 
@@ -82,26 +74,31 @@ internal sealed class BattleHookRunner(
             }
 
             var previousBuff = context.Buff;
-            var previousSource = context.Source;
-            if (entry.Buff is not null)
-            {
-                context.Buff = entry.Buff;
-                context.Source ??= context.State.TryGetUnit(entry.Buff.SourceUnitId);
-            }
+            var previousProvider = context.Provider;
+            context.Provider = entry.Provider;
+            if (entry.Origin is BuffAffixOrigin buffOrigin)
+                context.Buff = context.Unit.Buffs.FirstOrDefault(buff =>
+                    buff.Definition.Id == buffOrigin.BuffId &&
+                    buff.AppliedAtActionSerial == buffOrigin.AppliedAtActionSerial);
 
             executor.Execute(context, entry.Hook);
             context.Buff = previousBuff;
-            context.Source = previousSource;
+            context.Provider = previousProvider;
         }
     }
 
-    private sealed record HookExecutionEntry(HookAffix Hook, BattleBuffInstance? Buff, int Sequence);
-
-    private static IReadOnlyList<string> BuildHookLabels(IReadOnlyList<HookAffix> hooks) =>
-        hooks.Select(hook => hook.Effects.Count == 0
-            ? hook.Timing.ToString()
-            : $"{hook.Timing}:{string.Join('+', hook.Effects.Select(static effect => effect.GetType().Name
+    private static IReadOnlyList<string> BuildHookLabels(IReadOnlyList<ActiveHookEntry> hooks) =>
+        hooks.Select(entry => entry.Hook.Effects.Count == 0
+            ? entry.Hook.Timing.ToString()
+            : $"{entry.Hook.Timing}:{string.Join('+', entry.Hook.Effects.Select(static effect => effect.GetType().Name
                 .Replace("BattleHookEffectDefinition", string.Empty, StringComparison.Ordinal)
                 .Replace("BattleEffectDefinition", string.Empty, StringComparison.Ordinal)))}")
             .ToList();
+
+    private static int FindUnitOrder(BattleState state, BattleUnit unit)
+    {
+        for (var index = 0; index < state.Units.Count; index++)
+            if (ReferenceEquals(state.Units[index], unit)) return index;
+        return int.MaxValue;
+    }
 }

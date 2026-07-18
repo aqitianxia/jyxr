@@ -25,11 +25,10 @@ public sealed class CharacterInstance
     public int CurrentRage { get; private set; }
     public BattleAiType AiType { get; private set; } = BattleAiType.Basic;
 
-    public CharacterAffixSnapshot Snapshot { get; private set; } = CharacterAffixSnapshot.Empty;
-    public IReadOnlySet<TalentDefinition> EffectiveTalents => Snapshot.EffectiveTalents;
-    public IReadOnlySet<TraitId> Traits => Snapshot.Traits;
-    public string? ResolvedModelId => Snapshot.ResolvedModelId;
-    public IReadOnlyDictionary<HookTiming, IReadOnlyList<HookAffix>> HooksByTiming => Snapshot.HooksByTiming;
+    public CharacterProjection Projection { get; private set; } = CharacterProjection.Empty;
+    public IReadOnlySet<TalentDefinition> EffectiveTalents => Projection.EffectiveTalents;
+    public IReadOnlySet<TraitId> Traits => Projection.Affixes.Traits;
+    public string? ResolvedModelId => Projection.ResolvedModelId;
 
     public Dictionary<StatType, int> BaseStats { get; } = new();
     public List<TalentDefinition> UnlockedTalents { get; } = [];
@@ -440,7 +439,7 @@ public sealed class CharacterInstance
     public void RebuildSnapshot()
     {
         var resolvedAffixSet = AffixResolver.Resolve(CollectActiveAffixes(), UnlockedTalents);
-        Snapshot = SnapshotBuilder.Build(resolvedAffixSet);
+        Projection = AffixProjectionBuilder.BuildCharacter(resolvedAffixSet);
         ClampBattleResources();
     }
 
@@ -483,28 +482,28 @@ public sealed class CharacterInstance
 
     public int GetBaseStat(StatType statType) => BaseStats.GetValueOrDefault(statType);
     public double GetStat(StatType statType) =>
-        GetBucket(Snapshot.StatModifierBuckets, statType).Evaluate(GetBaseStat(statType));
+        GetBucket(Projection.Affixes.StatModifierBuckets, statType).Evaluate(GetBaseStat(statType));
 
     public double GetSkillBonusValue(string skillId, double baseValue = 0) =>
-        GetBucket(Snapshot.SkillModifierBuckets, skillId).Evaluate(baseValue);
+        GetBucket(Projection.Affixes.SkillModifierBuckets, skillId).Evaluate(baseValue);
 
     public double GetWeaponBonusValue(WeaponType weaponType, double baseValue) =>
-        GetBucket(Snapshot.WeaponModifierBuckets, weaponType).Evaluate(baseValue);
+        GetBucket(Projection.Affixes.WeaponModifierBuckets, weaponType).Evaluate(baseValue);
 
     public double GetLegendChanceValue(string skillId, double baseValue) =>
-        GetBucket(Snapshot.LegendChanceModifierBuckets, skillId).Evaluate(baseValue);
+        GetBucket(Projection.Affixes.LegendChanceModifierBuckets, skillId).Evaluate(baseValue);
 
     public int GetSkillTargetingValue(string sourceSkillId, SkillTargetingField field, int baseValue)
     {
         var globalKey = new SkillTargetingModifierKey(null, field);
         var sourceKey = new SkillTargetingModifierKey(sourceSkillId, field);
-        var bucket = GetBucket(Snapshot.SkillTargetingModifierBuckets, globalKey)
-            .Combine(GetBucket(Snapshot.SkillTargetingModifierBuckets, sourceKey));
+        var bucket = GetBucket(Projection.Affixes.TargetingModifierBuckets, globalKey)
+            .Combine(GetBucket(Projection.Affixes.TargetingModifierBuckets, sourceKey));
         return checked((int)bucket.Evaluate(baseValue));
     }
 
-    public IReadOnlyList<HookAffix> GetHooks(HookTiming timing) =>
-        Snapshot.HooksByTiming.TryGetValue(timing, out var hooks) ? hooks : Array.Empty<HookAffix>();
+    public IReadOnlyList<ActiveHookEntry> GetHooks(HookTiming timing) =>
+        Projection.Affixes.HooksByTiming.TryGetValue(timing, out var hooks) ? hooks : Array.Empty<ActiveHookEntry>();
 
     private static ModifierBucket GetBucket<TKey>(IReadOnlyDictionary<TKey, ModifierBucket> buckets, TKey key)
         where TKey : notnull =>

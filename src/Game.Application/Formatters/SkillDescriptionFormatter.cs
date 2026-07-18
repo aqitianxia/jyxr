@@ -202,15 +202,15 @@ public static class SkillDescriptionFormatter
         }
     }
 
-    private static string FormatTargetedEffectCn(string text, BattleTargetSelectorDefinition target) =>
+    private static string FormatTargetedEffectCn(string text, BattleUnitSelectorDefinition target) =>
         target switch
         {
-            SelfBattleTargetSelectorDefinition => $"对自身{text}",
-            SourceBattleTargetSelectorDefinition => $"对施法者{text}",
-            TargetBattleTargetSelectorDefinition => $"对命中目标{text}",
-            AllAlliesBattleTargetSelectorDefinition => $"对全体友军{text}",
-            AllEnemiesBattleTargetSelectorDefinition => $"对全体敌军{text}",
-            NearbyAlliesBattleTargetSelectorDefinition nearbyAllies =>
+            SelfBattleUnitSelectorDefinition => $"对自身{text}",
+            SourceBattleUnitSelectorDefinition => $"对施法者{text}",
+            TargetBattleUnitSelectorDefinition => $"对命中目标{text}",
+            AllAlliesBattleUnitSelectorDefinition => $"对全体友军{text}",
+            AllEnemiesBattleUnitSelectorDefinition => $"对全体敌军{text}",
+            NearbyAlliesBattleUnitSelectorDefinition nearbyAllies =>
                 $"对{nearbyAllies.Radius}格内友军{text}",
             _ => text
         };

@@ -11,6 +11,7 @@ public interface IBattleEffectContext
     HookTiming Timing { get; }
     BattleUnit Unit { get; }
     BattleUnit? Source { get; }
+    BattleUnit? Provider { get; }
     BattleUnit? Target { get; }
     BattleBuffInstance? Buff { get; }
     SkillInstance? Skill { get; }

@@ -18,7 +18,7 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
     {
         if (effect is CustomAbilityBattleEffectDefinition custom)
         {
-            var targets = BattleTargetResolver.Resolve(
+            var targets = BattleUnitSelectorResolver.Resolve(
                 state,
                 source,
                 source,
@@ -47,7 +47,7 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
         BattleHookContext? hookContext)
     {
         var targets = effect is ITargetedBattleEffectDefinition targeted
-            ? BattleTargetResolver.Resolve(state, contextUnit, source, primaryTargets, targeted.Target)
+            ? BattleUnitSelectorResolver.Resolve(state, contextUnit, source, primaryTargets, targeted.Target)
             : [];
 
         switch (effect)
@@ -70,6 +70,7 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
             case StrengthenContextBuffBattleHookEffectDefinition strengthen:
                 (RequireHook().Buff ?? throw new InvalidOperationException("Battle effect requires a context buff."))
                     .Strengthen(strengthen.LevelDelta, strengthen.TurnDelta);
+                RequireHook().Unit.InvalidateLocalBattleProjection();
                 break;
             case ApplyBuffBattleEffectDefinition applyBuff:
                 foreach (var target in targets)
@@ -154,6 +155,11 @@ internal sealed class BattleEffectExecutor(BattleEngine engine)
                 break;
             case CustomBattleEffectDefinition custom:
                 custom.ExecuteHook(RequireHook());
+                break;
+            case GrantScopedBattleEffectDefinition grant:
+                if (RequireHook().IsPreview)
+                    throw new InvalidOperationException("Scoped battle effects cannot be granted during preview.");
+                state.ScopedEffects.Grant(state, contextUnit, grant.Effect, timing);
                 break;
             default:
                 throw new NotSupportedException($"Unsupported battle effect '{effect.GetType().Name}'.");

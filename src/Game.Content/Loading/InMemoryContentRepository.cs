@@ -9,6 +9,7 @@ namespace Game.Content.Loading;
 public sealed class InMemoryContentRepository : IContentRepository
 {
 	public required Dictionary<string, BattleDefinition> Battles { get; init; }
+	public required Dictionary<string, ScopedBattleEffectDefinition> ScopedBattleEffects { get; init; }
 	public required Dictionary<string, CharacterDefinition> Characters { get; init; }
 	public required Dictionary<string, ExternalSkillDefinition> ExternalSkills { get; init; }
 	public required Dictionary<string, GameTipDefinition> GameTips { get; init; }
@@ -35,6 +36,10 @@ public sealed class InMemoryContentRepository : IContentRepository
 	public bool TryGetBattle(string id, [NotNullWhen(true)] out BattleDefinition? definition) =>
 		Battles.TryGetValue(id, out definition);
 	public IReadOnlyCollection<BattleDefinition> GetBattles() => Battles.Values;
+	public ScopedBattleEffectDefinition GetScopedBattleEffect(string id) => ScopedBattleEffects[id];
+	public bool TryGetScopedBattleEffect(string id, [NotNullWhen(true)] out ScopedBattleEffectDefinition? definition) =>
+		ScopedBattleEffects.TryGetValue(id, out definition);
+	public IReadOnlyCollection<ScopedBattleEffectDefinition> GetScopedBattleEffects() => ScopedBattleEffects.Values;
 
 	public CharacterDefinition GetCharacter(string id) => Characters[id];
 	public bool TryGetCharacter(string id, [NotNullWhen(true)] out CharacterDefinition? definition) =>

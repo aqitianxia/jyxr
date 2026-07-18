@@ -9,6 +9,7 @@ public enum ProviderKind
     InternalSkill,
     Talent,
     Buff,
+    ScopedEffect,
     Other
 }
 

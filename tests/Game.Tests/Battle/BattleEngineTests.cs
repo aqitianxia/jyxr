@@ -1300,7 +1300,7 @@ public sealed class BattleEngineTests
                     Effects =
                     [
                         new AddRageBattleEffectDefinition(
-                            new SelfBattleTargetSelectorDefinition(),
+                            new SelfBattleUnitSelectorDefinition(),
                             Value: 2),
                     ],
                 },
@@ -1310,7 +1310,7 @@ public sealed class BattleEngineTests
                     Effects =
                     [
                         new AddRageBattleEffectDefinition(
-                            new SelfBattleTargetSelectorDefinition(),
+                            new SelfBattleUnitSelectorDefinition(),
                             Value: 3),
                     ],
                 },
@@ -1669,7 +1669,7 @@ public sealed class BattleEngineTests
             Effects =
             [
                 new ApplyBuffBattleEffectDefinition(
-                    new SelfBattleTargetSelectorDefinition(),
+                    new SelfBattleUnitSelectorDefinition(),
                     recovery.Id,
                     Level: 1,
                     Duration: 2),
@@ -1717,7 +1717,7 @@ public sealed class BattleEngineTests
             Effects =
             [
                 new RemoveBuffBattleEffectDefinition(
-                    new TargetBattleTargetSelectorDefinition(),
+                    new TargetBattleUnitSelectorDefinition(),
                     poison.Id),
             ],
         };
@@ -1728,7 +1728,7 @@ public sealed class BattleEngineTests
             Effects =
             [
                 new AddRageBattleEffectDefinition(
-                    new SelfBattleTargetSelectorDefinition(),
+                    new SelfBattleUnitSelectorDefinition(),
                     Value: 2),
             ],
         };
@@ -1959,7 +1959,7 @@ public sealed class BattleEngineTests
                     Effects =
                     [
                         new AddRageBattleEffectDefinition(
-                            new SelfBattleTargetSelectorDefinition(),
+                            new SelfBattleUnitSelectorDefinition(),
                             Value: 2),
                     ],
                 },
@@ -2102,7 +2102,7 @@ public sealed class BattleEngineTests
                 new HookAffix
                 {
                     Timing = HookTiming.OnDamageTaken,
-                    Effects = [new AddHpBattleEffectDefinition(new SelfBattleTargetSelectorDefinition(), 1)],
+                    Effects = [new AddHpBattleEffectDefinition(new SelfBattleUnitSelectorDefinition(), 1)],
                 },
                 new HookAffix { Timing = HookTiming.BeforeDefeated },
             ],
@@ -2276,7 +2276,7 @@ public sealed class BattleEngineTests
             Effects:
             [
                 new AddRageBattleEffectDefinition(
-                    new TargetBattleTargetSelectorDefinition(),
+                    new TargetBattleUnitSelectorDefinition(),
                     Value: 3),
             ]);
         var source = CreateUnit(
@@ -2471,7 +2471,7 @@ public sealed class BattleEngineTests
                         Effects =
                         [
                             new AddRageBattleEffectDefinition(
-                                new SelfBattleTargetSelectorDefinition(),
+                                new SelfBattleUnitSelectorDefinition(),
                                 Value: 2),
                         ],
                     }),
@@ -3882,7 +3882,7 @@ public sealed class BattleEngineTests
             Effects =
             [
                 new ApplyBuffBattleEffectDefinition(
-                    new NearbyAlliesBattleTargetSelectorDefinition(Radius: 2, IncludeSelf: true),
+                    new NearbyAlliesBattleUnitSelectorDefinition(Radius: 2, IncludeSelf: true),
                     "恢复",
                     Level: 2,
                     Duration: 3),
@@ -3979,7 +3979,7 @@ public sealed class BattleEngineTests
             Effects =
             [
                 new ApplyBuffBattleEffectDefinition(
-                    new TargetBattleTargetSelectorDefinition(),
+                    new TargetBattleUnitSelectorDefinition(),
                     stun.Id,
                     Level: 0,
                     Duration: 2,
@@ -4002,7 +4002,7 @@ public sealed class BattleEngineTests
                     Effects =
                     [
                         new ExtraStrikeBattleHookEffectDefinition(
-                            new TargetBattleTargetSelectorDefinition(),
+                            new TargetBattleUnitSelectorDefinition(),
                             damageFactors,
                             ChancePerBuffLevel: 5d),
                     ],
@@ -4454,7 +4454,7 @@ public sealed class BattleEngineTests
         using var parameters = JsonDocument.Parse("{}");
         var effect = new CustomAbilityBattleEffectDefinition(
             effectId,
-            new TargetBattleTargetSelectorDefinition(),
+            new TargetBattleUnitSelectorDefinition(),
             parameters.RootElement.Clone());
         var skill = new SpecialSkillDefinition(
             id,

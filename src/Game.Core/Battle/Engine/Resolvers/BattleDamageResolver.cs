@@ -121,6 +121,16 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
                     context.DamageAmount = takenContext.ActualAmount;
                     context.IsCritical = takenContext.IsCritical;
                 });
+
+                if (!takenContext.Target.IsAlive)
+                {
+                    state.AddMessage(new BattleFact(
+                        BattleFactKind.UnitDefeated,
+                        takenContext.Target.Id,
+                        HookTiming.BeforeDefeated,
+                        takenContext.Source.Id));
+                    state.ScopedEffects.NotifyUnitDefeated(state, takenContext.Target);
+                }
             }
 
             var lifestealRate = Math.Max(

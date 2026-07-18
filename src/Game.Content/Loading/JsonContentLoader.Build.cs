@@ -13,6 +13,7 @@ public sealed partial class JsonContentLoader
         var repository = new InMemoryContentRepository
         {
             Battles = IndexById(package.Battles, "Battle"),
+            ScopedBattleEffects = IndexById(package.ScopedBattleEffects, "ScopedBattleEffect"),
             Characters = IndexById(package.Characters, "Character"),
             ExternalSkills = IndexById(package.ExternalSkills, "ExternalSkill"),
             GameTips = IndexById(package.GameTips, "GameTip"),
@@ -40,6 +41,14 @@ public sealed partial class JsonContentLoader
         ResolveItemTags(repository);
 
         ResolveAffixes(repository);
+
+        foreach (var effect in repository.ScopedBattleEffects.Values)
+        {
+            foreach (var affix in effect.Affixes)
+            {
+                affix.Resolve(repository);
+            }
+        }
 
         foreach (var definition in repository.SpecialSkills.Values)
         {

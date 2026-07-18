@@ -7,6 +7,7 @@ namespace Game.Content.Loading;
 public sealed class ContentPackage
 {
     public List<BattleDefinition> Battles { get; init; } = [];
+    public List<ScopedBattleEffectDefinition> ScopedBattleEffects { get; init; } = [];
     public List<CharacterDefinition> Characters { get; init; } = [];
     public List<ExternalSkillDefinition> ExternalSkills { get; init; } = [];
     public List<GameTipDefinition> GameTips { get; init; } = [];

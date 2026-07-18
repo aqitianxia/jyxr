@@ -8,37 +8,40 @@ using Game.Core.Model.Skills;
 namespace Game.Core.Battle;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(SelfBattleTargetSelectorDefinition), "self")]
-[JsonDerivedType(typeof(SourceBattleTargetSelectorDefinition), "source")]
-[JsonDerivedType(typeof(TargetBattleTargetSelectorDefinition), "target")]
-[JsonDerivedType(typeof(AllAlliesBattleTargetSelectorDefinition), "all_allies")]
-[JsonDerivedType(typeof(AllEnemiesBattleTargetSelectorDefinition), "all_enemies")]
-[JsonDerivedType(typeof(NearbyAlliesBattleTargetSelectorDefinition), "nearby_allies")]
-[JsonDerivedType(typeof(NearbyEnemiesBattleTargetSelectorDefinition), "nearby_enemies")]
-public abstract record BattleTargetSelectorDefinition;
+[JsonDerivedType(typeof(SelfBattleUnitSelectorDefinition), "self")]
+[JsonDerivedType(typeof(SourceBattleUnitSelectorDefinition), "source")]
+[JsonDerivedType(typeof(TargetBattleUnitSelectorDefinition), "target")]
+[JsonDerivedType(typeof(AllAlliesBattleUnitSelectorDefinition), "all_allies")]
+[JsonDerivedType(typeof(AllEnemiesBattleUnitSelectorDefinition), "all_enemies")]
+[JsonDerivedType(typeof(NearbyAlliesBattleUnitSelectorDefinition), "nearby_allies")]
+[JsonDerivedType(typeof(NearbyEnemiesBattleUnitSelectorDefinition), "nearby_enemies")]
+[JsonDerivedType(typeof(ExplicitUnitsBattleUnitSelectorDefinition), "explicit_units")]
+public abstract record BattleUnitSelectorDefinition;
 
 public interface ITargetedBattleEffectDefinition
 {
-    BattleTargetSelectorDefinition Target { get; }
+    BattleUnitSelectorDefinition Target { get; }
 }
 
-public sealed record SelfBattleTargetSelectorDefinition : BattleTargetSelectorDefinition;
+public sealed record SelfBattleUnitSelectorDefinition : BattleUnitSelectorDefinition;
 
-public sealed record SourceBattleTargetSelectorDefinition : BattleTargetSelectorDefinition;
+public sealed record SourceBattleUnitSelectorDefinition : BattleUnitSelectorDefinition;
 
-public sealed record TargetBattleTargetSelectorDefinition : BattleTargetSelectorDefinition;
+public sealed record TargetBattleUnitSelectorDefinition : BattleUnitSelectorDefinition;
 
-public sealed record AllAlliesBattleTargetSelectorDefinition(
-    bool IncludeSelf = true) : BattleTargetSelectorDefinition;
+public sealed record AllAlliesBattleUnitSelectorDefinition(
+    bool IncludeSelf = true) : BattleUnitSelectorDefinition;
 
-public sealed record AllEnemiesBattleTargetSelectorDefinition : BattleTargetSelectorDefinition;
+public sealed record AllEnemiesBattleUnitSelectorDefinition : BattleUnitSelectorDefinition;
 
-public sealed record NearbyAlliesBattleTargetSelectorDefinition(
+public sealed record NearbyAlliesBattleUnitSelectorDefinition(
     int Radius,
-    bool IncludeSelf = true) : BattleTargetSelectorDefinition;
+    bool IncludeSelf = true) : BattleUnitSelectorDefinition;
 
-public sealed record NearbyEnemiesBattleTargetSelectorDefinition(
-    int Radius) : BattleTargetSelectorDefinition;
+public sealed record NearbyEnemiesBattleUnitSelectorDefinition(
+    int Radius) : BattleUnitSelectorDefinition;
+
+public sealed record ExplicitUnitsBattleUnitSelectorDefinition : BattleUnitSelectorDefinition;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ApplyBuffBattleEffectDefinition), "apply_buff")]
@@ -63,6 +66,7 @@ public sealed record NearbyEnemiesBattleTargetSelectorDefinition(
 [JsonDerivedType(typeof(ExtraStrikeBattleHookEffectDefinition), "extra_strike")]
 [JsonDerivedType(typeof(CustomBattleEffectDefinition), "custom")]
 [JsonDerivedType(typeof(CustomAbilityBattleEffectDefinition), "custom_ability")]
+[JsonDerivedType(typeof(GrantScopedBattleEffectDefinition), "grant_scoped_battle_effect")]
 public abstract record BattleEffectDefinition
 {
     public virtual void Resolve(IContentRepository contentRepository)
@@ -70,8 +74,17 @@ public abstract record BattleEffectDefinition
     }
 }
 
+public sealed record GrantScopedBattleEffectDefinition(string EffectId) : BattleEffectDefinition
+{
+    [JsonIgnore]
+    public ScopedBattleEffectDefinition Effect { get; private set; } = null!;
+
+    public override void Resolve(IContentRepository contentRepository) =>
+        Effect = contentRepository.GetScopedBattleEffect(EffectId);
+}
+
 public sealed record ApplyBuffBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     string BuffId,
     int Level,
     int Duration,
@@ -88,7 +101,7 @@ public sealed record ApplyBuffBattleEffectDefinition(
 }
 
 public sealed record RemoveBuffBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     string BuffId) : BattleEffectDefinition, ITargetedBattleEffectDefinition
 {
     [JsonIgnore]
@@ -102,35 +115,35 @@ public sealed record RemoveBuffBattleEffectDefinition(
 }
 
 public sealed record RemoveNegativeBuffsBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
+    BattleUnitSelectorDefinition Target) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record RemovePositiveBuffsBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
+    BattleUnitSelectorDefinition Target) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record RemoveContextBuffBattleEffectDefinition : BattleEffectDefinition;
 
 public sealed record AddRageBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record SetRageBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record AddActionGaugeBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record SetActionGaugeBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record AddHpBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record AddMpBattleEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     int Value) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
 
 public sealed record ModifyLifestealBattleHookEffectDefinition(
@@ -141,7 +154,7 @@ public sealed record CancelHitBattleHookEffectDefinition(
     bool SuppressHitEffects = true) : BattleEffectDefinition;
 
 public sealed record ExtraStrikeBattleHookEffectDefinition(
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     IReadOnlyList<double> DamageFactors,
     double Chance = 0d,
     double ChancePerBuffLevel = 0d) : BattleEffectDefinition, ITargetedBattleEffectDefinition;
@@ -180,7 +193,7 @@ public sealed record CustomBattleEffectDefinition(
 
 public sealed record CustomAbilityBattleEffectDefinition(
     string EffectId,
-    BattleTargetSelectorDefinition Target,
+    BattleUnitSelectorDefinition Target,
     JsonElement Parameters) : BattleEffectDefinition, ITargetedBattleEffectDefinition
 {
     [JsonIgnore]

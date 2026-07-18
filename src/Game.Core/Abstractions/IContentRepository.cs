@@ -12,6 +12,9 @@ public interface IContentRepository
     BattleDefinition GetBattle(string id);
     bool TryGetBattle(string id, [NotNullWhen(true)] out BattleDefinition? definition);
     IReadOnlyCollection<BattleDefinition> GetBattles();
+    ScopedBattleEffectDefinition GetScopedBattleEffect(string id);
+    bool TryGetScopedBattleEffect(string id, [NotNullWhen(true)] out ScopedBattleEffectDefinition? definition);
+    IReadOnlyCollection<ScopedBattleEffectDefinition> GetScopedBattleEffects();
     CharacterDefinition GetCharacter(string id);
     bool TryGetCharacter(string id, [NotNullWhen(true)] out CharacterDefinition? definition);
     IReadOnlyCollection<CharacterDefinition> GetCharacters();

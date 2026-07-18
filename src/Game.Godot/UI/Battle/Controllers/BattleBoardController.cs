@@ -69,7 +69,7 @@ internal sealed class BattleBoardController(
             unit.Rage,
             (int)Math.Round(unit.ActionGauge, MidpointRounding.AwayFromZero),
             AssetResolver.LoadCharacterPortrait(unit.Character),
-            unit.GetActiveBuffs().Select(static buff => new BattleBoardBuffVisual(
+            unit.ActiveBuffs.Select(static buff => new BattleBoardBuffVisual(
                 buff.Definition.Name, buff.Definition.IsDebuff, buff.Level, buff.RemainingTurns)).ToArray()))
             .ToArray());
     }

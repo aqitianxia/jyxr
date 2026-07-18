@@ -12,7 +12,10 @@ public static class BattleSkillTargeting
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(skill);
 
-        var castSize = SkillTargetingResolver.ResolveCastSize(skill);
+        var castSize = source.GetSkillTargetingValue(
+            skill.SourceSkillId,
+            SkillTargetingField.CastSize,
+            skill.CastSize);
         return ApplyBlindPenalty(source, castSize);
     }
 
@@ -21,7 +24,10 @@ public static class BattleSkillTargeting
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(skill);
 
-        var impactSize = SkillTargetingResolver.ResolveImpactSize(skill);
+        var impactSize = source.GetSkillTargetingValue(
+            skill.SourceSkillId,
+            SkillTargetingField.ImpactSize,
+            skill.ImpactSize);
         return ApplyBlindPenalty(source, impactSize);
     }
 

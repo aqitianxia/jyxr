@@ -1,5 +1,6 @@
 using Game.Content.Loading;
 using Game.Core.Affix;
+using Game.Core.Battle;
 using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
@@ -12,6 +13,18 @@ public sealed class ContentLoadingTests
 {
     private static string SampleContentDirectoryPath =>
         Path.Combine(AppContext.BaseDirectory, "SampleData", "sample-content");
+
+    [Fact]
+    public void JsonLoader_LoadsBaseModScopedBattleEffects()
+    {
+        var dataPath = Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
+        var repository = new JsonContentLoader().LoadFromDirectory(dataPath);
+
+        Assert.Equal(4, repository.GetScopedBattleEffects().Count);
+        Assert.Contains(repository.GetScopedBattleEffects(), effect => effect.Id == "金刚伏魔圈.组阵");
+        Assert.Contains(repository.GetTalent("五行阵").Affixes,
+            affix => affix is HookAffix { Timing: HookTiming.OnBattleStart });
+    }
 
     [Fact]
     public void JsonLoader_LoadsSamplePackage()
@@ -1246,6 +1259,7 @@ public sealed class ContentLoadingTests
         var files = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["battles.json"] = "[]",
+            ["scoped-battle-effects.json"] = "[]",
             ["characters.json"] = "[]",
             ["external-skills.json"] = "[]",
             ["game-tips.json"] = "[]",

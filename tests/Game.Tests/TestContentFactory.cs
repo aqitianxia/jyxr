@@ -159,7 +159,8 @@ internal static class TestContentFactory
         IEnumerable<ResourceDefinition>? resources = null,
         IEnumerable<ShopDefinition>? shops = null,
         IEnumerable<BattleDefinition>? battles = null,
-        IEnumerable<TowerDefinition>? towers = null) =>
+        IEnumerable<TowerDefinition>? towers = null,
+        IEnumerable<ScopedBattleEffectDefinition>? scopedBattleEffects = null) =>
         CreateRepositoryInternal(
             characters,
             externalSkills,
@@ -178,7 +179,8 @@ internal static class TestContentFactory
             resources,
             shops,
             battles,
-            towers);
+            towers,
+            scopedBattleEffects);
 
     private static InMemoryContentRepository CreateRepositoryInternal(
         IEnumerable<CharacterDefinition>? characters,
@@ -198,7 +200,8 @@ internal static class TestContentFactory
         IEnumerable<ResourceDefinition>? resources,
         IEnumerable<ShopDefinition>? shops,
         IEnumerable<BattleDefinition>? battles,
-        IEnumerable<TowerDefinition>? towers)
+        IEnumerable<TowerDefinition>? towers,
+        IEnumerable<ScopedBattleEffectDefinition>? scopedBattleEffects)
     {
         var storyScriptMap = (storyScripts ?? [])
             .Select((script, index) => (Key: $"story_{index}", Script: script))
@@ -218,6 +221,7 @@ internal static class TestContentFactory
         return new InMemoryContentRepository
         {
             Battles = (battles ?? []).ToDictionary(definition => definition.Id, StringComparer.Ordinal),
+            ScopedBattleEffects = (scopedBattleEffects ?? []).ToDictionary(definition => definition.Id, StringComparer.Ordinal),
             Characters = (characters ?? []).ToDictionary(definition => definition.Id, StringComparer.Ordinal),
             ExternalSkills = (externalSkills ?? []).ToDictionary(definition => definition.Id, StringComparer.Ordinal),
             GameTips = new Dictionary<string, GameTipDefinition>(StringComparer.Ordinal),

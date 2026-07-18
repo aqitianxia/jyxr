@@ -201,6 +201,7 @@ public partial class BattleScreen : Control
 		_settingsController.Load();
 		_eventPresenter.Clear();
 		AppendLog($"战斗开始：{_battleDefinition.Name}");
+		_flowContext.StartBattle();
 		await _flow.StartAsync();
 	}
 

@@ -42,11 +42,22 @@ public sealed class BattleState
         {
             throw new InvalidOperationException($"Multiple units start on cell '{duplicatedPosition.Key}'.");
         }
+
+        ScopedEffects = new ScopedBattleEffectRegistry();
+        ProjectionResolver = new BattleEffectProjectionResolver(this);
+        foreach (var unit in _units)
+        {
+            unit.BindProjectionResolver(ProjectionResolver);
+        }
     }
 
     public BattleGrid Grid { get; }
 
     public BattleRuleSettings RuleSettings { get; }
+
+    public ScopedBattleEffectRegistry ScopedEffects { get; }
+
+    public BattleEffectProjectionResolver ProjectionResolver { get; }
 
     public IReadOnlyList<BattleUnit> Units => _units;
 
@@ -55,6 +66,8 @@ public sealed class BattleState
     public long Tick { get; internal set; }
 
     public long ActionSerial { get; internal set; }
+
+    public bool HasStarted { get; internal set; }
 
     public BattleExecutionScope? CurrentExecutionScope { get; private set; }
 

@@ -9,6 +9,7 @@ namespace Game.Content.Loading;
 public sealed partial class JsonContentLoader
 {
     private const string BattlesFileName = "battles.json";
+    private const string ScopedBattleEffectsFileName = "scoped-battle-effects.json";
     private const string CharactersFileName = "characters.json";
     private const string ExternalSkillsFileName = "external-skills.json";
     private const string GameTipsFileName = "game-tips.json";
@@ -40,6 +41,7 @@ public sealed partial class JsonContentLoader
         return new ContentPackage
         {
             Battles = LoadRequiredList<BattleDefinition>(directoryPath, BattlesFileName),
+            ScopedBattleEffects = LoadRequiredList<ScopedBattleEffectDefinition>(directoryPath, ScopedBattleEffectsFileName),
             Characters = LoadRequiredList<CharacterDefinition>(directoryPath, CharactersFileName),
             ExternalSkills = LoadRequiredList<ExternalSkillDefinition>(directoryPath, ExternalSkillsFileName),
             GameTips = LoadRequiredList<GameTipDefinition>(directoryPath, GameTipsFileName),

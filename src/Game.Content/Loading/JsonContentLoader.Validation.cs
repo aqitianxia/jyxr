@@ -19,6 +19,7 @@ public sealed partial class JsonContentLoader
         ValidateCharacters(repository);
         ValidateBattles(repository);
         ValidateBattleHookAffixes(repository);
+        ValidateScopedBattleEffects(repository);
         ValidateSkillBuffs(repository);
         ValidateSkillAffixes(repository);
         ValidateSpecialSkills(repository);
@@ -173,7 +174,7 @@ public sealed partial class JsonContentLoader
                     case CustomAbilityBattleEffectDefinition custom:
                         Ensure(custom.SupportsAbility,
                             $"SpecialSkill '{skill.Id}' uses custom effect '{custom.EffectId}' that does not support ability execution.");
-                        ValidateBattleTargetSelector(custom.Target, $"SpecialSkill '{skill.Id}'", null);
+                        ValidateBattleUnitSelector(custom.Target, $"SpecialSkill '{skill.Id}'", null);
                         break;
                     default:
                         ValidateSharedBattleEffect(effect, $"SpecialSkill '{skill.Id}'", repository);
@@ -266,6 +267,8 @@ public sealed partial class JsonContentLoader
     {
         Ensure(affix.MinimumLevel >= 1, $"{ownerName} has skill affix with invalid minimum level '{affix.MinimumLevel}'.");
         Ensure(affix.Effect is not null, $"{ownerName} has skill affix without effect.");
+        Ensure(affix.Effect is not BuffLevelStatModifierAffix,
+            $"{ownerName} cannot contain a buff-level modifier.");
         ValidateBattleHookAffix(affix.Effect!, ownerName, repository);
     }
 
@@ -274,16 +277,26 @@ public sealed partial class JsonContentLoader
         foreach (var talent in repository.Talents.Values)
         {
             ValidateBattleHookAffixes(talent.Affixes, repository, $"Talent '{talent.Id}'");
+            Ensure(talent.Affixes.All(static affix => affix is not BuffLevelStatModifierAffix),
+                $"Talent '{talent.Id}' cannot contain a buff-level modifier.");
         }
 
         foreach (var buff in repository.Buffs.Values)
         {
             ValidateBattleHookAffixes(buff.Affixes, repository, $"Buff '{buff.Id}'");
+            foreach (var affix in buff.Affixes)
+            {
+                Ensure(affix is BuffLevelStatModifierAffix or StatModifierAffix or SkillBonusModifierAffix or
+                    WeaponBonusModifierAffix or SkillTargetingModifierAffix or TraitAffix or HookAffix,
+                    $"Buff '{buff.Id}' contains unsupported affix '{affix.GetType().Name}'.");
+            }
         }
 
         foreach (var equipment in repository.Equipments.Values)
         {
             ValidateBattleHookAffixes(equipment.Affixes, repository, $"Equipment '{equipment.Id}'");
+            Ensure(equipment.Affixes.All(static affix => affix is not BuffLevelStatModifierAffix),
+                $"Equipment '{equipment.Id}' cannot contain a buff-level modifier.");
         }
     }
 
@@ -523,6 +536,12 @@ public sealed partial class JsonContentLoader
                     break;
                 case CustomBattleEffectDefinition:
                     break;
+                case GrantScopedBattleEffectDefinition grant:
+                    Ensure(hook.Timing == HookTiming.OnBattleStart,
+                        $"{ownerName} can only grant scoped effects during '{HookTiming.OnBattleStart}'.");
+                    Ensure(repository is not null && repository.ScopedBattleEffects.ContainsKey(grant.EffectId),
+                        $"{ownerName} references missing scoped battle effect '{grant.EffectId}'.");
+                    break;
                 default:
                     throw new InvalidOperationException($"{ownerName} has unsupported battle hook effect '{effect.GetType().Name}'.");
             }
@@ -581,7 +600,7 @@ public sealed partial class JsonContentLoader
                 Ensure(applyBuff.Level >= 0, $"{ownerName} apply_buff effect has invalid level '{applyBuff.Level}'.");
                 Ensure(applyBuff.Duration >= 1, $"{ownerName} apply_buff effect has invalid duration '{applyBuff.Duration}'.");
                 Ensure(applyBuff.Chance is >= 0 and <= 100, $"{ownerName} apply_buff effect has invalid chance '{applyBuff.Chance}'.");
-                ValidateBattleTargetSelector(applyBuff.Target!, ownerName, null);
+                ValidateBattleUnitSelector(applyBuff.Target!, ownerName, null);
                 break;
             case RemoveBuffBattleEffectDefinition removeBuff:
                 Ensure(removeBuff.Target is not null, $"{ownerName} remove_buff effect is missing target.");
@@ -590,47 +609,47 @@ public sealed partial class JsonContentLoader
                 {
                     Ensure(repository.Buffs.ContainsKey(removeBuff.BuffId), $"{ownerName} references missing buff '{removeBuff.BuffId}'.");
                 }
-                ValidateBattleTargetSelector(removeBuff.Target!, ownerName, null);
+                ValidateBattleUnitSelector(removeBuff.Target!, ownerName, null);
                 break;
             case RemoveNegativeBuffsBattleEffectDefinition removeNegativeBuffs:
                 Ensure(removeNegativeBuffs.Target is not null, $"{ownerName} remove_negative_buffs effect is missing target.");
-                ValidateBattleTargetSelector(removeNegativeBuffs.Target!, ownerName, null);
+                ValidateBattleUnitSelector(removeNegativeBuffs.Target!, ownerName, null);
                 break;
             case RemovePositiveBuffsBattleEffectDefinition removePositiveBuffs:
                 Ensure(removePositiveBuffs.Target is not null, $"{ownerName} remove_positive_buffs effect is missing target.");
-                ValidateBattleTargetSelector(removePositiveBuffs.Target!, ownerName, null);
+                ValidateBattleUnitSelector(removePositiveBuffs.Target!, ownerName, null);
                 break;
             case RemoveContextBuffBattleEffectDefinition:
                 break;
             case AddRageBattleEffectDefinition addRage:
                 Ensure(addRage.Target is not null, $"{ownerName} add_rage effect is missing target.");
                 Ensure(addRage.Value >= 0, $"{ownerName} add_rage effect has invalid value '{addRage.Value}'.");
-                ValidateBattleTargetSelector(addRage.Target!, ownerName, null);
+                ValidateBattleUnitSelector(addRage.Target!, ownerName, null);
                 break;
             case SetRageBattleEffectDefinition setRage:
                 Ensure(setRage.Target is not null, $"{ownerName} set_rage effect is missing target.");
                 Ensure(setRage.Value >= 0 && setRage.Value <= BattleUnit.MaxRage,
                     $"{ownerName} set_rage effect has invalid value '{setRage.Value}'.");
-                ValidateBattleTargetSelector(setRage.Target!, ownerName, null);
+                ValidateBattleUnitSelector(setRage.Target!, ownerName, null);
                 break;
             case AddActionGaugeBattleEffectDefinition addActionGauge:
                 Ensure(addActionGauge.Target is not null, $"{ownerName} add_action_gauge effect is missing target.");
-                ValidateBattleTargetSelector(addActionGauge.Target!, ownerName, null);
+                ValidateBattleUnitSelector(addActionGauge.Target!, ownerName, null);
                 break;
             case SetActionGaugeBattleEffectDefinition setActionGauge:
                 Ensure(setActionGauge.Target is not null, $"{ownerName} set_action_gauge effect is missing target.");
                 Ensure(setActionGauge.Value >= 0, $"{ownerName} set_action_gauge effect has invalid value '{setActionGauge.Value}'.");
-                ValidateBattleTargetSelector(setActionGauge.Target!, ownerName, null);
+                ValidateBattleUnitSelector(setActionGauge.Target!, ownerName, null);
                 break;
             case AddHpBattleEffectDefinition addHp:
                 Ensure(addHp.Target is not null, $"{ownerName} add_hp effect is missing target.");
                 Ensure(addHp.Value >= 0, $"{ownerName} add_hp effect has invalid value '{addHp.Value}'.");
-                ValidateBattleTargetSelector(addHp.Target!, ownerName, null);
+                ValidateBattleUnitSelector(addHp.Target!, ownerName, null);
                 break;
             case AddMpBattleEffectDefinition addMp:
                 Ensure(addMp.Target is not null, $"{ownerName} add_mp effect is missing target.");
                 Ensure(addMp.Value >= 0, $"{ownerName} add_mp effect has invalid value '{addMp.Value}'.");
-                ValidateBattleTargetSelector(addMp.Target!, ownerName, null);
+                ValidateBattleUnitSelector(addMp.Target!, ownerName, null);
                 break;
             case CancelHitBattleHookEffectDefinition:
             case SetHitSuccessBattleHookEffectDefinition:
@@ -649,7 +668,7 @@ public sealed partial class JsonContentLoader
                     Ensure(damageFactor > 0d,
                         $"{ownerName} extra_strike effect has invalid damage factor '{damageFactor}'.");
                 }
-                ValidateBattleTargetSelector(extraStrike.Target!, ownerName, null);
+                ValidateBattleUnitSelector(extraStrike.Target!, ownerName, null);
                 break;
             default:
                 throw new InvalidOperationException($"{ownerName} has unsupported shared battle effect '{effect.GetType().Name}'.");
@@ -691,28 +710,30 @@ public sealed partial class JsonContentLoader
         }
     }
 
-    private static void ValidateBattleTargetSelector(
-        BattleTargetSelectorDefinition selector,
+    private static void ValidateBattleUnitSelector(
+        BattleUnitSelectorDefinition selector,
         string ownerName,
         HookTiming? timing)
     {
         var scope = timing is null ? ownerName : $"{ownerName} '{timing}'";
         switch (selector)
         {
-            case SelfBattleTargetSelectorDefinition:
-            case SourceBattleTargetSelectorDefinition:
-            case TargetBattleTargetSelectorDefinition:
-            case AllAlliesBattleTargetSelectorDefinition:
-            case AllEnemiesBattleTargetSelectorDefinition:
+            case SelfBattleUnitSelectorDefinition:
+            case SourceBattleUnitSelectorDefinition:
+            case TargetBattleUnitSelectorDefinition:
+            case AllAlliesBattleUnitSelectorDefinition:
+            case AllEnemiesBattleUnitSelectorDefinition:
                 break;
-            case NearbyAlliesBattleTargetSelectorDefinition nearbyAllies:
+            case NearbyAlliesBattleUnitSelectorDefinition nearbyAllies:
                 Ensure(nearbyAllies.Radius >= 0,
                     $"{scope} nearby_allies selector has invalid radius '{nearbyAllies.Radius}'.");
                 break;
-            case NearbyEnemiesBattleTargetSelectorDefinition nearbyEnemies:
+            case NearbyEnemiesBattleUnitSelectorDefinition nearbyEnemies:
                 Ensure(nearbyEnemies.Radius >= 0,
                     $"{scope} nearby_enemies selector has invalid radius '{nearbyEnemies.Radius}'.");
                 break;
+            case ExplicitUnitsBattleUnitSelectorDefinition:
+                throw new InvalidOperationException($"{scope} cannot use explicit_units outside a scoped effect.");
             default:
                 throw new InvalidOperationException($"{scope} has unsupported battle target selector '{selector.GetType().Name}'.");
         }
@@ -804,6 +825,53 @@ public sealed partial class JsonContentLoader
                 Ensure(item.UseEffects.All(IsSupportedOutOfBattleItemEffect),
                     $"Item '{item.Id}' contains an item effect that is not supported outside battle.");
             }
+        }
+    }
+
+    private static void ValidateScopedBattleEffects(InMemoryContentRepository repository)
+    {
+        foreach (var definition in repository.ScopedBattleEffects.Values)
+        {
+            Ensure(!string.IsNullOrWhiteSpace(definition.Id), "Scoped battle effect has empty id.");
+            Ensure(definition.Scope is not null, $"Scoped battle effect '{definition.Id}' has no scope.");
+            Ensure(definition.RequiredMembers >= 1,
+                $"Scoped battle effect '{definition.Id}' has invalid requiredMembers '{definition.RequiredMembers}'.");
+            ValidateScopedSelector(definition.Scope!, definition.Id);
+            foreach (var affix in definition.Affixes)
+            {
+                Ensure(affix is StatModifierAffix or SkillBonusModifierAffix or WeaponBonusModifierAffix or
+                    SkillTargetingModifierAffix or TraitAffix or HookAffix,
+                    $"Scoped battle effect '{definition.Id}' contains unsupported affix '{affix.GetType().Name}'.");
+                if (affix is StatModifierAffix stat)
+                    Ensure(stat.Stat is not StatType.MaxHp and not StatType.MaxMp,
+                        $"Scoped battle effect '{definition.Id}' cannot modify '{stat.Stat}'.");
+                if (affix is HookAffix hook)
+                {
+                    Ensure(hook.Effects.All(static effect => effect is not GrantScopedBattleEffectDefinition),
+                        $"Scoped battle effect '{definition.Id}' cannot recursively grant scoped effects.");
+                    ValidateBattleHookAffix(hook, $"Scoped battle effect '{definition.Id}'", repository);
+                }
+            }
+        }
+    }
+
+    private static void ValidateScopedSelector(BattleUnitSelectorDefinition selector, string effectId)
+    {
+        switch (selector)
+        {
+            case AllAlliesBattleUnitSelectorDefinition:
+            case AllEnemiesBattleUnitSelectorDefinition:
+            case ExplicitUnitsBattleUnitSelectorDefinition:
+                break;
+            case NearbyAlliesBattleUnitSelectorDefinition nearby:
+                Ensure(nearby.Radius >= 0, $"Scoped battle effect '{effectId}' has invalid radius '{nearby.Radius}'.");
+                break;
+            case NearbyEnemiesBattleUnitSelectorDefinition nearby:
+                Ensure(nearby.Radius >= 0, $"Scoped battle effect '{effectId}' has invalid radius '{nearby.Radius}'.");
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Scoped battle effect '{effectId}' uses unstable selector '{selector.GetType().Name}'.");
         }
     }
 

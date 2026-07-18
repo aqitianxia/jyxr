@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Game.Core.Abstractions;
 using Game.Core.Affix;
 using Game.Core.Battle;
@@ -386,6 +387,180 @@ public sealed class BattleRuleTests
 
         Assert.Equal(1, BattleSkillTargeting.ResolveEffectiveImpactSize(unit, unit.Character.ExternalSkills[0]));
         Assert.Equal(3, BattleSkillTargeting.ResolveEffectiveImpactSize(unit, unit.Character.ExternalSkills[1]));
+    }
+
+    [Fact]
+    public void BuffSkillTargetingModifier_UsesUnifiedBattleProjection()
+    {
+        var skill = TestContentFactory.CreateExternalSkill("buff_range_skill", castSize: 2);
+        var unit = CreateUnit(
+            "source",
+            team: 1,
+            new GridPosition(0, 0),
+            externalSkills: [new InitialExternalSkillEntryDefinition(skill, 1)]);
+        var buff = new BuffDefinition
+        {
+            Id = "range_buff",
+            Name = "range_buff",
+            IsDebuff = false,
+            Affixes = [new SkillTargetingModifierAffix(skill.Id, SkillTargetingField.CastSize, ModifierValue.Add(3))],
+        };
+
+        unit.TryApplyBuff(new BattleBuffInstance(buff, 1, 2, unit.Id, 0));
+
+        Assert.Equal(5, BattleSkillTargeting.ResolveEffectiveCastSize(unit, unit.Character.ExternalSkills.Single()));
+    }
+
+    [Fact]
+    public void ScopedAura_TracksRangeAndSourceAliveWithoutCreatingBuffs()
+    {
+        var effect = new ScopedBattleEffectDefinition
+        {
+            Id = "guard_aura",
+            Scope = new NearbyAlliesBattleUnitSelectorDefinition(1, IncludeSelf: false),
+            Activation = BattleEffectActivation.SourceAlive,
+            Affixes = [new TraitAffix(TraitId.IgnoreZoneOfControl)],
+        };
+        var grant = new GrantScopedBattleEffectDefinition(effect.Id);
+        grant.Resolve(TestContentFactory.CreateRepository(scopedBattleEffects: [effect]));
+        var talent = new TalentDefinition
+        {
+            Id = "guard_aura_talent",
+            Name = "guard_aura_talent",
+            Affixes = [new HookAffix { Timing = HookTiming.OnBattleStart, Effects = [grant] }],
+        };
+        var provider = CreateUnit("provider", 1, new GridPosition(0, 0), talents: [talent]);
+        var near = CreateUnit("near", 1, new GridPosition(1, 0));
+        var far = CreateUnit("far", 1, new GridPosition(3, 0));
+        var state = new BattleState(new BattleGrid(5, 2), [provider, near, far]);
+        var engine = new BattleEngine();
+
+        engine.StartBattle(state);
+
+        Assert.True(near.HasTrait(TraitId.IgnoreZoneOfControl));
+        Assert.False(far.HasTrait(TraitId.IgnoreZoneOfControl));
+        Assert.Empty(near.Buffs);
+        provider.TakeDamage(provider.Hp);
+        Assert.False(near.HasTrait(TraitId.IgnoreZoneOfControl));
+        engine.StartBattle(state);
+        Assert.Single(state.ScopedEffects.Instances);
+    }
+
+    [Fact]
+    public void ScopedTeamGroup_EstablishesOnceAfterRequiredGrants()
+    {
+        var effect = new ScopedBattleEffectDefinition
+        {
+            Id = "formation",
+            Scope = new ExplicitUnitsBattleUnitSelectorDefinition(),
+            GrantMode = ScopedBattleEffectGrantMode.PerTeamGroup,
+            RequiredMembers = 3,
+            Lifetime = BattleEffectLifetime.RemoveWhenMemberDefeated,
+            Affixes = [new TraitAffix(TraitId.CannotMove)],
+        };
+        var grant = new GrantScopedBattleEffectDefinition(effect.Id);
+        grant.Resolve(TestContentFactory.CreateRepository(scopedBattleEffects: [effect]));
+        var talent = new TalentDefinition
+        {
+            Id = "formation_talent",
+            Name = "formation_talent",
+            Affixes = [new HookAffix { Timing = HookTiming.OnBattleStart, Effects = [grant] }],
+        };
+        var members = new[]
+        {
+            CreateUnit("first", 1, new GridPosition(0, 0), talents: [talent]),
+            CreateUnit("second", 1, new GridPosition(1, 0), talents: [talent]),
+            CreateUnit("third", 1, new GridPosition(2, 0), talents: [talent]),
+        };
+        var strike = TestContentFactory.CreateExternalSkill("formation_breaker", powerBase: 1000, castSize: 3);
+        var attacker = CreateUnit(
+            "attacker",
+            2,
+            new GridPosition(3, 0),
+            stats: new Dictionary<StatType, int> { [StatType.Quanzhang] = 500, [StatType.Bili] = 500 },
+            externalSkills: [new InitialExternalSkillEntryDefinition(strike, 1)]);
+        attacker.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 2), [.. members, attacker]);
+        var engine = new BattleEngine(random: new FixedRandomService(0));
+
+        engine.StartBattle(state);
+
+        var instance = Assert.Single(state.ScopedEffects.Instances);
+        Assert.True(instance.IsEstablished);
+        Assert.Equal(3, instance.Members.Count);
+        Assert.All(members, member => Assert.True(member.HasTrait(TraitId.CannotMove)));
+
+        engine.BeginAction(state, attacker.Id);
+        engine.CastSkill(state, attacker.Id, attacker.Character.ExternalSkills.Single(), members[0].Position);
+
+        Assert.False(members[0].IsAlive);
+        Assert.Empty(state.ScopedEffects.Instances);
+        Assert.All(members, member => Assert.False(member.HasTrait(TraitId.CannotMove)));
+    }
+
+    [Fact]
+    public void FiveElementsScopedHook_CollectsParticipantsAndConservesDamage()
+    {
+        const string talentId = "five_elements";
+        using var parameters = JsonDocument.Parse("""{"talentId":"five_elements","radius":5,"chance":1}""");
+        var shareEffect = new CustomBattleEffectDefinition(
+            "five_elements_damage_share",
+            parameters.RootElement.Clone());
+        var scoped = new ScopedBattleEffectDefinition
+        {
+            Id = "five_elements_scope",
+            Scope = new AllAlliesBattleUnitSelectorDefinition(),
+            GrantMode = ScopedBattleEffectGrantMode.PerTeamGroup,
+            Affixes = [new HookAffix { Timing = HookTiming.BeforeDamageApplied, Effects = [shareEffect] }],
+        };
+        var grant = new GrantScopedBattleEffectDefinition(scoped.Id);
+        var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [scoped]);
+        grant.Resolve(repository);
+        shareEffect.Resolve(repository);
+        var talent = new TalentDefinition
+        {
+            Id = talentId,
+            Name = talentId,
+            Affixes = [new HookAffix { Timing = HookTiming.OnBattleStart, Effects = [grant] }],
+        };
+        var strike = TestContentFactory.CreateExternalSkill("share_strike", powerBase: 20, castSize: 3);
+
+        static int ResolveDamage(IReadOnlyList<BattleMessage> messages) => messages
+            .OfType<BattleFact>()
+            .Where(fact => fact.Kind == BattleFactKind.Damaged)
+            .Sum(fact => fact.Damage?.Amount ?? 0);
+
+        var controlSource = CreateUnit("source", 2, new GridPosition(2, 0),
+            stats: new Dictionary<StatType, int> { [StatType.Quanzhang] = 100, [StatType.Bili] = 120 },
+            externalSkills: [new InitialExternalSkillEntryDefinition(strike, 1)]);
+        var controlTarget = CreateUnit("target", 1, new GridPosition(1, 0), maxHp: 1000);
+        controlSource.ActionGauge = 100;
+        var controlState = new BattleState(new BattleGrid(4, 2), [controlSource, controlTarget]);
+        var controlEngine = new BattleEngine(random: new FixedRandomService(0));
+        controlEngine.StartBattle(controlState);
+        controlEngine.BeginAction(controlState, controlSource.Id);
+        var controlResult = controlEngine.CastSkill(
+            controlState, controlSource.Id, controlSource.Character.ExternalSkills.Single(), controlTarget.Position);
+
+        var source = CreateUnit("source", 2, new GridPosition(2, 0),
+            stats: new Dictionary<StatType, int> { [StatType.Quanzhang] = 100, [StatType.Bili] = 120 },
+            externalSkills: [new InitialExternalSkillEntryDefinition(strike, 1)]);
+        var target = CreateUnit("target", 1, new GridPosition(1, 0), maxHp: 1000);
+        var participant = CreateUnit("participant", 1, new GridPosition(0, 0), maxHp: 1000, talents: [talent]);
+        source.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 2), [source, target, participant]);
+        var engine = new BattleEngine(random: new FixedRandomService(0));
+        engine.StartBattle(state);
+        engine.BeginAction(state, source.Id);
+        var result = engine.CastSkill(state, source.Id, source.Character.ExternalSkills.Single(), target.Position);
+        var damageFacts = result.Messages.OfType<BattleFact>()
+            .Where(fact => fact.Kind == BattleFactKind.Damaged)
+            .ToList();
+
+        Assert.Equal(2, damageFacts.Count);
+        Assert.Equal(ResolveDamage(controlResult.Messages), ResolveDamage(result.Messages));
+        Assert.Contains(damageFacts, fact => fact.UnitId == participant.Id);
+        Assert.Contains(damageFacts, fact => fact.UnitId == target.Id);
     }
 
     private static BattleUnit CreateUnit(

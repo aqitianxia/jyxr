@@ -66,6 +66,8 @@ public sealed class BattleHookContext :
 
     public BattleUnit? Source { get; internal set; }
 
+    public BattleUnit? Provider { get; internal set; }
+
     public BattleUnit? Target { get; internal set; }
 
     public BattleBuffInstance? Buff { get; internal set; }

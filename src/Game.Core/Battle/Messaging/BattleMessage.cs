@@ -103,6 +103,9 @@ public enum BattleFactKind
     RageChanged,
     ActionGaugeChanged,
     DefeatPrevented,
+    UnitDefeated,
+    ScopedEffectGranted,
+    ScopedEffectRemoved,
     SkillLeveledUp,
     CharacterLeveledUp,
 }

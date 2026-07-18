@@ -41,6 +41,12 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 
 	public BattleUnit? ActingUnit => BattlePresenter.TryGetActingUnit(State);
 
+	public void StartBattle()
+	{
+		var result = Engine.StartBattle(State);
+		_screen.AppendMessages(result.Messages);
+	}
+
 	public void RenderInteraction(BattleInteractionState interaction) =>
 		_screen.RenderInteraction(interaction);
 

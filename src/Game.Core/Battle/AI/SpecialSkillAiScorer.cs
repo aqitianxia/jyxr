@@ -11,7 +11,7 @@ public sealed class SpecialSkillAiScorer : IBattleSkillAiScorer
             Definition.Intent: SpecialSkillIntent.Offensive,
             Definition.Effects: { Count: > 0 } effects
         } && effects.OfType<CustomAbilityBattleEffectDefinition>()
-            .Any(effect => effect.Target is TargetBattleTargetSelectorDefinition);
+            .Any(effect => effect.Target is TargetBattleUnitSelectorDefinition);
 
     public BattleSkillAiEvaluation Score(BattleSkillAiContext context)
     {
@@ -21,7 +21,7 @@ public sealed class SpecialSkillAiScorer : IBattleSkillAiScorer
             ?? throw new InvalidOperationException("Special skill scorer requires a special skill.");
         var effects = (skill.Definition.Effects ?? [])
             .OfType<CustomAbilityBattleEffectDefinition>()
-            .Where(effect => effect.Target is TargetBattleTargetSelectorDefinition)
+            .Where(effect => effect.Target is TargetBattleUnitSelectorDefinition)
             .ToArray();
         var enemyDamage = 0;
         var allyDamage = 0;

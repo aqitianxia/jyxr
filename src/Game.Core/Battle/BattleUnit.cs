@@ -12,6 +12,8 @@ public sealed class BattleUnit
     private readonly List<BattleBuffInstance> _buffs = [];
     private readonly HashSet<string> _disabledSkillIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _abilityUsageCounts = new(StringComparer.Ordinal);
+    private BattleEffectProjectionResolver? _projectionResolver;
+    private AffixProjection? _localProjection;
 
     public BattleUnit(
         string id,
@@ -77,6 +79,8 @@ public sealed class BattleUnit
 
     public IReadOnlyList<BattleBuffInstance> Buffs => _buffs;
 
+    public IEnumerable<BattleBuffInstance> ActiveBuffs => _buffs.Where(static buff => !buff.IsExpired);
+
     public IReadOnlySet<string> DisabledSkillIds => _disabledSkillIds;
 
     public IReadOnlyDictionary<string, int> AbilityUsageCounts => _abilityUsageCounts;
@@ -86,11 +90,12 @@ public sealed class BattleUnit
         AiType = aiType;
     }
 
-    public bool HasTrait(TraitId traitId) =>
-        Character.Traits.Contains(traitId)
-        || GetActiveBuffs().Any(buff => buff.Definition.Affixes
-            .OfType<TraitAffix>()
-            .Any(affix => affix.TraitId == traitId));
+    public bool HasTrait(TraitId traitId) => _projectionResolver is null
+        ? DetachedProjection.Traits.Contains(traitId)
+        : Resolver.HasTrait(this, traitId);
+
+    internal void BindProjectionResolver(BattleEffectProjectionResolver resolver) =>
+        _projectionResolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
 
     public void AddDisabledSkill(string skillId)
     {
@@ -236,6 +241,7 @@ public sealed class BattleUnit
         }
 
         _buffs.Add(buff);
+        _localProjection = null;
         ClampResourcesToLimits();
         return true;
     }
@@ -248,29 +254,33 @@ public sealed class BattleUnit
             .Where(predicate)
             .ToList();
         _buffs.RemoveAll(buff => removed.Contains(buff));
+        if (removed.Count > 0)
+        {
+            _localProjection = null;
+        }
         ClampResourcesToLimits();
         return removed
             .Where(static buff => !buff.IsExpired)
             .ToList();
     }
 
-    public IReadOnlyList<BattleBuffInstance> GetActiveBuffs() =>
-        _buffs
-            .Where(static buff => !buff.IsExpired)
-            .ToList();
-
     public double GetStat(StatType statType) =>
-        GetActiveBuffModifierBucket(
-                affix => affix is StatModifierAffix statModifier && statModifier.Stat == statType,
-                affix => ((StatModifierAffix)affix).Value)
-            .Combine(GetActiveBuffLevelModifierBucket(statType))
-            .Evaluate(Character.GetStat(statType));
+        _projectionResolver is null
+            ? GetBucket(DetachedProjection.StatModifierBuckets, statType).Evaluate(Character.GetBaseStat(statType))
+            : Resolver.GetStat(this, statType);
 
     public double GetWeaponBonusValue(WeaponType weaponType, double baseValue) =>
-        GetActiveBuffModifierBucket(
-                affix => affix is WeaponBonusModifierAffix weaponModifier && weaponModifier.WeaponType == weaponType,
-                affix => ((WeaponBonusModifierAffix)affix).Value)
-            .Evaluate(Character.GetWeaponBonusValue(weaponType, baseValue));
+        _projectionResolver is null
+            ? GetBucket(DetachedProjection.WeaponModifierBuckets, weaponType).Evaluate(baseValue)
+            : Resolver.GetWeaponBonus(this, weaponType, baseValue);
+
+    public int GetSkillTargetingValue(string sourceSkillId, SkillTargetingField field, int baseValue) =>
+        _projectionResolver is null
+            ? (int)Math.Round(
+                GetBucket(DetachedProjection.TargetingModifierBuckets, new SkillTargetingModifierKey(null, field))
+                    .Combine(GetBucket(DetachedProjection.TargetingModifierBuckets, new SkillTargetingModifierKey(sourceSkillId, field)))
+                    .Evaluate(baseValue))
+            : Resolver.GetSkillTargeting(this, sourceSkillId, field, baseValue);
 
     public double GetActionSpeed()
     {
@@ -326,7 +336,7 @@ public sealed class BattleUnit
             movePower++;
         }
 
-        movePower += (int)Character.GetStat(StatType.Movement);
+        movePower += (int)GetStat(StatType.Movement);
         if (TryGetBuff(BattleContentIds.Slow) is { } slow)
         {
             movePower -= (int)(slow.Level * 1.5d);
@@ -355,57 +365,34 @@ public sealed class BattleUnit
     {
         var expired = _buffs.Where(static buff => buff.IsExpired).ToList();
         _buffs.RemoveAll(static buff => buff.IsExpired);
+        if (expired.Count > 0)
+        {
+            _localProjection = null;
+        }
         ClampResourcesToLimits();
         return expired;
     }
 
-    private ModifierBucket GetActiveBuffModifierBucket(
-        Func<AffixDefinition, bool> predicate,
-        Func<AffixDefinition, ModifierValue> selector)
-    {
-        var bucket = ModifierBucket.Empty;
-        foreach (var buff in GetActiveBuffs())
-        {
-            foreach (var affix in buff.Definition.Affixes)
-            {
-                if (predicate(affix))
-                {
-                    bucket = bucket.Apply(selector(affix));
-                }
-            }
-        }
+    internal AffixProjection GetLocalBattleProjection() => _localProjection ??= AffixProjectionBuilder.Build(
+        _buffs.Where(static buff => !buff.IsExpired).SelectMany(buff =>
+            buff.Definition.Affixes.Select((affix, order) => new ActiveAffixEntry(
+                affix,
+                new BuffAffixOrigin(buff.Definition.Id, buff.AppliedAtActionSerial),
+                Provider: null,
+                SourceLevel: buff.Level,
+                AffixOrder: order,
+                SourceSequence: buff.AppliedAtActionSerial))));
 
-        return bucket;
-    }
+    internal void InvalidateLocalBattleProjection() => _localProjection = null;
 
-    private ModifierBucket GetActiveBuffLevelModifierBucket(StatType statType)
-    {
-        var bucket = ModifierBucket.Empty;
-        foreach (var buff in GetActiveBuffs())
-        {
-            foreach (var affix in buff.Definition.Affixes.OfType<BuffLevelStatModifierAffix>())
-            {
-                if (affix.Stat != statType)
-                {
-                    continue;
-                }
+    private BattleEffectProjectionResolver Resolver => _projectionResolver ??
+        throw new InvalidOperationException($"Battle unit '{Id}' is not attached to a battle state.");
 
-                var add = affix.AddBase + affix.AddPerLevel * buff.Level;
-                if (Math.Abs(add) > double.Epsilon)
-                {
-                    bucket = bucket.Apply(ModifierValue.Add(add));
-                }
+    private AffixProjection DetachedProjection =>
+        AffixProjectionCombiner.Combine(Character.Projection.Affixes, GetLocalBattleProjection());
 
-                var mul = affix.MulPerLevel * buff.Level;
-                if (Math.Abs(mul) > double.Epsilon)
-                {
-                    bucket = bucket.Apply(ModifierValue.Increase(mul));
-                }
-            }
-        }
-
-        return bucket;
-    }
+    private static ModifierBucket GetBucket<TKey>(IReadOnlyDictionary<TKey, ModifierBucket> buckets, TKey key)
+        where TKey : notnull => buckets.TryGetValue(key, out var bucket) ? bucket : ModifierBucket.Empty;
 
     private int ResolveMaxHp() =>
         ResolvePositiveStat(StatType.MaxHp, 1);
