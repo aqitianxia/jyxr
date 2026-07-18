@@ -62,6 +62,7 @@ public sealed class ScopedBattleEffectRegistry
             state.AddMessage(new BattleFact(
                 BattleFactKind.ScopedEffectRemoved,
                 defeated.Id,
+                HookTiming.OnDefeated,
                 detail: instance.Definition.Id));
         }
     }

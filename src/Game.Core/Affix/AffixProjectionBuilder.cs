@@ -8,12 +8,23 @@ public static class AffixProjectionBuilder
     public static CharacterProjection BuildCharacter(ResolvedAffixSet resolved)
     {
         ArgumentNullException.ThrowIfNull(resolved);
-        var entries = resolved.Affixes.Select((affix, index) => new ActiveAffixEntry(
-            affix,
-            new CharacterAffixOrigin(affix.SourceKind, affix.SourceKind.ToString()),
-            SourceLevel: 1,
-            AffixOrder: index,
-            SourceSequence: index)).ToList();
+        var sourceSequences = new Dictionary<(ProviderKind Kind, string Id), long>();
+        var entries = resolved.Affixes.Select(affix =>
+        {
+            var sourceKey = (affix.SourceKind, affix.SourceId);
+            if (!sourceSequences.TryGetValue(sourceKey, out var sourceSequence))
+            {
+                sourceSequence = sourceSequences.Count;
+                sourceSequences.Add(sourceKey, sourceSequence);
+            }
+
+            return new ActiveAffixEntry(
+                affix,
+                new CharacterAffixOrigin(affix.SourceKind, affix.SourceId),
+                SourceLevel: 1,
+                AffixOrder: affix.SourceAffixOrder,
+                SourceSequence: sourceSequence);
+        }).ToList();
         var selectedModel = resolved.Affixes.OfType<GrantModelAffix>()
             .Select((affix, index) => (affix, index))
             .OrderByDescending(static item => item.affix.Priority)

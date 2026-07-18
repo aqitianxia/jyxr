@@ -36,8 +36,8 @@ internal sealed class BattleHookRunner(
                 .OrderByDescending(static entry => entry.Hook.Priority)
                 .ThenBy(static entry => entry.Origin.LayerOrder)
                 .ThenBy(entry => entry.Provider is null ? int.MaxValue : FindUnitOrder(state, entry.Provider))
-                .ThenBy(static entry => entry.AffixOrder)
                 .ThenBy(static entry => entry.SourceSequence)
+                .ThenBy(static entry => entry.AffixOrder)
                 .ToList(),
             recordEvents);
 

@@ -17,19 +17,23 @@ public static class AffixResolver
 
     public static IReadOnlyList<AffixDefinition> ResolveProviderAffixes(
         IAffixProvider provider,
-        ProviderKind sourceKind)
+        ProviderKind sourceKind,
+        string sourceId)
     {
         ArgumentNullException.ThrowIfNull(provider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
 
         var affixes = new List<AffixDefinition>();
 
-        foreach (var affix in provider.Affixes)
+        foreach (var (affix, index) in provider.Affixes.Select((affix, index) => (affix, index)))
         {
             ArgumentNullException.ThrowIfNull(affix);
 
             affixes.Add(affix with
             {
                 SourceKind = sourceKind,
+                SourceId = sourceId,
+                SourceAffixOrder = index,
             });
         }
 
@@ -40,14 +44,16 @@ public static class AffixResolver
         IEnumerable<SkillAffixDefinition> skillAffixes,
         int skillLevel,
         bool isEquippedInternalSkill,
-        ProviderKind sourceKind)
+        ProviderKind sourceKind,
+        string sourceId)
     {
         ArgumentNullException.ThrowIfNull(skillAffixes);
         ArgumentOutOfRangeException.ThrowIfLessThan(skillLevel, 1);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
 
         var affixes = new List<AffixDefinition>();
 
-        foreach (var affix in skillAffixes)
+        foreach (var (affix, index) in skillAffixes.Select((affix, index) => (affix, index)))
         {
             ArgumentNullException.ThrowIfNull(affix);
             ArgumentNullException.ThrowIfNull(affix.Effect);
@@ -65,6 +71,8 @@ public static class AffixResolver
             affixes.Add(affix.Effect with
             {
                 SourceKind = sourceKind,
+                SourceId = sourceId,
+                SourceAffixOrder = index,
             });
         }
 

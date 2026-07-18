@@ -412,6 +412,45 @@ public sealed class BattleRuleTests
     }
 
     [Fact]
+    public void CharacterProjection_PreservesConcreteTalentOriginsAndContentOrder()
+    {
+        static TalentDefinition CreateTalent(string id) => new()
+        {
+            Id = id,
+            Name = id,
+            Affixes =
+            [
+                new TraitAffix(TraitId.IgnoreZoneOfControl),
+                new HookAffix { Timing = HookTiming.BeforeMove, Priority = 0 },
+            ],
+        };
+
+        var unit = CreateUnit(
+            "source",
+            team: 1,
+            new GridPosition(0, 0),
+            talents: [CreateTalent("first_talent"), CreateTalent("second_talent")]);
+        var hooks = unit.Character.Projection.Affixes.HooksByTiming[HookTiming.BeforeMove];
+
+        Assert.Collection(
+            hooks,
+            hook =>
+            {
+                var origin = Assert.IsType<CharacterAffixOrigin>(hook.Origin);
+                Assert.Equal("first_talent", origin.SourceId);
+                Assert.Equal(1, hook.AffixOrder);
+                Assert.Equal(0, hook.SourceSequence);
+            },
+            hook =>
+            {
+                var origin = Assert.IsType<CharacterAffixOrigin>(hook.Origin);
+                Assert.Equal("second_talent", origin.SourceId);
+                Assert.Equal(1, hook.AffixOrder);
+                Assert.Equal(1, hook.SourceSequence);
+            });
+    }
+
+    [Fact]
     public void ScopedAura_TracksRangeAndSourceAliveWithoutCreatingBuffs()
     {
         var effect = new ScopedBattleEffectDefinition
@@ -502,7 +541,7 @@ public sealed class BattleRuleTests
     public void FiveElementsScopedHook_CollectsParticipantsAndConservesDamage()
     {
         const string talentId = "five_elements";
-        using var parameters = JsonDocument.Parse("""{"talentId":"five_elements","radius":5,"chance":1}""");
+        using var parameters = JsonDocument.Parse("""{"talentId":"five_elements","speech":"Five elements!","radius":5,"chance":1}""");
         var shareEffect = new CustomBattleEffectDefinition(
             "five_elements_damage_share",
             parameters.RootElement.Clone());

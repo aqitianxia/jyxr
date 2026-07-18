@@ -836,6 +836,20 @@ public sealed partial class JsonContentLoader
             Ensure(definition.Scope is not null, $"Scoped battle effect '{definition.Id}' has no scope.");
             Ensure(definition.RequiredMembers >= 1,
                 $"Scoped battle effect '{definition.Id}' has invalid requiredMembers '{definition.RequiredMembers}'.");
+            if (definition.GrantMode == ScopedBattleEffectGrantMode.PerProvider)
+            {
+                Ensure(definition.RequiredMembers == 1,
+                    $"Scoped battle effect '{definition.Id}' with per_provider grant mode must require exactly one member.");
+                Ensure(definition.Scope is not ExplicitUnitsBattleUnitSelectorDefinition,
+                    $"Scoped battle effect '{definition.Id}' cannot use explicit_units with per_provider grant mode.");
+                Ensure(definition.Lifetime != BattleEffectLifetime.RemoveWhenMemberDefeated,
+                    $"Scoped battle effect '{definition.Id}' cannot use remove_when_member_defeated with per_provider grant mode.");
+            }
+            else
+            {
+                Ensure(definition.Activation != BattleEffectActivation.SourceAlive,
+                    $"Scoped battle effect '{definition.Id}' cannot use source_alive with per_team_group grant mode.");
+            }
             ValidateScopedSelector(definition.Scope!, definition.Id);
             foreach (var affix in definition.Affixes)
             {

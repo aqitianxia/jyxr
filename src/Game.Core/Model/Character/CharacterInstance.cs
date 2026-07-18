@@ -449,7 +449,7 @@ public sealed class CharacterInstance
 
         foreach (var equipment in EquippedItems.Values)
         {
-            affixes.AddRange(AffixResolver.ResolveProviderAffixes(equipment, ProviderKind.Equipment));
+            affixes.AddRange(AffixResolver.ResolveProviderAffixes(equipment, ProviderKind.Equipment, equipment.Id));
         }
 
         // talent's affixes move to TalentResolver
@@ -460,7 +460,8 @@ public sealed class CharacterInstance
                 skill.Definition.Affixes,
                 skill.Level,
                 false,
-                ProviderKind.ExternalSkill));
+                ProviderKind.ExternalSkill,
+                skill.Definition.Id));
         }
 
         foreach (var skill in InternalSkills)
@@ -469,7 +470,8 @@ public sealed class CharacterInstance
                 skill.Definition.Affixes,
                 skill.Level,
                 skill.IsEquipped,
-                ProviderKind.InternalSkill));
+                ProviderKind.InternalSkill,
+                skill.Definition.Id));
         }
 
         return affixes;

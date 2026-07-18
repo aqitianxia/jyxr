@@ -16,7 +16,9 @@ public sealed class TeamCountAttackBonusHandler
     public override void Execute(IDamageCalculationEffectContext context, TeamCountAttackBonusParameters parameters)
     {
         if (!ReferenceEquals(context.Source, context.Unit) || context.Skill?.Power is not > 0) return;
-        var count = Math.Min(parameters.MaximumUnits, context.State.GetLivingUnits().Count(unit => unit.Team == context.Unit.Team));
+        var count = Math.Min(
+            parameters.MaximumUnits,
+            context.State.GetLivingUnits().Count(unit => unit.Team == context.Unit.Team) - 1);
         context.DamageCalculation.AddModifier(
             BattleDamageContextField.FinalDamage,
             ModifierOp.More,
@@ -26,6 +28,7 @@ public sealed class TeamCountAttackBonusHandler
 
 public sealed record FiveElementsDamageShareParameters(
     [property: NotWhiteSpace] string TalentId,
+    [property: NotWhiteSpace] string Speech,
     [property: NonNegative] int Radius = 5,
     [property: Probability] double Chance = 0.5d);
 
@@ -52,7 +55,7 @@ internal sealed class FiveElementsDamageShareHandler
         foreach (var participant in participants)
         {
             context.ApplyDirectDamage(participant, share, parameters.TalentId);
-            context.RequestFloatText(participant, "五行秘术！", BattleFloatTextStyle.Special);
+            context.RequestSpeech(participant, parameters.Speech);
         }
         context.CapDamage(targetShare);
     }

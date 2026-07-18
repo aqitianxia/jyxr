@@ -49,6 +49,38 @@ public sealed class ContentLoadingTests
     }
 
     [Fact]
+    public void JsonLoader_RejectsScopedEffectCombinationsWithoutRuntimeSemantics()
+    {
+        var invalidDefinitions = new ScopedBattleEffectDefinition[]
+        {
+            new()
+            {
+                Id = "provider_explicit",
+                Scope = new ExplicitUnitsBattleUnitSelectorDefinition(),
+            },
+            new()
+            {
+                Id = "group_source_alive",
+                Scope = new AllAlliesBattleUnitSelectorDefinition(),
+                GrantMode = ScopedBattleEffectGrantMode.PerTeamGroup,
+                Activation = BattleEffectActivation.SourceAlive,
+            },
+            new()
+            {
+                Id = "provider_member_lifetime",
+                Scope = new AllAlliesBattleUnitSelectorDefinition(),
+                Lifetime = BattleEffectLifetime.RemoveWhenMemberDefeated,
+            },
+        };
+
+        foreach (var definition in invalidDefinitions)
+        {
+            var package = new ContentPackage { ScopedBattleEffects = [definition] };
+            Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+        }
+    }
+
+    [Fact]
     public void JsonLoader_ResolvesGrantTalentAffix()
     {
         const string json = """

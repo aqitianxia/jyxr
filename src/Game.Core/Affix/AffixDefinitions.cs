@@ -30,6 +30,12 @@ public abstract record AffixDefinition
     [JsonIgnore]
     public ProviderKind SourceKind { get; internal init; } = ProviderKind.Other;
 
+    [JsonIgnore]
+    public string SourceId { get; internal init; } = "";
+
+    [JsonIgnore]
+    public int SourceAffixOrder { get; internal init; }
+
     public virtual void Resolve(IContentRepository contentRepository)
     {
     }

@@ -1343,6 +1343,37 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void AdvanceUntilNextAction_DoesNotRunHookFromBuffThatJustExpired()
+    {
+        var buff = new BuffDefinition
+        {
+            Id = "one_round_hook",
+            Name = "one_round_hook",
+            IsDebuff = false,
+            Affixes =
+            [
+                new HookAffix
+                {
+                    Timing = HookTiming.AfterBuffRound,
+                    Effects = [new AddRageBattleEffectDefinition(new SelfBattleUnitSelectorDefinition(), 1)],
+                },
+            ],
+        };
+        var hero = CreateUnit("hero", team: 1, new GridPosition(0, 0), actionSpeed: 1);
+        hero.TryApplyBuff(new BattleBuffInstance(buff, level: 1, remainingTurns: 1, hero.Id, 0));
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        _ = hero.GetStat(StatType.Bili);
+
+        var result = new BattleEngine().AdvanceUntilNextAction(state, maxTicks: 50);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, hero.Rage);
+        Assert.Empty(hero.Buffs);
+        Assert.DoesNotContain(result.Messages, message =>
+            message is BattleTrace { Timing: HookTiming.AfterBuffRound });
+    }
+
+    [Fact]
     public void EndAction_PreservesActionGaugeOverflow()
     {
         var hero = CreateUnit("hero", team: 1, new GridPosition(0, 0));
@@ -2078,6 +2109,66 @@ public sealed class BattleEngineTests
             message is BattleTrace { Timing: HookTiming.OnDamageTaken, UnitId: "target" });
         Assert.True(damageIndex < onDamageTakenIndex);
         Assert.True(onDamageTakenIndex < beforeDefeatedIndex);
+    }
+
+    [Fact]
+    public void CastSkill_ConfirmedDefeatTriggersOnDefeatedButSuppressesDefeatedUnitSpeech()
+    {
+        var skillDefinition = TestContentFactory.CreateExternalSkill(
+            "strike", powerBase: 10, impactType: SkillImpactType.Single, impactSize: 0, castSize: 3);
+        var source = CreateUnit(
+            "source", team: 1, new GridPosition(0, 0),
+            stats: new Dictionary<StatType, int>
+            {
+                [StatType.Quanzhang] = 100,
+                [StatType.Bili] = 120,
+            },
+            externalSkills: [new InitialExternalSkillEntryDefinition(skillDefinition, 1)]);
+        var talent = new TalentDefinition
+        {
+            Id = "final_words",
+            Name = "final_words",
+            Affixes =
+            [
+                new HookAffix
+                {
+                    Timing = HookTiming.OnDefeated,
+                    Speech = new BattleSpeechDefinition { Lines = ["This is not the end!"] },
+                },
+            ],
+        };
+        var target = CreateUnit("target", team: 2, new GridPosition(1, 0), maxHp: 1, talents: [talent]);
+        source.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [source, target]);
+        var engine = new BattleEngine(
+            new BattleDamageCalculator(new FixedRandomService(0.5d)),
+            random: new FixedRandomService(0.5d));
+        engine.BeginAction(state, source.Id);
+
+        var result = engine.CastSkill(
+            state, source.Id, source.Character.GetExternalSkills().Single(), target.Position);
+
+        Assert.True(result.Success);
+        Assert.False(target.IsAlive);
+        var messages = result.Messages.ToList();
+        var defeatedIndex = messages.FindIndex(message =>
+            message is BattleFact
+            {
+                Kind: BattleFactKind.UnitDefeated,
+                UnitId: "target",
+                Timing: HookTiming.OnDefeated,
+            });
+        var onDefeatedIndex = messages.FindIndex(message =>
+            message is BattleTrace { Timing: HookTiming.OnDefeated, UnitId: "target" });
+        Assert.True(defeatedIndex >= 0);
+        Assert.True(defeatedIndex < onDefeatedIndex);
+        Assert.DoesNotContain(messages, message =>
+            message is BattleCue
+            {
+                Kind: BattleCueKind.SpeechRequested,
+                UnitId: "target",
+                Timing: HookTiming.OnDefeated,
+            });
     }
 
     [Fact]

@@ -127,9 +127,18 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
                     state.AddMessage(new BattleFact(
                         BattleFactKind.UnitDefeated,
                         takenContext.Target.Id,
-                        HookTiming.BeforeDefeated,
+                        HookTiming.OnDefeated,
                         takenContext.Source.Id));
                     state.ScopedEffects.NotifyUnitDefeated(state, takenContext.Target);
+                    engine.TriggerHooks(state, HookTiming.OnDefeated, takenContext.Target, context =>
+                    {
+                        context.Source = takenContext.Source;
+                        context.Target = takenContext.Target;
+                        context.Skill = takenContext.Skill;
+                        context.IncomingDamageAmount = takenContext.IncomingAmount;
+                        context.DamageAmount = takenContext.ActualAmount;
+                        context.IsCritical = takenContext.IsCritical;
+                    });
                 }
             }
 
