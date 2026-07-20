@@ -30,6 +30,7 @@ public partial class LargeMapView : Control
 	private ColorRect _timeDim = null!;
 	private Control _locations = null!;
 	private Control _heroPin = null!;
+	private TextureRect _heroAvatar = null!;
 	private Vector2 _heroDesignPosition;
 	private bool _mousePressed;
 	private bool _mouseDragging;
@@ -61,6 +62,7 @@ public partial class LargeMapView : Control
 		_timeDim = GetNode<ColorRect>("%LargeMapTimeDim");
 		_locations = GetNode<Control>("%MapEntitySlots");
 		_heroPin = GetNode<Control>("%MapPin");
+		_heroAvatar = GetNode<TextureRect>("%PinAvatar");
 		Resized += OnResized;
 		ResetView();
 	}
@@ -113,6 +115,7 @@ public partial class LargeMapView : Control
 		ResetInputState();
 		ResetView();
 		SetBackground(result.Map.Picture);
+		SetHeroPortrait();
 		ClearChildren(_locations);
 
 		foreach (var location in result.Locations)
@@ -218,6 +221,12 @@ public partial class LargeMapView : Control
 		{
 			_timeDim.Hide();
 		}
+	}
+
+	private void SetHeroPortrait()
+	{
+		var hero = Game.State.Party.GetMember(Party.HeroCharacterId);
+		_heroAvatar.Texture = AssetResolver.LoadCharacterPortrait(hero);
 	}
 
 	private void OnResized()

@@ -6,7 +6,6 @@
 [ext_resource type="Texture2D" uid="uid://cltnrkehfughq" path="res://assets/art/ui/bigmap_yun.png" id="4_cloud"]
 [ext_resource type="Texture2D" uid="uid://cc3wboaaf4svd" path="res://assets/art/misc/story/dibukuang.png" id="5_bottom_frame"]
 [ext_resource type="Texture2D" uid="uid://dlkp8qcmfkcfa" path="res://assets/art/misc/story/camera.png" id="6_camera"]
-[ext_resource type="Texture2D" uid="uid://djdqqcga07x36" path="res://assets/art/head/zhujue2.png" id="7_pin_avatar"]
 [ext_resource type="Script" uid="uid://74yk3o2ss5nx" path="res://src/Game.Godot/Map/LargeMapView.cs" id="8_large_map_view"]
 [ext_resource type="PackedScene" path="res://scenes/map/map_entity_tooltip.tscn" id="9_tooltip"]
 
@@ -145,7 +144,6 @@ layout_mode = 0
 offset_right = 76.0
 offset_bottom = 75.0
 mouse_filter = 2
-texture = ExtResource("7_pin_avatar")
 expand_mode = 1
 stretch_mode = 5
 
