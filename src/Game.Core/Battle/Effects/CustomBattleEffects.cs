@@ -117,7 +117,15 @@ public sealed class CustomBattleEffectRegistry
         registry.Register("black_heaven_deadly_flame", new BlackHeavenDeadlyFlameBattleEffectHandler());
         registry.Register("bagua_formation", new BaguaFormationBattleEffectHandler());
         registry.Register("team_count_attack_bonus", new TeamCountAttackBonusHandler());
-        registry.Register("five_elements_damage_share", new FiveElementsDamageShareHandler());
+        registry.Register(
+            "five_elements_formation_damage_share",
+            new FiveElementsFormationDamageShareHandler());
+        registry.Register(
+            "vajra_demon_subduing_formation_attack_speech",
+            new VajraDemonSubduingFormationAttackSpeechHandler());
+        registry.Register(
+            "vajra_demon_subduing_formation_defeat_text",
+            new VajraDemonSubduingFormationDefeatTextHandler());
         registry.Register("careful_defense", new CarefulDefenseBattleEffectHandler());
         registry.Register("shifting_stars_reflection", new ShiftingStarsReflectionBattleEffectHandler());
         registry.Register("eternal_spring", new EternalSpringBattleEffectHandler());
@@ -254,6 +262,7 @@ internal static class BattleEffectCapabilityPolicy
             [typeof(IDamageTakenEffectContext)] = HookTiming.OnDamageTaken,
             [typeof(IDamageDealtEffectContext)] = HookTiming.OnDamageDealt,
             [typeof(IDefeatPreventionEffectContext)] = HookTiming.BeforeDefeated,
+            [typeof(IDefeatedEffectContext)] = HookTiming.OnDefeated,
             [typeof(IRecoveryEffectContext)] = HookTiming.BeforeRecoveryResolved,
             [typeof(ISkillCostEffectContext)] = HookTiming.BeforeSkillCost,
             [typeof(IBuffApplicationEffectContext)] = HookTiming.BeforeBuffApplied,

@@ -486,19 +486,33 @@ public sealed class BattleRuleTests
     }
 
     [Fact]
-    public void ScopedTeamGroup_EstablishesOnceAfterRequiredGrants()
+    public void VajraDemonSubduingFormation_BreaksAndNotifiesEveryMemberAfterDefeat()
     {
+        using var defeatParameters = JsonDocument.Parse("""{"text":"Formation broken!"}""");
+        var defeatText = new CustomBattleEffectDefinition(
+            "vajra_demon_subduing_formation_defeat_text",
+            defeatParameters.RootElement.Clone());
         var effect = new ScopedBattleEffectDefinition
         {
-            Id = "formation",
+            Id = "金刚伏魔圈.组阵",
             Scope = new ExplicitUnitsBattleUnitSelectorDefinition(),
             GrantMode = ScopedBattleEffectGrantMode.PerTeamGroup,
             RequiredMembers = 3,
             Lifetime = BattleEffectLifetime.RemoveWhenMemberDefeated,
-            Affixes = [new TraitAffix(TraitId.CannotMove)],
+            Affixes =
+            [
+                new TraitAffix(TraitId.CannotMove),
+                new HookAffix
+                {
+                    Timing = HookTiming.OnDefeated,
+                    Effects = [defeatText],
+                },
+            ],
         };
         var grant = new GrantScopedBattleEffectDefinition(effect.Id);
-        grant.Resolve(TestContentFactory.CreateRepository(scopedBattleEffects: [effect]));
+        var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [effect]);
+        grant.Resolve(repository);
+        defeatText.Resolve(repository);
         var talent = new TalentDefinition
         {
             Id = "formation_talent",
@@ -530,11 +544,101 @@ public sealed class BattleRuleTests
         Assert.All(members, member => Assert.True(member.HasTrait(TraitId.CannotMove)));
 
         engine.BeginAction(state, attacker.Id);
-        engine.CastSkill(state, attacker.Id, attacker.Character.ExternalSkills.Single(), members[0].Position);
+        var result = engine.CastSkill(
+            state,
+            attacker.Id,
+            attacker.Character.ExternalSkills.Single(),
+            members[0].Position);
 
         Assert.False(members[0].IsAlive);
         Assert.Empty(state.ScopedEffects.Instances);
         Assert.All(members, member => Assert.False(member.HasTrait(TraitId.CannotMove)));
+        var notifications = result.Messages.OfType<BattleCue>()
+            .Where(cue => cue is
+            {
+                Kind: BattleCueKind.FloatTextRequested,
+                Timing: HookTiming.OnDefeated,
+            })
+            .ToList();
+        Assert.Equal(members.Select(member => member.Id), notifications.Select(cue => cue.UnitId));
+        Assert.All(notifications, cue =>
+        {
+            Assert.Equal("Formation broken!", cue.FloatText?.Text);
+            Assert.Equal(BattleFloatTextStyle.Special, cue.FloatText?.Style);
+        });
+    }
+
+    [Fact]
+    public void VajraDemonSubduingFormation_AttackRequestsSpeechFromEveryMember()
+    {
+        using var speechParameters = JsonDocument.Parse("""{"speech":"Formation attack!"}""");
+        var attackSpeech = new CustomBattleEffectDefinition(
+            "vajra_demon_subduing_formation_attack_speech",
+            speechParameters.RootElement.Clone());
+        var effect = new ScopedBattleEffectDefinition
+        {
+            Id = "金刚伏魔圈.组阵",
+            Scope = new ExplicitUnitsBattleUnitSelectorDefinition(),
+            GrantMode = ScopedBattleEffectGrantMode.PerTeamGroup,
+            RequiredMembers = 3,
+            Lifetime = BattleEffectLifetime.RemoveWhenMemberDefeated,
+            Affixes =
+            [
+                new HookAffix
+                {
+                    Timing = HookTiming.BeforeDamageCalculation,
+                    Conditions =
+                    [
+                        new ContextUnitRoleBattleHookConditionDefinition(BattleHookContextUnitRole.Source),
+                    ],
+                    Effects = [attackSpeech],
+                },
+            ],
+        };
+        var grant = new GrantScopedBattleEffectDefinition(effect.Id);
+        var repository = TestContentFactory.CreateRepository(scopedBattleEffects: [effect]);
+        grant.Resolve(repository);
+        attackSpeech.Resolve(repository);
+        var talent = new TalentDefinition
+        {
+            Id = "formation_talent",
+            Name = "formation_talent",
+            Affixes = [new HookAffix { Timing = HookTiming.OnBattleStart, Effects = [grant] }],
+        };
+        var strike = TestContentFactory.CreateExternalSkill("formation_strike", powerBase: 10, castSize: 3);
+        var members = new[]
+        {
+            CreateUnit(
+                "first",
+                1,
+                new GridPosition(0, 0),
+                externalSkills: [new InitialExternalSkillEntryDefinition(strike, 1)],
+                talents: [talent]),
+            CreateUnit("second", 1, new GridPosition(1, 0), talents: [talent]),
+            CreateUnit("third", 1, new GridPosition(2, 0), talents: [talent]),
+        };
+        var target = CreateUnit("target", 2, new GridPosition(3, 0), maxHp: 1000);
+        members[0].ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 2), [.. members, target]);
+        var engine = new BattleEngine(random: new FixedRandomService(0));
+
+        engine.StartBattle(state);
+        engine.BeginAction(state, members[0].Id);
+        var result = engine.CastSkill(
+            state,
+            members[0].Id,
+            members[0].Character.ExternalSkills.Single(),
+            target.Position);
+
+        var speeches = result.Messages.OfType<BattleCue>()
+            .Where(cue => cue is
+            {
+                Kind: BattleCueKind.SpeechRequested,
+                Timing: HookTiming.BeforeDamageCalculation,
+            })
+            .ToList();
+        Assert.Equal(members.Select(member => member.Id), speeches.Select(cue => cue.UnitId));
+        Assert.All(speeches, cue => Assert.Equal("Formation attack!", cue.Speech?.Text));
     }
 
     [Fact]
@@ -543,7 +647,7 @@ public sealed class BattleRuleTests
         const string talentId = "five_elements";
         using var parameters = JsonDocument.Parse("""{"talentId":"five_elements","speech":"Five elements!","radius":5,"chance":1}""");
         var shareEffect = new CustomBattleEffectDefinition(
-            "five_elements_damage_share",
+            "five_elements_formation_damage_share",
             parameters.RootElement.Clone());
         var scoped = new ScopedBattleEffectDefinition
         {

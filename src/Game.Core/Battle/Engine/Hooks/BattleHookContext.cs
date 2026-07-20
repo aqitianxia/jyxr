@@ -20,6 +20,7 @@ public sealed class BattleHookContext :
     IDamageTakenEffectContext,
     IDamageDealtEffectContext,
     IDefeatPreventionEffectContext,
+    IDefeatedEffectContext,
     IRecoveryEffectContext,
     ISkillCostEffectContext,
     IBuffApplicationEffectContext,

@@ -97,6 +97,8 @@ public interface IDefeatPreventionEffectContext : IBattleEffectContext
     void PreventDefeat(string abilityId);
 }
 
+public interface IDefeatedEffectContext : IBattleEffectContext;
+
 public interface IRecoveryEffectContext : IBattleEffectContext
 {
     BattleRecoveryKind RecoveryKind { get; }

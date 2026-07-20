@@ -129,7 +129,6 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
                         takenContext.Target.Id,
                         HookTiming.OnDefeated,
                         takenContext.Source.Id));
-                    state.ScopedEffects.NotifyUnitDefeated(state, takenContext.Target);
                     engine.TriggerHooks(state, HookTiming.OnDefeated, takenContext.Target, context =>
                     {
                         context.Source = takenContext.Source;
@@ -139,6 +138,7 @@ internal sealed class BattleDamageResolver(BattleEngine engine)
                         context.DamageAmount = takenContext.ActualAmount;
                         context.IsCritical = takenContext.IsCritical;
                     });
+                    state.ScopedEffects.NotifyUnitDefeated(state, takenContext.Target);
                 }
             }
 
