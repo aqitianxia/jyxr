@@ -73,7 +73,7 @@ public sealed partial class JsonContentLoader
         }
 
         var json = File.ReadAllText(filePath);
-        using var document = JsonDocument.Parse(json);
+        using var document = GameJson.ParseDocument(json);
         return document.RootElement.ValueKind switch
         {
             JsonValueKind.Array => JsonSerializer.Deserialize<List<T>>(json, GameJson.Default)

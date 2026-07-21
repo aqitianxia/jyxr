@@ -93,7 +93,7 @@ public sealed class GodotContentPackageLoader
 	private List<T> LoadRequiredList<T>(string fileName)
 	{
 		var json = ReadText(fileName);
-		using var document = JsonDocument.Parse(json);
+		using var document = GameJson.ParseDocument(json);
 		return document.RootElement.ValueKind switch
 		{
 			JsonValueKind.Array => JsonSerializer.Deserialize<List<T>>(json, GameJson.Default)

@@ -99,7 +99,7 @@ public sealed class ModRegistry
 
     private static void ValidateManifestFields(string json, string manifestPath)
     {
-        using var document = JsonDocument.Parse(json);
+        using var document = GameJson.ParseDocument(json);
         if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
             throw new InvalidOperationException($"Mod manifest root must be a JSON object: {manifestPath}");
