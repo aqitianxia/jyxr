@@ -144,8 +144,8 @@ public partial class ShopItemBox : TextureButton
 		{
 			_priceLabel.Text = FormatProductPrice(_product);
 			_limitLabel.Text = _product.RemainingLimit is null
-				? string.Empty
-				: $"余 {_product.RemainingLimit.Value}";
+				? "∞"
+				: _product.RemainingLimit.Value.ToString();
 			return;
 		}
 
