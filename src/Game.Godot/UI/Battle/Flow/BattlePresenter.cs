@@ -1,4 +1,5 @@
 using Game.Core.Battle;
+using Game.Core.Definitions;
 using Game.Presentation.Battle;
 using Game.Core.Model;
 using Game.Core.Model.Skills;
@@ -130,16 +131,17 @@ public sealed class BattlePresenter
 		}
 
 		var detail = $"获得金钱：{settlement.Silver}           获得经验：{settlement.ExperiencePerMember}/每人";
-		if (settlement.Gold > 0)
+		var yuanbao = settlement.Rewards.OfType<YuanbaoRewardGrant>().Sum(static reward => reward.Amount);
+		if (yuanbao > 0)
 		{
-			detail += $"           获得元宝：{settlement.Gold}";
+			detail += $"           获得元宝：{yuanbao}";
 		}
 
 		return new BattleSettlementView(
 			"战斗胜利",
 			detail,
 			"获得物品",
-			CreateRewardItems(settlement.Drops),
+			CreateRewardItems(settlement.Rewards),
 			"确定");
 	}
 
@@ -156,21 +158,21 @@ public sealed class BattlePresenter
 			_ => entry.Definition.Name,
 		};
 
-	private static IReadOnlyList<BattleSettlementRewardView> CreateRewardItems(IReadOnlyList<OrdinaryBattleRewardDrop> drops)
+	private static IReadOnlyList<BattleSettlementRewardView> CreateRewardItems(IReadOnlyList<RewardGrant> rewards)
 	{
-		ArgumentNullException.ThrowIfNull(drops);
+		ArgumentNullException.ThrowIfNull(rewards);
 
-		var entries = new List<BattleSettlementRewardView>(drops.Count);
+		var entries = new List<BattleSettlementRewardView>(rewards.Count);
 		long entryNumber = 1;
-		foreach (var drop in drops)
+		foreach (var reward in rewards)
 		{
-			switch (drop)
+			switch (reward)
 			{
-				case OrdinaryBattleStackRewardDrop stack:
+				case StackItemRewardGrant stack:
 					entries.Add(new BattleSettlementInventoryRewardView(
 						new StackInventoryEntry(entryNumber++, stack.Item, stack.Quantity)));
 					break;
-				case OrdinaryBattleEquipmentRewardDrop equipment:
+				case EquipmentRewardGrant equipment:
 					var extraAffixes = equipment.Rolls.SelectMany(static roll => roll.Affixes).ToArray();
 					var equipmentInstance = new EquipmentInstance(
 						$"settlement_reward_{entryNumber:D8}",
@@ -179,15 +181,17 @@ public sealed class BattlePresenter
 					entries.Add(new BattleSettlementInventoryRewardView(
 						new EquipmentInstanceInventoryEntry(entryNumber++, equipmentInstance)));
 					break;
-				case OrdinaryBattleSkillFragmentRewardDrop fragment:
+				case SkillMaxLevelRewardGrant fragment:
 					entries.Add(new BattleSettlementSkillFragmentRewardView(
 						fragment.DisplayName,
 						fragment.Kind,
 						fragment.SkillId,
 						fragment.Levels));
 					break;
+				case YuanbaoRewardGrant:
+					break;
 				default:
-					throw new NotSupportedException($"Unsupported reward drop type '{drop.GetType().Name}'.");
+					throw new NotSupportedException($"Unsupported reward grant type '{reward.GetType().Name}'.");
 			}
 		}
 

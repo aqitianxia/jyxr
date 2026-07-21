@@ -43,6 +43,20 @@ public static class DetailPanelContentFactory
 	{
 		ArgumentNullException.ThrowIfNull(product);
 
+		if (product.Item is null)
+		{
+			var texture = product.Definition.Reward is SkillMaxLevelRewardDefinition
+				? AssetResolver.LoadSkillIconResource(product.Picture)
+				: AssetResolver.LoadTextureResource(product.Picture);
+			return new DetailPanelContent(
+				product.DisplayName,
+				"特殊商品",
+				texture,
+				product.Description,
+				Colors.Gold,
+				action);
+		}
+
 		var item = product.Item;
 		return new DetailPanelContent(
 			product.DisplayName,

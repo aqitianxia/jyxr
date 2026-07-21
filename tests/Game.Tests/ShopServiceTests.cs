@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Persistence;
 using Game.Core.Serialization;
@@ -15,7 +16,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             PurchaseLimit = 2,
             Price = 40,
         });
@@ -42,7 +43,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 20);
@@ -62,7 +63,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("premium_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             PremiumPrice = 2,
         });
         var session = CreateSession([herb], [shop], silver: 100, yuanbao: 5);
@@ -84,7 +85,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             PurchaseLimit = 1,
             Price = 40,
         });
@@ -99,35 +100,55 @@ public sealed class ShopServiceTests
     }
 
     [Fact]
-    public void Open_IgnoresGoldAndFragmentProducts()
+    public void Open_PresentsItemAndSpecialRewardProducts()
     {
         var herb = CreateItem("herb", price: 30);
+        var externalSkill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var shop = CreateShop(
             "village_shop",
             new ShopProductDefinition
             {
-                ContentId = "元宝",
+                Reward = new YuanbaoRewardDefinition(),
                 Price = 1000,
             },
             new ShopProductDefinition
             {
-                ContentId = "降龙十八掌残章",
+                Reward = new SkillMaxLevelRewardDefinition
+                {
+                    SkillKind = SkillFragmentKind.External,
+                    SkillId = externalSkill.Id,
+                },
                 PremiumPrice = 4,
             },
             new ShopProductDefinition
             {
-                ContentId = herb.Id,
+                Reward = new ItemRewardDefinition { ItemId = herb.Id },
                 Price = 40,
             });
-        var session = CreateSession([herb], [shop], silver: 100);
+        var session = CreateSession([herb], [shop], silver: 100, externalSkills: [externalSkill]);
 
         var view = session.ShopService.Open(shop.Id);
 
-        var product = Assert.Single(view.Products);
-        Assert.Equal(2, product.ProductIndex);
-        Assert.Equal("herb", product.Item.Id);
-        Assert.False(session.ShopService.Buy(shop.Id, productIndex: 0).Success);
-        Assert.False(session.ShopService.Buy(shop.Id, productIndex: 1).Success);
+        Assert.Collection(
+            view.Products,
+            product =>
+            {
+                Assert.Equal(0, product.ProductIndex);
+                Assert.Equal("元宝", product.DisplayName);
+                Assert.True(product.IsSpecial);
+            },
+            product =>
+            {
+                Assert.Equal(1, product.ProductIndex);
+                Assert.Equal("dragon_palm残章", product.DisplayName);
+                Assert.True(product.IsSpecial);
+            },
+            product =>
+            {
+                Assert.Equal(2, product.ProductIndex);
+                Assert.Equal("herb", product.Item!.Id);
+                Assert.False(product.IsSpecial);
+            });
     }
 
     [Fact]
@@ -136,7 +157,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 0);
@@ -159,7 +180,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 100);
@@ -178,7 +199,7 @@ public sealed class ShopServiceTests
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
-            ContentId = herb.Id,
+            Reward = new ItemRewardDefinition { ItemId = herb.Id },
             PurchaseLimit = 2,
             Price = 40,
         });
@@ -198,9 +219,13 @@ public sealed class ShopServiceTests
         IReadOnlyList<ItemDefinition> items,
         IReadOnlyList<ShopDefinition> shops,
         int silver,
-        int yuanbao = 0)
+        int yuanbao = 0,
+        IReadOnlyList<ExternalSkillDefinition>? externalSkills = null)
     {
-        var repository = TestContentFactory.CreateRepository(items: items, shops: shops);
+        var repository = TestContentFactory.CreateRepository(
+            items: items,
+            externalSkills: externalSkills,
+            shops: shops);
         var state = new GameState();
         state.Currency.AddSilver(silver);
         var profile = new GameProfile();

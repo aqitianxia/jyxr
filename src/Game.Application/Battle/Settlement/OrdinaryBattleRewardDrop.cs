@@ -3,35 +3,32 @@ using Game.Core.Definitions;
 
 namespace Game.Application;
 
-public abstract record OrdinaryBattleRewardDrop;
+public abstract record RewardGrant;
 
-public sealed record OrdinaryBattleStackRewardDrop(
+public sealed record StackItemRewardGrant(
     ItemDefinition Item,
-    int Quantity) : OrdinaryBattleRewardDrop;
+    int Quantity) : RewardGrant;
 
-public sealed record OrdinaryBattleEquipmentRewardDrop(
+public sealed record EquipmentRewardGrant(
     EquipmentDefinition Equipment,
-    IReadOnlyList<GeneratedEquipmentAffixRoll> Rolls) : OrdinaryBattleRewardDrop;
+    IReadOnlyList<GeneratedEquipmentAffixRoll> Rolls) : RewardGrant;
 
-public sealed record OrdinaryBattleSkillFragmentRewardDrop(
+public sealed record YuanbaoRewardGrant(
+    int Amount) : RewardGrant;
+
+public sealed record SkillMaxLevelRewardGrant(
     SkillFragmentKind Kind,
     string SkillId,
     string DisplayName,
-    int Levels) : OrdinaryBattleRewardDrop
+    int Levels) : RewardGrant
 {
-    public OrdinaryBattleSkillFragmentRewardDrop(
+    public SkillMaxLevelRewardGrant(
         SkillFragmentKind kind,
         string skillId,
         string displayName)
         : this(kind, skillId, displayName, 1)
     {
     }
-}
-
-public enum SkillFragmentKind
-{
-    External,
-    Internal,
 }
 
 public sealed record GeneratedEquipmentAffixRoll(

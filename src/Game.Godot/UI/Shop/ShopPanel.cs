@@ -14,7 +14,9 @@ public partial class ShopPanel : JyPanel
 	[Export]
 	public PackedScene TagButtonScene { get; set; } = null!;
 
-	private static readonly IReadOnlyList<ItemCategoryOption> Categories = ItemCatalogPresentation.Categories;
+	private static readonly ItemCategoryOption SpecialCategory = new("Special", "特殊", null);
+	private static readonly IReadOnlyList<ItemCategoryOption> Categories =
+		ItemCatalogPresentation.Categories.Append(SpecialCategory).ToArray();
 
 	private readonly Dictionary<string, Button> _buttonsByCategoryKey = [];
 	private string _shopId = string.Empty;
@@ -103,6 +105,10 @@ public partial class ShopPanel : JyPanel
 	private void SelectMode(ShopMode mode)
 	{
 		_mode = mode;
+		if (_mode == ShopMode.Sell && _selectedCategory.Key == SpecialCategory.Key)
+		{
+			_selectedCategory = Categories[0];
+		}
 		Refresh();
 	}
 
@@ -115,24 +121,10 @@ public partial class ShopPanel : JyPanel
 
 	private void InitializeCategoryButtons()
 	{
-		var container = GetNode<VBoxContainer>("ContentRoot/CategoryButtons");
-		var template = container.GetChildren().OfType<Button>().First();
-		foreach (var child in container.GetChildren())
-		{
-			container.RemoveChild(child);
-			child.QueueFree();
-		}
-
 		foreach (var category in Categories)
 		{
-			var button = (Button)template.Duplicate();
-			button.Name = $"{category.Key}Button";
-			button.UniqueNameInOwner = false;
-			button.Text = category.DisplayName;
-			button.CustomMinimumSize = new Vector2(200, category.ItemType is null ? 62 : 56);
-			button.AddThemeFontSizeOverride("font_size", category.ItemType is null ? 42 : 30);
+			var button = GetNode<Button>($"%{category.Key}Button");
 			button.Pressed += () => SelectCategory(category);
-			container.AddChild(button);
 			_buttonsByCategoryKey.Add(category.Key, button);
 		}
 	}
@@ -165,11 +157,13 @@ public partial class ShopPanel : JyPanel
 	private void RefreshProducts()
 	{
 		var sourceProducts = Game.ShopService.Open(_shopId).Products;
-		var tags = ResolveAvailableTags(sourceProducts.Select(product => product.Item));
+		var tags = ResolveAvailableTags(sourceProducts
+			.Select(product => product.Item)
+			.OfType<ItemDefinition>());
 		UpdateCategoryButtons();
 		UpdateTagButtons(tags);
 		var products = sourceProducts
-			.Where(product => MatchesSelectedCategory(product.Item))
+			.Where(MatchesSelectedCategory)
 			.ToList();
 		_countLabel.Text = $"{products.Count} 项";
 		_emptyLabel.Visible = products.Count == 0;
@@ -333,6 +327,21 @@ public partial class ShopPanel : JyPanel
 	private bool MatchesSelectedCategory(ItemDefinition item) =>
 		ItemCatalogPresentation.Matches(item, _selectedCategory.ItemType, _selectedTagId);
 
+	private bool MatchesSelectedCategory(ShopProductView product)
+	{
+		if (_selectedCategory.Key == SpecialCategory.Key)
+		{
+			return product.IsSpecial;
+		}
+
+		if (_selectedCategory.ItemType is null)
+		{
+			return true;
+		}
+
+		return product.Item is not null && MatchesSelectedCategory(product.Item);
+	}
+
 	private IReadOnlyList<ItemTagDefinition> ResolveAvailableTags(IEnumerable<ItemDefinition> items)
 	{
 		var tags = ItemCatalogPresentation.GetAvailableTags(items, _selectedCategory.ItemType);
@@ -395,6 +404,7 @@ public partial class ShopPanel : JyPanel
 		foreach (var category in Categories)
 		{
 			var button = _buttonsByCategoryKey[category.Key];
+			button.Visible = category.Key != SpecialCategory.Key || _mode == ShopMode.Buy;
 			var isSelected = category.Key == _selectedCategory.Key;
 			button.Disabled = isSelected && _selectedTagId is null;
 			button.Modulate = isSelected

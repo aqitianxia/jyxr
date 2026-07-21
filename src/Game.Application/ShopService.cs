@@ -6,7 +6,6 @@ namespace Game.Application;
 public sealed class ShopService
 {
     private const decimal SellPriceRatio = 0.5m;
-    private const string GoldProductContentId = "元宝";
     private readonly GameSession _session;
 
     public ShopService(GameSession session)
@@ -24,7 +23,7 @@ public sealed class ShopService
         var shop = _session.ContentRepository.GetShop(shopId);
         var products = shop.Products
             .Select((product, index) => (Product: product, Index: index))
-            .Where(entry => !ShouldIgnoreProduct(entry.Product.ContentId))
+            .Where(entry => IsAvailable(entry.Product.Reward))
             .Select(entry => CreateProductView(shop.Id, entry.Index, entry.Product))
             .ToList();
 
@@ -48,9 +47,9 @@ public sealed class ShopService
         }
 
         var productDefinition = shop.Products[productIndex];
-        if (ShouldIgnoreProduct(productDefinition.ContentId))
+        if (!IsAvailable(productDefinition.Reward))
         {
-            return ShopTransactionResult.Failed($"【{productDefinition.ContentId}】当前不作为商店商品处理。");
+            return ShopTransactionResult.Failed($"【{_session.RewardGrantService.GetDisplayName(productDefinition.Reward)}】已达等级上限。");
         }
 
         var product = CreateProductView(shop.Id, productIndex, productDefinition);
@@ -58,18 +57,25 @@ public sealed class ShopService
         var unitPrice = product.GetUnitPrice(selectedCurrency);
         if (unitPrice is null)
         {
-            throw new InvalidOperationException($"Shop product '{product.Item.Id}' cannot be bought with {selectedCurrency}.");
+            throw new InvalidOperationException($"Shop product '{product.DisplayName}' cannot be bought with {selectedCurrency}.");
         }
 
         if (product.RemainingLimit is not null && quantity > product.RemainingLimit.Value)
         {
-            return ShopTransactionResult.Failed($"【{product.Item.Name}】已达购买上限。");
+            return ShopTransactionResult.Failed($"【{product.DisplayName}】已达购买上限。");
         }
 
         var totalPrice = checked(unitPrice.Value * quantity);
         if (!CanSpend(selectedCurrency, totalPrice))
         {
             return ShopTransactionResult.Failed(selectedCurrency == ShopCurrencyKind.Silver ? "银两不足。" : "元宝不足。");
+        }
+
+        if (productDefinition.Reward is SkillMaxLevelRewardDefinition fragment &&
+            checked(fragment.Levels * quantity) >
+            _session.RewardGrantService.GetRemainingSkillMaxLevelBonus(fragment.SkillKind, fragment.SkillId))
+        {
+            return ShopTransactionResult.Failed($"【{product.DisplayName}】购买数量超过剩余可提升等级。");
         }
 
         Spend(selectedCurrency, totalPrice);
@@ -79,7 +85,7 @@ public sealed class ShopService
             _session.Events.Publish(new CurrencyChangedEvent());
         }
 
-        _session.InventoryService.AddItem(product.Item, quantity);
+        _session.RewardGrantService.Apply(_session.RewardGrantService.Resolve(productDefinition.Reward, quantity));
         return ShopTransactionResult.Succeeded(FormatTransactionMessage("买入", product.DisplayName, quantity));
     }
 
@@ -140,23 +146,29 @@ public sealed class ShopService
 
     private ShopProductView CreateProductView(string shopId, int productIndex, ShopProductDefinition product)
     {
-        var productItem = _session.ContentRepository.GetItem(product.ContentId);
-        var purchaseKey = BuildPurchaseKey(shopId, productIndex, product.ContentId);
+        var rewardKey = product.Reward.GetStableKey();
+        var purchaseKey = BuildPurchaseKey(shopId, rewardKey);
         var purchasedQuantity = State.Shop.GetPurchasedQuantity(purchaseKey);
         int? remainingLimit = product.PurchaseLimit is null
             ? null
             : Math.Max(0, product.PurchaseLimit.Value - purchasedQuantity);
+        var item = product.Reward is ItemRewardDefinition itemReward
+            ? _session.ContentRepository.GetItem(itemReward.ItemId)
+            : null;
         int? price = product.PremiumPrice is not null && product.Price is null
             ? null
-            : product.Price ?? productItem.Price;
+            : product.Price ?? item?.Price;
+        var displayName = _session.RewardGrantService.GetDisplayName(product.Reward);
+        var (picture, description) = ResolvePresentation(product.Reward, item);
 
         return new ShopProductView(
             productIndex,
             product,
-            productItem,
-            productItem.Name,
-            productItem.Type,
-            productItem.Picture,
+            item,
+            displayName,
+            picture,
+            description,
+            product.Reward is not ItemRewardDefinition,
             purchaseKey,
             price,
             product.PremiumPrice,
@@ -164,9 +176,43 @@ public sealed class ShopService
             remainingLimit);
     }
 
-    public static bool ShouldIgnoreProduct(string contentId) =>
-        string.Equals(contentId, GoldProductContentId, StringComparison.Ordinal) ||
-        contentId.EndsWith("残章", StringComparison.Ordinal);
+    private bool IsAvailable(RewardDefinition reward) =>
+        reward is not SkillMaxLevelRewardDefinition fragment ||
+        _session.RewardGrantService.GetRemainingSkillMaxLevelBonus(fragment.SkillKind, fragment.SkillId) > 0;
+
+    private (string Picture, string Description) ResolvePresentation(
+        RewardDefinition reward,
+        ItemDefinition? item) =>
+        reward switch
+        {
+            ItemRewardDefinition => (item!.Picture, item.Description),
+            YuanbaoRewardDefinition yuanbao => (
+                "物品.元宝",
+                $"兑换 {yuanbao.Amount} 枚跨存档、跨周目共享的元宝。"),
+            SkillMaxLevelRewardDefinition fragment => (
+                ResolveSkillIcon(fragment),
+                $"立即永久提高【{ResolveSkillName(fragment)}】等级上限 {fragment.Levels} 级。"),
+            _ => throw new NotSupportedException($"Unsupported shop reward '{reward.GetType().Name}'."),
+        };
+
+    private string ResolveSkillName(SkillMaxLevelRewardDefinition fragment) =>
+        fragment.SkillKind switch
+        {
+            SkillFragmentKind.External => _session.ContentRepository.GetExternalSkill(fragment.SkillId).Name,
+            SkillFragmentKind.Internal => _session.ContentRepository.GetInternalSkill(fragment.SkillId).Name,
+            _ => throw new ArgumentOutOfRangeException(nameof(fragment.SkillKind), fragment.SkillKind, null),
+        };
+
+    private string ResolveSkillIcon(SkillMaxLevelRewardDefinition fragment)
+    {
+        var icon = fragment.SkillKind switch
+        {
+            SkillFragmentKind.External => _session.ContentRepository.GetExternalSkill(fragment.SkillId).Icon,
+            SkillFragmentKind.Internal => _session.ContentRepository.GetInternalSkill(fragment.SkillId).Icon,
+            _ => throw new ArgumentOutOfRangeException(nameof(fragment.SkillKind), fragment.SkillKind, null),
+        };
+        return string.IsNullOrWhiteSpace(icon) ? "物品.剑谱" : icon;
+    }
 
     private bool CanSpend(ShopCurrencyKind currencyKind, int amount) =>
         currencyKind switch
@@ -191,8 +237,8 @@ public sealed class ShopService
         }
     }
 
-    private static string BuildPurchaseKey(string shopId, int productIndex, string contentId) =>
-        $"{shopId}|{productIndex}|{contentId}";
+    private static string BuildPurchaseKey(string shopId, string rewardKey) =>
+        $"{shopId}|{rewardKey}";
 
     private static string FormatTransactionMessage(string verb, string itemName, int quantity) =>
         quantity == 1
@@ -213,10 +259,11 @@ public sealed record ShopView(
 public sealed record ShopProductView(
     int ProductIndex,
     ShopProductDefinition Definition,
-    ItemDefinition Item,
+    ItemDefinition? Item,
     string DisplayName,
-    ItemType ItemType,
     string Picture,
+    string Description,
+    bool IsSpecial,
     string PurchaseKey,
     int? Price,
     int? PremiumPrice,

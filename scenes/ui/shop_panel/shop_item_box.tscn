@@ -40,44 +40,44 @@ texture = ExtResource("2_frame")
 expand_mode = 1
 
 [node name="Mask" type="TextureRect" parent="." unique_id=1474884932]
+clip_children = 2
 layout_mode = 0
-offset_left = 30.0
+offset_left = 28.0
 offset_top = 30.0
-offset_right = 150.0
-offset_bottom = 150.0
+offset_right = 149.0
+offset_bottom = 151.0
 mouse_filter = 2
 texture = ExtResource("3_mask")
 expand_mode = 1
 
-[node name="RarityBand" type="Panel" parent="." unique_id=529476308]
+[node name="Avatar" type="TextureRect" parent="Mask" unique_id=1664133321]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 2.0
-offset_top = 110.0
-offset_right = 177.0
-offset_bottom = 179.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("2_rarity_band")
-
-[node name="Avatar" type="TextureRect" parent="." unique_id=1664133321]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 22.0
-offset_top = 24.0
-offset_right = 153.0
-offset_bottom = 155.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("4_placeholder")
 expand_mode = 1
 stretch_mode = 4
 
+[node name="RarityBand" type="Panel" parent="." unique_id=529476308]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 99.825
+offset_right = 180.0
+offset_bottom = 180.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("2_rarity_band")
+
 [node name="NameLabel" type="Label" parent="." unique_id=1461701637]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = -12.0
-offset_top = 127.0
-offset_right = 192.0
-offset_bottom = 177.0
+offset_top = 99.75
+offset_right = 180.0
+offset_bottom = 180.0
 text = "物品"
 label_settings = ExtResource("5_label")
 horizontal_alignment = 1

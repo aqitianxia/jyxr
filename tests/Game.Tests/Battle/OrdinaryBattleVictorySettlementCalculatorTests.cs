@@ -35,7 +35,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         Assert.Equal(expectedExperience, settlement.ExperiencePerMember);
         Assert.Equal(expectedSilver, settlement.Silver);
-        Assert.Equal(0, settlement.Gold);
+        Assert.Empty(settlement.Rewards);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         Assert.Equal(5, settlement.ExperiencePerMember);
         Assert.Equal(10, settlement.Silver);
-        Assert.Equal(0, settlement.Gold);
+        Assert.Empty(settlement.Rewards);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         Assert.Equal(40, settlement.ExperiencePerMember);
         Assert.Equal(10, settlement.Silver);
-        Assert.Equal(0, settlement.Gold);
+        Assert.Empty(settlement.Rewards);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
             state,
             goldDropChance: 1d);
 
-        Assert.Equal(1, settlement.Gold);
+        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Amount);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        Assert.Equal(1, settlement.Gold);
+        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Amount);
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        Assert.Empty(settlement.Drops.OfType<OrdinaryBattleSkillFragmentRewardDrop>());
+        Assert.Empty(settlement.Rewards.OfType<SkillMaxLevelRewardGrant>());
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        var fragment = Assert.Single(settlement.Drops.OfType<OrdinaryBattleSkillFragmentRewardDrop>());
+        var fragment = Assert.Single(settlement.Rewards.OfType<SkillMaxLevelRewardGrant>());
         Assert.Equal(SkillFragmentKind.External, fragment.Kind);
         Assert.Equal("eligible", fragment.SkillId);
         Assert.Equal("eligible残章", fragment.DisplayName);
@@ -335,7 +335,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        var fragment = Assert.Single(settlement.Drops.OfType<OrdinaryBattleSkillFragmentRewardDrop>());
+        var fragment = Assert.Single(settlement.Rewards.OfType<SkillMaxLevelRewardGrant>());
         Assert.Equal(SkillFragmentKind.Internal, fragment.Kind);
         Assert.Equal("eligible_internal", fragment.SkillId);
     }
@@ -369,7 +369,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        Assert.Empty(settlement.Drops.OfType<OrdinaryBattleSkillFragmentRewardDrop>());
+        Assert.Empty(settlement.Rewards.OfType<SkillMaxLevelRewardGrant>());
     }
 
     [Fact]
@@ -393,7 +393,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
                 new BattleUnit("fixed_ally", fixedAlly, 1, new GridPosition(0, 1)),
                 new BattleUnit("enemy", enemy, 2, new GridPosition(3, 0)),
             ]);
-        var settlement = new OrdinaryBattleVictorySettlement(5, 0, 0);
+        var settlement = new OrdinaryBattleVictorySettlement(5, 0, []);
 
         session.BattleService.ApplyOrdinaryVictorySettlement(battleState, settlement);
 
@@ -402,7 +402,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
     }
 
     [Fact]
-    public void BattleServiceApplyOrdinaryVictorySettlement_AppliesFragmentsToProfileOnlyAndPublishesOnce()
+    public void BattleServiceApplyOrdinaryVictorySettlement_AppliesFragmentsToProfileOnlyAndPublishesPerReward()
     {
         var externalSkill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var internalSkill = TestContentFactory.CreateInternalSkill("yijinjing");
@@ -427,13 +427,12 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
         var settlement = new OrdinaryBattleVictorySettlement(
             5,
             0,
-            0,
             [
-                new OrdinaryBattleSkillFragmentRewardDrop(
+                new SkillMaxLevelRewardGrant(
                     SkillFragmentKind.External,
                     externalSkill.Id,
                     $"{externalSkill.Name}残章"),
-                new OrdinaryBattleSkillFragmentRewardDrop(
+                new SkillMaxLevelRewardGrant(
                     SkillFragmentKind.Internal,
                     internalSkill.Id,
                     $"{internalSkill.Name}残章"),
@@ -444,7 +443,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
         Assert.Equal(1, session.Profile.GetSkillMaxLevelBonus(externalSkill.Id));
         Assert.Equal(1, session.Profile.GetSkillMaxLevelBonus(internalSkill.Id));
         Assert.Empty(state.Inventory.Entries);
-        Assert.Equal(1, profileChangedCount);
+        Assert.Equal(2, profileChangedCount);
         Assert.Equal(0, inventoryChangedCount);
     }
 
@@ -554,10 +553,10 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
         var settlement = new OrdinaryBattleVictorySettlement(
             5,
             23,
-            1,
             [
-                new OrdinaryBattleStackRewardDrop(potion, 2),
-                new OrdinaryBattleEquipmentRewardDrop(
+                new YuanbaoRewardGrant(1),
+                new StackItemRewardGrant(potion, 2),
+                new EquipmentRewardGrant(
                     equipment,
                     [
                         new GeneratedEquipmentAffixRoll(

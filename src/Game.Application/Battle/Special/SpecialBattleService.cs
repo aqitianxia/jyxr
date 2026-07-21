@@ -80,7 +80,7 @@ public sealed class SpecialBattleService
             UnlockStageAchievements(stage);
             var reward = RollTowerReward(tower, stage);
             pendingRewards.Add(reward);
-            await SayAsync(host, "北丑", $"恭喜你取得了胜利！你本场战斗的奖励为【{reward.ContentId}】！", cancellationToken);
+            await SayAsync(host, "北丑", $"恭喜你取得了胜利！你本场战斗的奖励为【{reward.DisplayName}】！", cancellationToken);
 
             if (index == stages.Length - 1)
             {
@@ -319,8 +319,9 @@ public sealed class SpecialBattleService
             }
 
             var reward = stage.Rewards[Random.Shared.Next(stage.Rewards.Count)];
+            var rewardKey = reward.Reward.GetStableKey();
             if (reward.MaxClaims is > 0 &&
-                State.SpecialBattle.GetTowerRewardClaimCount(tower.Id, stage.Id, reward.ContentId) >= reward.MaxClaims.Value)
+                State.SpecialBattle.GetTowerRewardClaimCount(tower.Id, stage.Id, rewardKey) >= reward.MaxClaims.Value)
             {
                 continue;
             }
@@ -333,14 +334,18 @@ public sealed class SpecialBattleService
             return new PendingTowerReward(
                 tower.Id,
                 stage.Id,
-                reward.ContentId,
+                reward.Reward,
+                rewardKey,
+                _session.RewardGrantService.GetDisplayName(reward.Reward),
                 IsLimited: reward.MaxClaims is > 0);
         }
 
         return new PendingTowerReward(
             tower.Id,
             stage.Id,
-            DefaultTowerRewardId,
+            new ItemRewardDefinition { ItemId = DefaultTowerRewardId },
+            $"item:{DefaultTowerRewardId}",
+            _session.ContentRepository.GetItem(DefaultTowerRewardId).Name,
             IsLimited: false);
     }
 
@@ -348,46 +353,41 @@ public sealed class SpecialBattleService
     {
         foreach (var reward in rewards)
         {
-            if (string.Equals(reward.ContentId, "元宝", StringComparison.Ordinal))
-            {
-                _session.ProfileService.AddYuanbao(1);
-                AddTowerRewardClaimIfNeeded(reward);
-                continue;
-            }
-
-            GrantTowerRewardItem(reward.ContentId);
+            GrantTowerReward(reward.Definition);
             AddTowerRewardClaimIfNeeded(reward);
         }
     }
 
-    private void GrantTowerRewardItem(string itemId)
+    private void GrantTowerReward(RewardDefinition definition)
     {
-        var item = _session.ContentRepository.GetItem(itemId);
-        if (item is EquipmentDefinition equipment)
+        if (definition is ItemRewardDefinition itemReward &&
+            _session.ContentRepository.GetItem(itemReward.ItemId) is EquipmentDefinition equipment)
         {
             var extraAffixes = EquipmentRandomAffixGenerator
                 .GenerateRolls(equipment, _session.ContentRepository, State.Adventure.Round, 4)
-                .SelectMany(static roll => roll.Affixes)
                 .ToArray();
-            _session.InventoryService.AddEquipmentInstance(equipment, extraAffixes);
+            for (var index = 0; index < itemReward.Quantity; index += 1)
+            {
+                _session.RewardGrantService.Apply(new EquipmentRewardGrant(equipment, extraAffixes));
+            }
             return;
         }
 
-        _session.InventoryService.AddItem(item);
+        _session.RewardGrantService.Apply(_session.RewardGrantService.Resolve(definition));
     }
 
     private void AddTowerRewardClaimIfNeeded(PendingTowerReward reward)
     {
         if (reward.IsLimited)
         {
-            State.SpecialBattle.AddTowerRewardClaim(reward.TowerId, reward.StageId, reward.ContentId);
+            State.SpecialBattle.AddTowerRewardClaim(reward.TowerId, reward.StageId, reward.RewardKey);
         }
     }
 
     private static string BuildPendingTowerRewardText(IReadOnlyList<PendingTowerReward> pendingRewards) =>
         pendingRewards.Count == 0
             ? "截止目前，你还没有获得额外奖励。"
-            : $"截止目前，你的奖励有：{string.Join("、", pendingRewards.Select(static reward => $"【{reward.ContentId}】"))}！";
+            : $"截止目前，你的奖励有：{string.Join("、", pendingRewards.Select(static reward => $"【{reward.DisplayName}】"))}！";
 
     private static void AddSelectedToForbidden(
         ISet<string> forbiddenCharacterIds,
@@ -429,6 +429,8 @@ public sealed class SpecialBattleService
     private sealed record PendingTowerReward(
         string TowerId,
         string StageId,
-        string ContentId,
+        RewardDefinition Definition,
+        string RewardKey,
+        string DisplayName,
         bool IsLimited);
 }

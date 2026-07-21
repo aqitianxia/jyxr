@@ -10,7 +10,6 @@ namespace Game.Content.Loading;
 
 public sealed partial class JsonContentLoader
 {
-    private const string GoldShopProductContentId = "元宝";
     private const string AchievementResourceGroup = "nick";
     private const string AchievementResourcePrefix = AchievementResourceGroup + ".";
 
@@ -901,27 +900,34 @@ public sealed partial class JsonContentLoader
 
     private static void ValidateShops(InMemoryContentRepository repository)
     {
-        var itemIds = repository.Items.Keys.ToHashSet(StringComparer.Ordinal);
         foreach (var shop in repository.Shops.Values)
         {
+            var rewardKeys = new HashSet<string>(StringComparer.Ordinal);
             for (var index = 0; index < shop.Products.Count; index += 1)
             {
                 var product = shop.Products[index];
-                Ensure(!string.IsNullOrWhiteSpace(product.ContentId), $"Shop '{shop.Id}' product {index} is missing contentId.");
-                Ensure(
-                    itemIds.Contains(product.ContentId) ||
-                    IsIgnoredShopProduct(product.ContentId),
-                    $"Shop '{shop.Id}' product {index} references missing item '{product.ContentId}'.");
+                var reward = product.Reward ?? throw new InvalidOperationException(
+                    $"Shop '{shop.Id}' product {index} is missing reward.");
+                ValidateReward(repository, reward, $"Shop '{shop.Id}' product {index}");
+                var rewardKey = reward.GetStableKey();
+                Ensure(rewardKeys.Add(rewardKey),
+                    $"Shop '{shop.Id}' has duplicate reward '{rewardKey}'.");
                 Ensure(product.PurchaseLimit is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid purchaseLimit.");
                 Ensure(product.Price is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid price.");
                 Ensure(product.PremiumPrice is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid premiumPrice.");
+                if (reward is YuanbaoRewardDefinition)
+                {
+                    Ensure(product.Price is not null && product.PremiumPrice is null,
+                        $"Shop '{shop.Id}' product {index} yuanbao reward must be purchased with silver.");
+                }
+                else if (reward is not ItemRewardDefinition)
+                {
+                    Ensure(product.Price is not null || product.PremiumPrice is not null,
+                        $"Shop '{shop.Id}' product {index} special reward requires an explicit price.");
+                }
             }
         }
     }
-
-    private static bool IsIgnoredShopProduct(string contentId) =>
-        string.Equals(contentId, GoldShopProductContentId, StringComparison.Ordinal) ||
-        contentId.EndsWith("残章", StringComparison.Ordinal);
 
     private static void ValidateTowers(InMemoryContentRepository repository)
     {
@@ -938,15 +944,14 @@ public sealed partial class JsonContentLoader
 
                 foreach (var reward in stage.Rewards)
                 {
-                    Ensure(!string.IsNullOrWhiteSpace(reward.ContentId),
-                        $"Tower '{tower.Id}' stage '{stage.Id}' has reward with empty contentId.");
-                    Ensure(repository.Items.ContainsKey(reward.ContentId) ||
-                           string.Equals(reward.ContentId, GoldShopProductContentId, StringComparison.Ordinal),
-                        $"Tower '{tower.Id}' stage '{stage.Id}' references missing reward item '{reward.ContentId}'.");
+                    var definition = reward.Reward ?? throw new InvalidOperationException(
+                        $"Tower '{tower.Id}' stage '{stage.Id}' has an empty reward.");
+                    ValidateReward(repository, definition,
+                        $"Tower '{tower.Id}' stage '{stage.Id}' reward");
                     Ensure(reward.Probability >= 0d && reward.Probability <= 1d,
-                        $"Tower '{tower.Id}' stage '{stage.Id}' reward '{reward.ContentId}' has invalid probability '{reward.Probability}'.");
+                        $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid probability '{reward.Probability}'.");
                     Ensure(reward.MaxClaims is null or >= 0,
-                        $"Tower '{tower.Id}' stage '{stage.Id}' reward '{reward.ContentId}' has invalid maxClaims '{reward.MaxClaims}'.");
+                        $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid maxClaims '{reward.MaxClaims}'.");
                 }
 
                 foreach (var achievementId in stage.AchievementIds)
@@ -965,6 +970,39 @@ public sealed partial class JsonContentLoader
                         $"Tower '{tower.Id}' stage '{stage.Id}' achievement '{achievementId}' must resolve to a '{AchievementResourceGroup}' resource.");
                 }
             }
+        }
+    }
+
+    private static void ValidateReward(
+        InMemoryContentRepository repository,
+        RewardDefinition reward,
+        string context)
+    {
+        switch (reward)
+        {
+            case ItemRewardDefinition item:
+                Ensure(!string.IsNullOrWhiteSpace(item.ItemId), $"{context} has an empty itemId.");
+                Ensure(repository.Items.ContainsKey(item.ItemId),
+                    $"{context} references missing item '{item.ItemId}'.");
+                Ensure(item.Quantity > 0, $"{context} has invalid item quantity '{item.Quantity}'.");
+                return;
+            case YuanbaoRewardDefinition yuanbao:
+                Ensure(yuanbao.Amount > 0, $"{context} has invalid yuanbao amount '{yuanbao.Amount}'.");
+                return;
+            case SkillMaxLevelRewardDefinition fragment:
+                Ensure(!string.IsNullOrWhiteSpace(fragment.SkillId), $"{context} has an empty skillId.");
+                Ensure(fragment.Levels > 0, $"{context} has invalid skill levels '{fragment.Levels}'.");
+                Ensure(
+                    fragment.SkillKind switch
+                    {
+                        SkillFragmentKind.External => repository.ExternalSkills.ContainsKey(fragment.SkillId),
+                        SkillFragmentKind.Internal => repository.InternalSkills.ContainsKey(fragment.SkillId),
+                        _ => false,
+                    },
+                    $"{context} references missing {fragment.SkillKind} skill '{fragment.SkillId}'.");
+                return;
+            default:
+                throw new InvalidOperationException($"{context} uses unsupported reward type '{reward.GetType().Name}'.");
         }
     }
 

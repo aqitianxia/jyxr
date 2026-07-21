@@ -21,7 +21,7 @@ public sealed record TowerStageDefinition
 
 public sealed record TowerRewardDefinition
 {
-    public required string ContentId { get; init; }
+    public required RewardDefinition Reward { get; init; }
 
     public double Probability { get; init; }
 

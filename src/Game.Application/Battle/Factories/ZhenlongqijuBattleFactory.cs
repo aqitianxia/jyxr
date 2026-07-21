@@ -13,9 +13,9 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
     private GameConfig Config => session.Config;
     private IContentRepository Content => session.ContentRepository;
 
-    public IReadOnlyList<OrdinaryBattleRewardDrop> GenerateDrops(int level)
+    public IReadOnlyList<RewardGrant> GenerateDrops(int level)
     {
-        var drops = new List<OrdinaryBattleRewardDrop>();
+        var drops = new List<RewardGrant>();
         AddRandomExternalSkillFragment(drops, skill => skill.Hard < 8d);
         if (Random.Shared.NextDouble() < 0.5d)
         {
@@ -30,7 +30,7 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
         if (Enumerable.Range(0, level).Any(_ => Random.Shared.NextDouble() < 0.3d))
         {
             var equipment = PickConfiguredEquipment();
-            drops.Add(new OrdinaryBattleEquipmentRewardDrop(
+            drops.Add(new EquipmentRewardGrant(
                 equipment,
                 EquipmentRandomAffixGenerator.GenerateRolls(
                     equipment,
@@ -80,16 +80,23 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
     }
 
     private void AddRandomExternalSkillFragment(
-        ICollection<OrdinaryBattleRewardDrop> drops,
+        ICollection<RewardGrant> drops,
         Func<ExternalSkillDefinition, bool> predicate)
     {
         var candidates = Content.GetExternalSkills()
             .Where(predicate)
             .Where(skill => session.SkillMaxLevelPolicy.GetExternalSkillMaxLevelWithoutRoundBonus(skill.Id) < Config.AbsoluteSkillMaxLevel)
+            .Where(skill => drops
+                .OfType<SkillMaxLevelRewardGrant>()
+                .Where(reward => reward.Kind == SkillFragmentKind.External &&
+                                 string.Equals(reward.SkillId, skill.Id, StringComparison.Ordinal))
+                .Sum(static reward => reward.Levels) <
+                Config.AbsoluteSkillMaxLevel -
+                session.SkillMaxLevelPolicy.GetExternalSkillMaxLevelWithoutRoundBonus(skill.Id))
             .ToArray();
         if (candidates.Length == 0) return;
         var skill = PickRandom(candidates);
-        drops.Add(new OrdinaryBattleSkillFragmentRewardDrop(
+        drops.Add(new SkillMaxLevelRewardGrant(
             SkillFragmentKind.External, skill.Id, $"{skill.Name}残章"));
     }
 

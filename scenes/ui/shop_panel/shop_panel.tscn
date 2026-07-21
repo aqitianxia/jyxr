@@ -245,6 +245,17 @@ theme_override_styles/hover = SubResource("1_button_normal")
 theme_override_styles/disabled = SubResource("1_button_normal")
 text = "剧情物品"
 
+[node name="SpecialButton" type="Button" parent="ContentRoot/CategoryButtons" index="9" unique_id=100000033]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 62)
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+theme_override_styles/normal = SubResource("1_button_normal")
+theme_override_styles/pressed = SubResource("1_button_normal")
+theme_override_styles/hover = SubResource("1_button_normal")
+theme_override_styles/disabled = SubResource("1_button_normal")
+text = "特殊"
+
 [node name="GoodsPanel" type="Panel" parent="ContentRoot" parent_id_path=PackedInt32Array(196658441) index="7" unique_id=100000020]
 layout_mode = 0
 offset_left = 610.0

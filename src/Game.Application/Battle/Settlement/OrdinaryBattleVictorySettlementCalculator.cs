@@ -52,8 +52,10 @@ public static class OrdinaryBattleVictorySettlementCalculator
             MinimumSilverReward,
             enemyUnits.Sum(unit => (int)Math.Pow(1.2d, unit.Character.Level)));
 
-        var gold = Probability.RollChance(goldDropChance) ? 1 : 0;
+        IReadOnlyList<RewardGrant> rewards = Probability.RollChance(goldDropChance)
+            ? [new YuanbaoRewardGrant(1)]
+            : [];
 
-        return new OrdinaryBattleVictorySettlement(experiencePerMember, silver, gold);
+        return new OrdinaryBattleVictorySettlement(experiencePerMember, silver, rewards);
     }
 }

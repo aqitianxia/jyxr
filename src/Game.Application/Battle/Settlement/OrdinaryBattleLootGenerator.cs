@@ -9,7 +9,7 @@ namespace Game.Application;
 
 public static class OrdinaryBattleLootGenerator
 {
-    public static IReadOnlyList<OrdinaryBattleRewardDrop> Generate(
+    public static IReadOnlyList<RewardGrant> Generate(
         BattleState state,
         IContentRepository contentRepository,
         GameConfig config,
@@ -27,7 +27,7 @@ public static class OrdinaryBattleLootGenerator
         ArgumentOutOfRangeException.ThrowIfLessThan(dropChance, 0d);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(dropChance, 1d);
 
-        var drops = new List<OrdinaryBattleRewardDrop>();
+        var drops = new List<RewardGrant>();
         foreach (var enemyUnit in state.Units.Where(unit => unit.Team != playerTeam))
         {
             AddOrdinaryItemDrop(
@@ -50,7 +50,7 @@ public static class OrdinaryBattleLootGenerator
     }
 
     private static void AddOrdinaryItemDrop(
-        List<OrdinaryBattleRewardDrop> drops,
+        List<RewardGrant> drops,
         IContentRepository contentRepository,
         int round,
         double dropChance,
@@ -70,17 +70,17 @@ public static class OrdinaryBattleLootGenerator
         var item = PickRandom(candidates);
         if (item is EquipmentDefinition equipment)
         {
-            drops.Add(new OrdinaryBattleEquipmentRewardDrop(
+            drops.Add(new EquipmentRewardGrant(
                 equipment,
                 GenerateEquipmentRolls(equipment, contentRepository, round)));
             return;
         }
 
-        drops.Add(new OrdinaryBattleStackRewardDrop(item, 1));
+        drops.Add(new StackItemRewardGrant(item, 1));
     }
 
     private static void AddSkillFragmentDrops(
-        List<OrdinaryBattleRewardDrop> drops,
+        List<RewardGrant> drops,
         IContentRepository contentRepository,
         GameConfig config,
         SkillMaxLevelPolicy skillMaxLevelPolicy,
@@ -92,6 +92,7 @@ public static class OrdinaryBattleLootGenerator
         if (Probability.RollChance(externalDropChance))
         {
             var candidates = ResolveExternalSkillFragmentCandidates(
+                drops,
                 contentRepository,
                 config,
                 skillMaxLevelPolicy,
@@ -111,6 +112,7 @@ public static class OrdinaryBattleLootGenerator
         if (Probability.RollChance(externalDropChance / config.CanzhangDropRateInternalRate))
         {
             var candidates = ResolveInternalSkillFragmentCandidates(
+                drops,
                 contentRepository,
                 config,
                 skillMaxLevelPolicy,
@@ -136,6 +138,7 @@ public static class OrdinaryBattleLootGenerator
         };
 
     private static IReadOnlyList<ExternalSkillDefinition> ResolveExternalSkillFragmentCandidates(
+        IReadOnlyList<RewardGrant> pendingRewards,
         IContentRepository contentRepository,
         GameConfig config,
         SkillMaxLevelPolicy skillMaxLevelPolicy,
@@ -148,10 +151,14 @@ public static class OrdinaryBattleLootGenerator
             .Where(skill => enemyLevel < 30 || skill.Hard >= 5d)
             .Where(skill => enemyLevel < 20 || skill.Hard >= 3d)
             .Where(skill => !IsExternalSkillMaxed(config, skillMaxLevelPolicy, skill))
+            .Where(skill => GetPendingFragmentLevels(pendingRewards, SkillFragmentKind.External, skill.Id) <
+                            config.AbsoluteSkillMaxLevel -
+                            skillMaxLevelPolicy.GetExternalSkillMaxLevelWithoutRoundBonus(skill.Id))
             .ToArray();
     }
 
     private static IReadOnlyList<InternalSkillDefinition> ResolveInternalSkillFragmentCandidates(
+        IReadOnlyList<RewardGrant> pendingRewards,
         IContentRepository contentRepository,
         GameConfig config,
         SkillMaxLevelPolicy skillMaxLevelPolicy,
@@ -162,6 +169,9 @@ public static class OrdinaryBattleLootGenerator
             .Where(skill => skill.Hard < config.CanzhangMaxHardInternalSkill)
             .Where(skill => skill.Hard < levelHardLimit)
             .Where(skill => !IsInternalSkillMaxed(config, skillMaxLevelPolicy, skill))
+            .Where(skill => GetPendingFragmentLevels(pendingRewards, SkillFragmentKind.Internal, skill.Id) <
+                            config.AbsoluteSkillMaxLevel -
+                            skillMaxLevelPolicy.GetInternalSkillMaxLevelWithoutRoundBonus(skill.Id))
             .ToArray();
     }
 
@@ -182,11 +192,20 @@ public static class OrdinaryBattleLootGenerator
             ? double.PositiveInfinity
             : 2d + enemyLevel / 3d;
 
-    private static OrdinaryBattleSkillFragmentRewardDrop CreateExternalSkillFragmentDrop(ExternalSkillDefinition skill) =>
+    private static SkillMaxLevelRewardGrant CreateExternalSkillFragmentDrop(ExternalSkillDefinition skill) =>
         new(SkillFragmentKind.External, skill.Id, $"{skill.Name}残章");
 
-    private static OrdinaryBattleSkillFragmentRewardDrop CreateInternalSkillFragmentDrop(InternalSkillDefinition skill) =>
+    private static SkillMaxLevelRewardGrant CreateInternalSkillFragmentDrop(InternalSkillDefinition skill) =>
         new(SkillFragmentKind.Internal, skill.Id, $"{skill.Name}残章");
+
+    private static int GetPendingFragmentLevels(
+        IReadOnlyList<RewardGrant> rewards,
+        SkillFragmentKind kind,
+        string skillId) =>
+        rewards
+            .OfType<SkillMaxLevelRewardGrant>()
+            .Where(reward => reward.Kind == kind && string.Equals(reward.SkillId, skillId, StringComparison.Ordinal))
+            .Sum(static reward => reward.Levels);
 
     public static IReadOnlyList<GeneratedEquipmentAffixRoll> GenerateEquipmentRolls(
         EquipmentDefinition equipment,

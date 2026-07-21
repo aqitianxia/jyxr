@@ -8,6 +8,9 @@ namespace Game.Godot.UI;
 
 public partial class ShopItemBox : TextureButton
 {
+	private static readonly Color DefaultBandColor = new(1f, 1f, 1f, 0.3f);
+	private static readonly Color SkillFragmentBandColor = new(0f, 0f, 1f, 0.3f);
+
 	[Export]
 	public PackedScene TooltipScene { get; set; } = null!;
 
@@ -49,7 +52,7 @@ public partial class ShopItemBox : TextureButton
 		_entryFooterText = string.Empty;
 		_canAct = canBuy;
 		Disabled = false;
-		TooltipText = product.DisplayName;
+		TooltipText = product.Description;
 		Refresh();
 	}
 
@@ -130,7 +133,9 @@ public partial class ShopItemBox : TextureButton
 			return;
 		}
 
-		_avatar.Texture = AssetResolver.LoadTextureResource(_product?.Picture ?? _item?.Picture);
+		_avatar.Texture = _product?.Definition.Reward is SkillMaxLevelRewardDefinition
+			? AssetResolver.LoadSkillIconResource(_product.Picture)
+			: AssetResolver.LoadTextureResource(_product?.Picture ?? _item?.Picture);
 		_nameLabel.Text = _product?.DisplayName ?? _item!.Name;
 		Modulate = _canAct ? Colors.White : new Color(0.65f, 0.65f, 0.65f, 1f);
 		_rarityBandStyle.BgColor = ResolveBandColor();
@@ -157,7 +162,14 @@ public partial class ShopItemBox : TextureButton
 			return ItemRarityBandColorResolver.Resolve(_equipment);
 		}
 
-		return ItemRarityBandColorResolver.Resolve(_item!);
+		if (_item is not null)
+		{
+			return ItemRarityBandColorResolver.Resolve(_item);
+		}
+
+		return _product?.Definition.Reward is SkillMaxLevelRewardDefinition
+			? SkillFragmentBandColor
+			: DefaultBandColor;
 	}
 
 	private static StyleBoxFlat DuplicateBandStyle(Panel band)

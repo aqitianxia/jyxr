@@ -35,36 +35,10 @@ internal sealed class BattleSettlementService(
             State.Currency.AddSilver(settlement.Silver);
             session.Events.Publish(new CurrencyChangedEvent());
         }
-        if (settlement.Gold > 0) session.ProfileService.AddYuanbao(settlement.Gold);
-
-        var inventoryChanged = false;
-        var profileChanged = false;
-        foreach (var drop in settlement.Drops)
+        foreach (var reward in settlement.Rewards)
         {
-            switch (drop)
-            {
-                case OrdinaryBattleStackRewardDrop stack:
-                    State.Inventory.AddItem(stack.Item, stack.Quantity);
-                    inventoryChanged = true;
-                    break;
-                case OrdinaryBattleEquipmentRewardDrop equipment:
-                    var affixes = equipment.Rolls.SelectMany(static roll => roll.Affixes).ToArray();
-                    State.Inventory.AddEquipmentInstance(
-                        State.EquipmentInstanceFactory.Create(equipment.Equipment, affixes));
-                    inventoryChanged = true;
-                    break;
-                case OrdinaryBattleSkillFragmentRewardDrop fragment:
-                    session.ProfileService.AddSkillMaxLevelBonus(fragment.SkillId, fragment.Levels);
-                    profileChanged = true;
-                    break;
-                default:
-                    throw new InvalidOperationException(
-                        $"Unsupported ordinary battle reward drop type '{drop.GetType().Name}'.");
-            }
+            session.RewardGrantService.Apply(reward);
         }
-
-        if (inventoryChanged) session.Events.Publish(new InventoryChangedEvent());
-        if (profileChanged) session.Events.Publish(new ProfileChangedEvent());
     }
 
     private OrdinaryBattleVictorySettlement PreviewOrdinarySettlement(
@@ -87,7 +61,7 @@ internal sealed class BattleSettlementService(
             State.Adventure.Round,
             PlayerTeam,
             session.Config.OrdinaryBattleDropChance);
-        return settlement with { Drops = drops };
+        return settlement with { Rewards = settlement.Rewards.Concat(drops).ToArray() };
     }
 
     private OrdinaryBattleVictorySettlement PreviewZhenlongqijuSettlement(BattleState state, int level)
@@ -97,8 +71,10 @@ internal sealed class BattleSettlementService(
             state, 0d, PlayerTeam, GetRewardUnits(state).Count());
         return settlement with
         {
-            Gold = level / 2 + 1,
-            Drops = zhenlongqijuFactory.GenerateDrops(level),
+            Rewards = settlement.Rewards
+                .Append<RewardGrant>(new YuanbaoRewardGrant(level / 2 + 1))
+                .Concat(zhenlongqijuFactory.GenerateDrops(level))
+                .ToArray(),
         };
     }
 
