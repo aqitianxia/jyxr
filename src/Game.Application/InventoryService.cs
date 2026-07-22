@@ -107,6 +107,24 @@ public sealed class InventoryService
         return equipment;
     }
 
+    public void UnequipAllToInventory(CharacterInstance character)
+    {
+        ArgumentNullException.ThrowIfNull(character);
+        if (character.EquippedItems.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var slotType in character.EquippedItems.Keys.ToArray())
+        {
+            Inventory.AddEquipmentInstance(character.RemoveEquipment(slotType));
+        }
+
+        character.RebuildSnapshot();
+        _session.Events.Publish(new InventoryChangedEvent());
+        _session.Events.Publish(new CharacterChangedEvent(character.Id));
+    }
+
     private void ReplaceEquippedItem(CharacterInstance character, EquipmentSlotType slotType)
     {
         if (character.GetEquipment(slotType) is null)

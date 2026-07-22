@@ -78,7 +78,7 @@ public sealed class PartyService
             return;
         }
 
-        State.Party.MoveToReserves(character.Id);
+        MoveToReserves(character);
         _session.Events.Publish(new PartyChangedEvent());
     }
 
@@ -91,20 +91,23 @@ public sealed class PartyService
             return;
         }
 
-        State.Party.MoveToReserves(character.Id);
+        MoveToReserves(character);
+        _session.Events.Publish(new PartyChangedEvent());
     }
 
     public void LeaveAll()
     {
-        var members = State.Party.Members;
-        if (members.Count == 0)
+        var departingMembers = State.Party.Members
+            .Where(member => !string.Equals(member.Id, Party.HeroCharacterId, StringComparison.Ordinal))
+            .ToArray();
+        if (departingMembers.Length == 0)
         {
             return;
         }
 
-        foreach (var member in members)
+        foreach (var member in departingMembers)
         {
-            State.Party.MoveToReserves(member.Id);
+            MoveToReserves(member);
         }
 
         _session.Events.Publish(new PartyChangedEvent());
@@ -181,6 +184,12 @@ public sealed class PartyService
     private CharacterInstance CreateInitialCharacter(string characterId)
     {
         return _initialCharacterFactory.Create(characterId, State.EquipmentInstanceFactory);
+    }
+
+    private void MoveToReserves(CharacterInstance character)
+    {
+        _session.InventoryService.UnequipAllToInventory(character);
+        State.Party.MoveToReserves(character.Id);
     }
 
     private bool TryFindPartyMember(string idOrName, out CharacterInstance character) =>
