@@ -365,11 +365,11 @@ public sealed class SpecialBattleService
         if (definition is ItemRewardDefinition itemReward &&
             _session.ContentRepository.GetItem(itemReward.ItemId) is EquipmentDefinition equipment)
         {
-            var extraAffixes = EquipmentRandomAffixGenerator
-                .GenerateRolls(equipment, _session.ContentRepository, State.Adventure.Round, 4)
-                .ToArray();
             for (var index = 0; index < itemReward.Quantity; index += 1)
             {
+                var extraAffixes = EquipmentRandomAffixGenerator
+                    .GenerateRolls(equipment, _session.ContentRepository, State.Adventure.Round, 4)
+                    .ToArray();
                 _session.RewardGrantService.Apply(new EquipmentRewardGrant(equipment, extraAffixes));
             }
             return;
