@@ -948,8 +948,8 @@ public sealed partial class JsonContentLoader
                         $"Tower '{tower.Id}' stage '{stage.Id}' has an empty reward.");
                     ValidateReward(repository, definition,
                         $"Tower '{tower.Id}' stage '{stage.Id}' reward");
-                    Ensure(reward.Probability >= 0d && reward.Probability <= 1d,
-                        $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid probability '{reward.Probability}'.");
+                    Ensure(double.IsFinite(reward.Weight) && reward.Weight > 0d,
+                        $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid weight '{reward.Weight}'.");
                     Ensure(reward.MaxClaims is null or >= 0,
                         $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid maxClaims '{reward.MaxClaims}'.");
                 }

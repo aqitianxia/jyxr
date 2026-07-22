@@ -78,7 +78,7 @@ public sealed class SpecialBattleService
             }
 
             UnlockStageAchievements(stage);
-            var reward = RollTowerReward(tower, stage);
+            var reward = SelectTowerReward(tower, stage);
             pendingRewards.Add(reward);
             await SayAsync(host, "北丑", $"恭喜你取得了胜利！你本场战斗的奖励为【{reward.DisplayName}】！", cancellationToken);
 
@@ -309,44 +309,46 @@ public sealed class SpecialBattleService
         }
     }
 
-    private PendingTowerReward RollTowerReward(TowerDefinition tower, TowerStageDefinition stage)
+    private PendingTowerReward SelectTowerReward(TowerDefinition tower, TowerStageDefinition stage)
     {
-        for (var attempt = 0; attempt < 100; attempt++)
+        var candidates = stage.Rewards
+            .Where(reward => reward.MaxClaims is not > 0 ||
+                State.SpecialBattle.GetTowerRewardClaimCount(
+                    tower.Id,
+                    stage.Id,
+                    reward.Reward.GetStableKey()) < reward.MaxClaims.Value)
+            .ToArray();
+        if (candidates.Length == 0)
         {
-            if (stage.Rewards.Count == 0)
-            {
-                break;
-            }
-
-            var reward = stage.Rewards[Random.Shared.Next(stage.Rewards.Count)];
-            var rewardKey = reward.Reward.GetStableKey();
-            if (reward.MaxClaims is > 0 &&
-                State.SpecialBattle.GetTowerRewardClaimCount(tower.Id, stage.Id, rewardKey) >= reward.MaxClaims.Value)
-            {
-                continue;
-            }
-
-            if (Random.Shared.NextDouble() > reward.Probability)
-            {
-                continue;
-            }
-
             return new PendingTowerReward(
                 tower.Id,
                 stage.Id,
-                reward.Reward,
-                rewardKey,
-                _session.RewardGrantService.GetDisplayName(reward.Reward),
-                IsLimited: reward.MaxClaims is > 0);
+                new ItemRewardDefinition { ItemId = DefaultTowerRewardId },
+                $"item:{DefaultTowerRewardId}",
+                _session.ContentRepository.GetItem(DefaultTowerRewardId).Name,
+                IsLimited: false);
         }
 
+        var threshold = Random.Shared.NextDouble() * candidates.Sum(static reward => reward.Weight);
+        var selectedReward = candidates[^1];
+        foreach (var reward in candidates)
+        {
+            threshold -= reward.Weight;
+            if (threshold < 0d)
+            {
+                selectedReward = reward;
+                break;
+            }
+        }
+
+        var rewardKey = selectedReward.Reward.GetStableKey();
         return new PendingTowerReward(
             tower.Id,
             stage.Id,
-            new ItemRewardDefinition { ItemId = DefaultTowerRewardId },
-            $"item:{DefaultTowerRewardId}",
-            _session.ContentRepository.GetItem(DefaultTowerRewardId).Name,
-            IsLimited: false);
+            selectedReward.Reward,
+            rewardKey,
+            _session.RewardGrantService.GetDisplayName(selectedReward.Reward),
+            IsLimited: selectedReward.MaxClaims is > 0);
     }
 
     private void GrantTowerRewards(IReadOnlyList<PendingTowerReward> rewards)

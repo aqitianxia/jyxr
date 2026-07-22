@@ -23,7 +23,7 @@ public sealed record TowerRewardDefinition
 {
     public required RewardDefinition Reward { get; init; }
 
-    public double Probability { get; init; }
+    public required double Weight { get; init; }
 
     public int? MaxClaims { get; init; }
 }

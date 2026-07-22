@@ -22,8 +22,8 @@ public sealed class SpecialBattleServiceTests
         var entry = Assert.Single(session.State.Inventory.Entries.OfType<StackInventoryEntry>());
         Assert.Equal(reward.Id, entry.Item.Id);
         Assert.Equal(2, entry.Quantity);
-        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "rare_reward"));
-        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_b", "rare_reward"));
+        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "item:rare_reward"));
+        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_b", "item:rare_reward"));
     }
 
     [Fact]
@@ -40,6 +40,31 @@ public sealed class SpecialBattleServiceTests
 
         Assert.Empty(session.State.Inventory.Entries);
         Assert.Empty(session.State.SpecialBattle.TowerRewardClaimCounts);
+    }
+
+    [Fact]
+    public async Task TowerFallsBackWhenEveryConfiguredRewardReachedItsClaimLimit()
+    {
+        var reward = CreateItem("rare_reward");
+        var fallback = CreateItem("黑玉断续膏");
+        var tower = CreateSingleStageTower(reward.Id);
+        var session = CreateSession(tower, reward, fallback);
+
+        await session.SpecialBattleService.RunTowerAsync(
+            new TowerRuntimeHost([["hero"]], [true]));
+        await session.SpecialBattleService.RunTowerAsync(
+            new TowerRuntimeHost([["hero"]], [true]));
+
+        Assert.Equal(
+            1,
+            session.State.Inventory.Entries.OfType<StackInventoryEntry>()
+                .Single(entry => entry.Item.Id == reward.Id)
+                .Quantity);
+        Assert.Equal(
+            1,
+            session.State.Inventory.Entries.OfType<StackInventoryEntry>()
+                .Single(entry => entry.Item.Id == fallback.Id)
+                .Quantity);
     }
 
     [Fact]
@@ -149,8 +174,8 @@ public sealed class SpecialBattleServiceTests
             [
                 new TowerRewardDefinition
                 {
-                    ContentId = rewardId,
-                    Probability = 1d,
+                    Reward = new ItemRewardDefinition { ItemId = rewardId },
+                    Weight = 1d,
                     MaxClaims = 1,
                 },
             ],
