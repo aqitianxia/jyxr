@@ -3,7 +3,7 @@ using Game.Core.Affix;
 namespace Game.Core.Battle.Talents;
 
 public sealed record FormlessSwordQiBattleEffectParameters(
-    [property: NotWhiteSpace] string SkillName,
+    [property: NotWhiteSpace] string SourceSkillId,
     [property: NonNegative] int MpDifferenceCap,
     [property: NonNegative] double MinimumFactor,
     [property: NonNegative] double MaximumFactor);
@@ -34,7 +34,7 @@ internal sealed class FormlessSwordQiBattleEffectHandler
             context.Skill is null ||
             !string.Equals(context.Unit.Id, source.Id, StringComparison.Ordinal) ||
             !context.State.AreEnemies(source, target) ||
-            !string.Equals(context.Skill.Name, parameters.SkillName, StringComparison.Ordinal))
+            !string.Equals(context.Skill.SourceSkillId, parameters.SourceSkillId, StringComparison.Ordinal))
         {
             return;
         }
