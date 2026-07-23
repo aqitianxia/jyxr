@@ -39,7 +39,7 @@ internal sealed class FormlessSwordQiBattleEffectHandler
             return;
         }
 
-        var mpDifference = Math.Min(Math.Abs(source.Mp - target.Mp), parameters.MpDifferenceCap);
+        var mpDifference = Math.Min(Math.Max(source.Mp - target.Mp, 0), parameters.MpDifferenceCap);
         var factor = parameters.MinimumFactor +
             (parameters.MaximumFactor - parameters.MinimumFactor) * context.Random.NextDouble();
         var additionalDamage = (int)Math.Floor(mpDifference * factor);
