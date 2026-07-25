@@ -497,7 +497,30 @@ public sealed class SessionEventsTests
     }
 
     [Fact]
-    public async Task xilian_CancelReplacement_ChargesGold_ReturnsXilianChoice_DoesNotChangeInventory()
+    public async Task xilian_CloseEquipmentSelection_EndsFlow()
+    {
+        var affix = new StatModifierAffix(StatType.Attack, ModifierValue.Add(10));
+        var equipment = TestContentFactory.CreateEquipment("test_sword");
+        var state = new GameState();
+        var profile = new GameProfile();
+        profile.SetYuanbao(1);
+        state.Inventory.AddEquipmentInstance(state.EquipmentInstanceFactory.Create(equipment, [affix]));
+        var host = new RecordingApplicationRuntimeHost(null);
+        var session = new GameSession(
+            state,
+            TestContentFactory.CreateRepository(equipment: [equipment]),
+            initialProfile: profile);
+        var dispatcher = new StoryCommandDispatcher(session, host);
+
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
+
+        Assert.Null(result.JumpTarget);
+        Assert.Equal(1, session.Profile.Yuanbao);
+        Assert.Empty(host.Choices);
+    }
+
+    [Fact]
+    public async Task xilian_CancelReplacement_ChargesGold_EndsWhenExitSelected_DoesNotChangeInventory()
     {
         var oldAffix = new StatModifierAffix(StatType.Attack, ModifierValue.Add(10));
         var equipment = TestContentFactory.CreateEquipment("test_sword");
@@ -516,7 +539,7 @@ public sealed class SessionEventsTests
 
         var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
-        Assert.Equal("洗练选择", result.JumpTarget);
+        Assert.Null(result.JumpTarget);
         Assert.Equal(0, session.Profile.Yuanbao);
         Assert.Equal([oldAffix], entry.Equipment.ExtraAffixes);
         Assert.Single(publishedEvents.OfType<ProfileChangedEvent>());
@@ -546,7 +569,7 @@ public sealed class SessionEventsTests
 
         var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
-        Assert.Equal("洗练选择", result.JumpTarget);
+        Assert.Null(result.JumpTarget);
         Assert.Equal([firstEntry, secondEntry], host.RefinementEquipmentSelections.Single());
         Assert.Equal(3, host.Choices.Count);
         Assert.Equal(["暴击率 +2%", "退出洗练"], host.Choices[0].Options.Select(static option => option.Text).ToArray());
@@ -578,7 +601,7 @@ public sealed class SessionEventsTests
 
         var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
-        Assert.Equal("洗练选择", result.JumpTarget);
+        Assert.Null(result.JumpTarget);
         var refinedEntry = Assert.IsType<EquipmentInstanceInventoryEntry>(Assert.Single(state.Inventory.Entries));
         Assert.Equal(originalEntryNumber, refinedEntry.EntryNumber);
         Assert.Equal(originalEquipmentId, refinedEntry.Equipment.Id);
@@ -685,7 +708,7 @@ public sealed class SessionEventsTests
 
         var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
-        Assert.Equal("洗练选择", result.JumpTarget);
+        Assert.Null(result.JumpTarget);
         var refinedEntry = Assert.IsType<EquipmentInstanceInventoryEntry>(Assert.Single(state.Inventory.Entries));
         Assert.Collection(
             refinedEntry.Equipment.ExtraAffixes,

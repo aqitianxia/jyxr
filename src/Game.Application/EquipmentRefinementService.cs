@@ -10,7 +10,6 @@ public sealed class EquipmentRefinementService
 {
     private const int CandidateCount = 8;
     private const string NoEquipmentStoryId = "洗练_没有装备";
-    private const string CancelStoryId = "洗练选择";
     private const string InsufficientYuanbaoStoryId = "洗练元宝不够";
     private const string CancelOptionText = "不替换了";
     private const string ExitOptionText = "退出洗练";
@@ -46,7 +45,7 @@ public sealed class EquipmentRefinementService
         var selectedEntry = await SelectEquipmentAsync(host, equipmentEntries, cancellationToken);
         if (selectedEntry is null)
         {
-            return StoryCommandResult.Jump(CancelStoryId);
+            return StoryCommandResult.None;
         }
 
         return await RunRefinementLoopAsync(host, selectedEntry.Equipment, cancellationToken);
@@ -74,7 +73,7 @@ public sealed class EquipmentRefinementService
                 cancellationToken);
             if (selectedAffixIndex == affixGroups.Count)
             {
-                return StoryCommandResult.Jump(CancelStoryId);
+                return StoryCommandResult.None;
             }
 
             if (!_session.ProfileService.CanSpendYuanbao(1))
