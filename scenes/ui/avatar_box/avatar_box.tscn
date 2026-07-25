@@ -34,6 +34,8 @@ offset_right = 154.0
 offset_bottom = 154.0
 scale = Vector2(1.4, 1.4)
 texture = ExtResource("4_i7gls")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Frame" type="TextureRect" parent="." unique_id=1041321992]
 layout_mode = 0
