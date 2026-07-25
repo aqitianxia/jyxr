@@ -205,6 +205,7 @@ clip_text = true
 [node name="SpeechBubble" type="Control" parent="Overlay" unique_id=1427702365]
 unique_name_in_owner = true
 visible = false
+z_index = 2
 anchors_preset = 0
 offset_left = 122.7
 offset_top = 24.2
