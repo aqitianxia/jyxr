@@ -598,7 +598,7 @@ public sealed class SessionEventsTests
         var candidateChoice = host.Choices[1];
         Assert.Equal(9, candidateChoice.Options.Count);
         Assert.Equal(
-            Enumerable.Repeat("集气速度 +0.125", 8).Append("不替换了").ToArray(),
+            Enumerable.Repeat("集气速度 +0.125", 8).Append("不替换了（攻击力 +10）").ToArray(),
             candidateChoice.Options.Select(static option => option.Text).ToArray());
     }
 

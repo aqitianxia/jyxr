@@ -5,13 +5,13 @@ namespace Game.Godot.UI.Story;
 
 public partial class StoryChoiceButton : JyButton
 {
-	private RichTextLabel _label = null!;
+	private AutoFitRichTextLabel _label = null!;
 	private string _text = string.Empty;
 
 	public override void _Ready()
 	{
 		base._Ready();
-		_label = GetNode<RichTextLabel>("%ChoiceLabel");
+		_label = GetNode<AutoFitRichTextLabel>("%ChoiceLabel");
 		Sync();
 	}
 
@@ -28,6 +28,6 @@ public partial class StoryChoiceButton : JyButton
 			return;
 		}
 
-		_label.Text = _text;
+		_label.SetContent(_text);
 	}
 }

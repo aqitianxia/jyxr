@@ -87,7 +87,7 @@ public sealed class EquipmentRefinementService
 
             var candidateTexts = candidates
                 .Select(candidate => FormatAffixGroup(candidate.Affixes))
-                .Append(CancelOptionText)
+                .Append($"{CancelOptionText}（{affixTexts[selectedAffixIndex]}）")
                 .ToArray();
             var candidateIndex = await ChooseAsync(
                 host,
