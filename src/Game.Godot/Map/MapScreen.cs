@@ -185,11 +185,18 @@ public partial class MapScreen : Control
 			throw;
 		}
 
+		await CompleteMapInteractionAsync(result);
+	}
+
+	private async Task CompleteMapInteractionAsync(MapInteractionResult result)
+	{
 		await PlayLargeMapInteractionMovementAsync(result.Movement);
 		var completed = await HandleMapInteractionResultAsync(result);
-		if (completed && result.Outcome == MapService.MapInteractionOutcome.MapChanged)
+		if (completed)
 		{
-			Game.Session.Events.Publish(new AutoSaveRequestedEvent($"player map change to '{result.TargetId}'"));
+			Game.Session.Events.Publish(
+				new AutoSaveRequestedEvent(
+					$"map interaction completed: outcome='{result.Outcome}', target='{result.TargetId}'"));
 		}
 	}
 
@@ -225,9 +232,11 @@ public partial class MapScreen : Control
 
 				return isWin;
 			case MapService.MapInteractionOutcome.PlaceholderInteraction:
-			case MapService.MapInteractionOutcome.Blocked:
 				Game.Logger.Info($"Map event requested: {result.Outcome}, target={result.TargetId}");
 				return true;
+			case MapService.MapInteractionOutcome.Blocked:
+				Game.Logger.Info($"Map event requested: {result.Outcome}, target={result.TargetId}");
+				return false;
 			default:
 				throw new InvalidOperationException($"Unsupported map interaction outcome '{result.Outcome}'.");
 		}
@@ -252,7 +261,7 @@ public partial class MapScreen : Control
 			if (_pendingInteraction is { } pendingInteraction)
 			{
 				_pendingInteraction = null;
-				await HandleMapInteractionResultAsync(pendingInteraction);
+				await CompleteMapInteractionAsync(pendingInteraction);
 			}
 		}
 		catch (Exception exception)
@@ -346,8 +355,6 @@ public partial class MapScreen : Control
 			{
 				return false;
 			}
-
-			Game.Session.Events.Publish(new AutoSaveRequestedEvent($"story '{storyId}' completed"));
 		}
 		finally
 		{
