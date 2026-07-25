@@ -285,8 +285,9 @@ public partial class UIRoot : Control
 			saveSlotSelectionPanel.Configure(mode);
 		});
 
-	public Control ShowShopPanel(string shopId) =>
-		ShowPopupPanel(ShopPanelScene, "shop panel", panel =>
+	public async Task ShowShopPanelAsync(string shopId, CancellationToken cancellationToken = default)
+	{
+		var panel = ShowPopupPanel(ShopPanelScene, "shop panel", panel =>
 		{
 			if (panel is not ShopPanel shopPanel)
 			{
@@ -295,15 +296,20 @@ public partial class UIRoot : Control
 
 			shopPanel.Configure(shopId);
 		});
+		await AwaitPanelClosedAsync(panel, cancellationToken);
+	}
 
-	public Control ShowChestPanel() =>
-		ShowPopupPanel(ChestPanelScene, "chest panel", panel =>
+	public async Task ShowChestPanelAsync(CancellationToken cancellationToken = default)
+	{
+		var panel = ShowPopupPanel(ChestPanelScene, "chest panel", panel =>
 		{
 			if (panel is not ChestPanel)
 			{
 				throw new InvalidOperationException("Chest panel scene root must be ChestPanel.");
 			}
 		});
+		await AwaitPanelClosedAsync(panel, cancellationToken);
+	}
 
 	public async Task<IReadOnlyList<string>> ShowCombatantSelectPanelAsync(string battleId, CancellationToken cancellationToken = default) =>
 		await ShowCombatantSelectPanelAsync(battleId, EmptyForbiddenSet, cancellationToken);
@@ -594,6 +600,24 @@ public partial class UIRoot : Control
 		}
 
 		return panel;
+	}
+
+	private static async Task AwaitPanelClosedAsync(Control panel, CancellationToken cancellationToken)
+	{
+		var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		panel.TreeExited += () => completion.TrySetResult();
+
+		using var registration = cancellationToken.CanBeCanceled
+			? cancellationToken.Register(() =>
+			{
+				if (completion.TrySetCanceled(cancellationToken) && GodotObject.IsInstanceValid(panel))
+				{
+					panel.QueueFree();
+				}
+			})
+			: default;
+
+		await completion.Task;
 	}
 
 	private void ClearPanelReference(Control panel)

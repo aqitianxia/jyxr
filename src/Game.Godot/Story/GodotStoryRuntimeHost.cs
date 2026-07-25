@@ -107,18 +107,8 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 	}
 
 	[StoryCommand("shop")]
-	private async ValueTask ExecuteShopAsync(string shopId, CancellationToken cancellationToken)
-	{
-		var panel = UIRoot.Instance.ShowShopPanel(shopId);
-		using var registration = cancellationToken.Register(() =>
-		{
-			if (GodotObject.IsInstanceValid(panel))
-			{
-				panel.QueueFree();
-			}
-		});
-		await panel.ToSignal(panel, Node.SignalName.TreeExiting);
-	}
+	private ValueTask ExecuteShopAsync(string shopId, CancellationToken cancellationToken) =>
+		new(UIRoot.Instance.ShowShopPanelAsync(shopId, cancellationToken));
 
 	[StoryCommand("music")]
 	private ValueTask ExecuteMusicAsync(params string[] trackIds)

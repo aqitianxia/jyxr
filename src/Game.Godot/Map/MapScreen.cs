@@ -211,10 +211,10 @@ public partial class MapScreen : Control
 			case MapService.MapInteractionOutcome.StoryRequested:
 				return await RunStoryAsync(result.TargetId);
 			case MapService.MapInteractionOutcome.ShopRequested:
-				OpenShop(result.TargetId);
+				await OpenShopAsync(result.TargetId);
 				return true;
 			case MapService.MapInteractionOutcome.ChestRequested:
-				OpenChest();
+				await OpenChestAsync();
 				return true;
 			case MapService.MapInteractionOutcome.BattleRequested:
 				var isWin = await OpenBattleAsync(result.TargetId);
@@ -269,20 +269,18 @@ public partial class MapScreen : Control
 		}
 	}
 
-	private static void OpenShop(string? shopId)
+	private static async Task OpenShopAsync(string? shopId)
 	{
 		if (string.IsNullOrWhiteSpace(shopId))
 		{
 			throw new InvalidOperationException("Map shop event is missing target shop id.");
 		}
 
-		UIRoot.Instance.ShowShopPanel(shopId);
+		await UIRoot.Instance.ShowShopPanelAsync(shopId);
 	}
 
-	private static void OpenChest()
-	{
-		UIRoot.Instance.ShowChestPanel();
-	}
+	private static async Task OpenChestAsync() =>
+		await UIRoot.Instance.ShowChestPanelAsync();
 
 	private static async Task<bool> OpenBattleAsync(string? battleId)
 	{

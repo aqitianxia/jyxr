@@ -204,7 +204,7 @@
 - 商品购买会扣除 `CurrencyState`、写入 `ShopState`、发布货币/背包相关事件，并把商品加入背包。
 - 出售价格当前按物品基础价格的 50% 向下取整，最低为 1；不可丢弃或无价格物品不可出售。
 - `ShopPanel` 支持买入/卖出、分类筛选、快速买入和银两/元宝余额展示。
-- 地图 `shop` 事件和剧情宿主命令 `shop` 已接入 `UIRoot.ShowShopPanel(...)`。
+- 地图 `shop` 事件和剧情宿主命令 `shop` 已接入 `UIRoot.ShowShopPanelAsync(...)`，并等待商店关闭后继续。
 
 ## 战斗原型
 
