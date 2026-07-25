@@ -114,7 +114,7 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 		var movementPath = result.Success && State.CurrentAction is not null
 			? State.CurrentAction.MovementTrace.ToArray()
 			: Array.Empty<GridPosition>();
-		_screen.AppendResult(result);
+		_screen.PresentCommandResult(result);
 		if (!result.Success)
 		{
 			return false;
@@ -129,7 +129,7 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 		var result = Engine.CastSkill(State, actingUnit.Id, skill, target);
 		if (!result.Success)
 		{
-			_screen.AppendResult(result);
+			_screen.PresentCommandResult(result);
 			return false;
 		}
 
@@ -144,7 +144,7 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 		{
 			_screen.ApplyActingUnitFacing(actingUnit);
 		}
-		_screen.AppendResult(result);
+		_screen.PresentCommandResult(result);
 		if (!result.Success)
 		{
 			return false;
@@ -157,14 +157,14 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 	public bool ExecuteRest(BattleUnit actingUnit)
 	{
 		var result = Engine.Rest(State, actingUnit.Id);
-		_screen.AppendResult(result);
+		_screen.PresentCommandResult(result);
 		return result.Success;
 	}
 
 	public bool ExecuteEndAction(BattleUnit actingUnit)
 	{
 		var result = Engine.EndAction(State, actingUnit.Id);
-		_screen.AppendResult(result);
+		_screen.PresentCommandResult(result);
 		return result.Success;
 	}
 
@@ -178,7 +178,7 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 		}
 
 		var result = Engine.RollbackMove(State, actingUnit.Id);
-		_screen.AppendResult(result);
+		_screen.PresentCommandResult(result);
 		if (!result.Success)
 		{
 			return false;

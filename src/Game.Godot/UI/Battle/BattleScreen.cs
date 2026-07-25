@@ -272,8 +272,19 @@ public partial class BattleScreen : Control
 		}
 	}
 
-	internal void AppendResult(BattleCommandResult<BattleActionResult> result) =>
-		_eventPresenter.AppendResult(result);
+	internal void PresentCommandResult(BattleCommandResult<BattleActionResult> result)
+	{
+		_eventPresenter.AppendMessages(result.Messages);
+		if (result.Failure is null)
+		{
+			return;
+		}
+
+		UIRoot.Instance.ShowToast(BattleCommandFailurePresenter.Format(result.Failure));
+		GameRoot.Logger.Warning(
+			$"Battle command rejected: reason={result.Failure.Reason}, " +
+			$"remainingTurns={result.Failure.RemainingTurns?.ToString() ?? "none"}.");
+	}
 
 	internal void AppendMessages(IReadOnlyList<BattleMessage> messages) =>
 		_eventPresenter.AppendMessages(messages);

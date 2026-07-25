@@ -83,7 +83,7 @@ internal sealed class BattleSkillPresentationController(
             action.SkillCast ?? BattleSkillCastInfo.Create(skill, skill),
             action.ImpactedPositions);
         var presentationTask = _active.RunAsync();
-        eventPresenter().AppendResult(result);
+        eventPresenter().AppendMessages(result.Messages);
         try { await presentationTask; }
         finally
         {
