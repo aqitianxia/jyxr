@@ -163,7 +163,7 @@ public sealed class BattleEngineTests
         Assert.True(result.Success);
         Assert.Equal(575, hero.Hp);
         Assert.Equal(430, hero.Mp);
-        Assert.Equal(string.Empty, result.Message);
+        Assert.Null(result.Failure);
         var restEvent = Assert.Single(result.Messages.OfType<BattleFact>().Where(static battleEvent => battleEvent is BattleFact { Kind: BattleFactKind.Rested }));
         Assert.Equal(new BattleRestRecovery(175, 330), restEvent.Rest);
         Assert.Null(state.CurrentAction);
@@ -182,6 +182,7 @@ public sealed class BattleEngineTests
         var result = engine.MoveTo(state, hero.Id, new GridPosition(1, 1));
 
         Assert.True(result.Success);
+        Assert.Null(result.Failure);
         Assert.Equal(new GridPosition(1, 1), hero.Position);
         Assert.Equal(1, state.CurrentAction!.RemainingMovePower);
     }
@@ -238,6 +239,7 @@ public sealed class BattleEngineTests
         var result = engine.RollbackMove(state, hero.Id);
 
         Assert.True(result.Success);
+        Assert.Null(result.Failure);
         Assert.Equal(new GridPosition(0, 0), hero.Position);
         Assert.Equal(3, state.CurrentAction!.RemainingMovePower);
         Assert.False(state.CurrentAction.HasMoved);
@@ -956,7 +958,7 @@ public sealed class BattleEngineTests
         var result = engine.CastSkill(state, hero.Id, skill, enemy.Position);
 
         Assert.False(result.Success);
-        Assert.Equal("Not enough rage.", result.Message);
+        Assert.Equal(BattleCommandFailureReason.NotEnoughRage, result.Failure?.Reason);
         Assert.Equal(0, hero.Rage);
         Assert.Equal(10, hero.Mp);
         Assert.Equal(0, skill.CurrentCooldown);
@@ -1005,7 +1007,7 @@ public sealed class BattleEngineTests
         var result = engine.CastSkill(state, hero.Id, hero.Character.GetExternalSkills().Single(), enemy.Position);
 
         Assert.False(result.Success);
-        Assert.Equal("Not enough rage.", result.Message);
+        Assert.Equal(BattleCommandFailureReason.NotEnoughRage, result.Failure?.Reason);
     }
 
     [Fact]
@@ -1535,7 +1537,7 @@ public sealed class BattleEngineTests
         var result = engine.CastSkill(state, hero.Id, hero.Character.GetExternalSkills().Single(), enemy.Position);
 
         Assert.False(result.Success);
-        Assert.Equal("Not enough MP.", result.Message);
+        Assert.Equal(BattleCommandFailureReason.NotEnoughMp, result.Failure?.Reason);
         Assert.Equal(11, hero.Mp);
     }
 
@@ -3770,7 +3772,8 @@ public sealed class BattleEngineTests
         var second = engine.UseItem(state, hero.Id, item, hero.Id);
 
         Assert.False(second.Success);
-        Assert.Equal("Item is cooling down. Remaining turns: 2.", second.Message);
+        Assert.Equal(BattleCommandFailureReason.ItemOnCooldown, second.Failure?.Reason);
+        Assert.Equal(2, second.Failure?.RemainingTurns);
     }
 
     [Fact]
@@ -3834,7 +3837,8 @@ public sealed class BattleEngineTests
         var result = engine.UseItem(state, healer.Id, item, target.Id);
 
         Assert.False(result.Success);
-        Assert.Equal("Item is cooling down. Remaining turns: 2.", result.Message);
+        Assert.Equal(BattleCommandFailureReason.ItemOnCooldown, result.Failure?.Reason);
+        Assert.Equal(2, result.Failure?.RemainingTurns);
         Assert.Equal(2, target.ItemCooldown);
     }
 

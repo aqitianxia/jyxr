@@ -13,33 +13,40 @@ public sealed partial class BattleEngine
         ArgumentNullException.ThrowIfNull(skill);
         using var command = state.BeginCommand();
 
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: true);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: true) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
         if (!ReferenceEquals(skill.Owner, unit.Character))
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Skill does not belong to acting unit.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.SkillOwnerMismatch,
+                command.Messages);
         }
 
         if (!skill.IsActive)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Skill is not active.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.SkillInactive,
+                command.Messages);
         }
 
         var availability = EvaluateSkillAvailabilityCore(state, unit, skill);
         if (!availability.IsAvailable)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(GetSkillUnavailableMessage(availability), command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                GetSkillUnavailableReason(availability),
+                command.Messages);
         }
 
         var mpCost = ResolveSkillMpCostExecute(state, unit, skill);
         if (unit.Mp < mpCost)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Not enough MP.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.NotEnoughMp,
+                command.Messages);
         }
 
         var resolvedSkill = _legendSkillResolver.Resolve(_legendSkillsProvider(), skill, _random);
@@ -48,7 +55,9 @@ public sealed partial class BattleEngine
 
         if (unit.Rage < resolvedSkill.RageCost)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Not enough rage.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.NotEnoughRage,
+                command.Messages);
         }
 
         var castSize = BattleSkillTargeting.ResolveEffectiveCastSize(unit, resolvedSkill);
@@ -60,10 +69,10 @@ public sealed partial class BattleEngine
             resolvedSkill.CanCastAtSelf,
             state.Grid))
         {
-            var message = unit.Position == target && !resolvedSkill.CanCastAtSelf
-                ? "Skill cannot be cast at self."
-                : "Target is out of cast range.";
-            return BattleCommandResult<BattleActionResult>.Failed(message, command.Messages);
+            var reason = unit.Position == target && !resolvedSkill.CanCastAtSelf
+                ? BattleCommandFailureReason.SkillCannotTargetSelf
+                : BattleCommandFailureReason.TargetOutOfCastRange;
+            return BattleCommandResult<BattleActionResult>.Failed(reason, command.Messages);
         }
 
         TriggerHooks(state, HookTiming.BeforeSkillCast, unit, context =>
@@ -123,14 +132,14 @@ public sealed partial class BattleEngine
         BattleSpeechRuntime.TryEmit(state, source, line);
     }
 
-    private static string GetSkillUnavailableMessage(BattleSkillAvailability availability) =>
+    private static BattleCommandFailureReason GetSkillUnavailableReason(BattleSkillAvailability availability) =>
         availability.Status switch
         {
-            BattleSkillAvailabilityStatus.Cooldown => "Skill is disabled.",
-            BattleSkillAvailabilityStatus.Disabled => "Skill is disabled.",
-            BattleSkillAvailabilityStatus.NotEnoughMp => "Not enough MP.",
-            BattleSkillAvailabilityStatus.NotEnoughRage => "Not enough rage.",
-            _ => "Skill is not available.",
+            BattleSkillAvailabilityStatus.Cooldown => BattleCommandFailureReason.SkillOnCooldown,
+            BattleSkillAvailabilityStatus.Disabled => BattleCommandFailureReason.SkillDisabled,
+            BattleSkillAvailabilityStatus.NotEnoughMp => BattleCommandFailureReason.NotEnoughMp,
+            BattleSkillAvailabilityStatus.NotEnoughRage => BattleCommandFailureReason.NotEnoughRage,
+            _ => BattleCommandFailureReason.SkillUnavailable,
         };
 
     public BattleCommandResult<BattleActionResult> UseItem(
@@ -144,40 +153,50 @@ public sealed partial class BattleEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(targetUnitId);
         using var command = state.BeginCommand();
 
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: true);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: true) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
         var target = state.TryGetUnit(targetUnitId);
         if (target is null || !target.IsAlive)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Invalid item target.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.InvalidItemTarget,
+                command.Messages);
         }
 
         if (target.Id != unit.Id)
         {
             if (state.AreEnemies(unit, target))
             {
-                return BattleCommandResult<BattleActionResult>.Failed("Items cannot target enemies.", command.Messages);
+                return BattleCommandResult<BattleActionResult>.Failed(
+                    BattleCommandFailureReason.ItemCannotTargetEnemy,
+                    command.Messages);
             }
 
             if (!unit.HasTrait(TraitId.CanUseItemOnAlly))
             {
-                return BattleCommandResult<BattleActionResult>.Failed("Unit cannot use items on allies.", command.Messages);
+                return BattleCommandResult<BattleActionResult>.Failed(
+                    BattleCommandFailureReason.ItemCannotTargetAlly,
+                    command.Messages);
             }
 
             if (unit.Position.ManhattanDistanceTo(target.Position) > 2)
             {
-                return BattleCommandResult<BattleActionResult>.Failed("Ally item target is out of range.", command.Messages);
+                return BattleCommandResult<BattleActionResult>.Failed(
+                    BattleCommandFailureReason.AllyItemTargetOutOfRange,
+                    command.Messages);
             }
         }
         var useItemCooldown = IsItemCooldownEnabled(state.RuleSettings);
         if (useItemCooldown && target.ItemCooldown > 0 && !unit.HasTrait(TraitId.IgnoreItemCooldown))
         {
-            return BattleCommandResult<BattleActionResult>.Failed($"Item is cooling down. Remaining turns: {target.ItemCooldown}.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.ItemOnCooldown,
+                command.Messages,
+                remainingTurns: target.ItemCooldown);
         }
 
         TriggerHooks(state, HookTiming.BeforeItemUse, unit);
@@ -193,7 +212,7 @@ public sealed partial class BattleEngine
         TriggerHooks(state, HookTiming.AfterItemUse, unit);
         EndActionCore(state, unit, committedMainAction: true);
         return BattleCommandResult<BattleActionResult>.Succeeded(
-            new BattleActionResult([target.Id], []), command.Messages, "Item used.");
+            new BattleActionResult([target.Id], []), command.Messages);
     }
 
     private static bool IsItemCooldownEnabled(BattleRuleSettings ruleSettings) =>
@@ -204,10 +223,9 @@ public sealed partial class BattleEngine
     {
         ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: true);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: true) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
@@ -242,15 +260,14 @@ public sealed partial class BattleEngine
     {
         ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: false);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
         EndActionCore(state, unit, committedMainAction: false);
         return BattleCommandResult<BattleActionResult>.Succeeded(
-            new BattleActionResult([unit.Id], []), command.Messages, "Action ended.");
+            new BattleActionResult([unit.Id], []), command.Messages);
     }
 }

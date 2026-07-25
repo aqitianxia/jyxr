@@ -71,7 +71,7 @@ public sealed partial class BattleEngine
 
     internal BattleBuffResolver BuffResolver => _battleBuffResolver;
 
-    private static (bool Success, string Message) ValidateActingUnit(
+    private static BattleCommandFailureReason? ValidateActingUnit(
         BattleState state,
         string unitId,
         bool requireMainActionAvailable)
@@ -80,20 +80,20 @@ public sealed partial class BattleEngine
 
         if (state.CurrentAction is null)
         {
-            return (false, "No unit is acting.");
+            return BattleCommandFailureReason.NoUnitActing;
         }
 
         if (!string.Equals(state.CurrentAction.ActingUnitId, unitId, StringComparison.Ordinal))
         {
-            return (false, "It is not this unit's action.");
+            return BattleCommandFailureReason.WrongActingUnit;
         }
 
         if (requireMainActionAvailable && state.CurrentAction.HasCommittedMainAction)
         {
-            return (false, "Main action has already been committed.");
+            return BattleCommandFailureReason.MainActionCommitted;
         }
 
-        return (true, "Valid.");
+        return null;
     }
 
     private void EndActionCore(BattleState state, BattleUnit unit, bool committedMainAction)

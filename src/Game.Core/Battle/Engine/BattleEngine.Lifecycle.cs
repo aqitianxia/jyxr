@@ -9,13 +9,13 @@ public sealed partial class BattleEngine
         ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
         if (state.HasStarted)
-            return BattleCommandResult<BattleState>.Succeeded(state, command.Messages, "Battle already started.");
+            return BattleCommandResult<BattleState>.Succeeded(state, command.Messages);
 
         state.HasStarted = true;
         foreach (var unit in state.Units.Where(static unit => unit.IsAlive))
         {
             TriggerHooks(state, HookTiming.OnBattleStart, unit);
         }
-        return BattleCommandResult<BattleState>.Succeeded(state, command.Messages, "Battle started.");
+        return BattleCommandResult<BattleState>.Succeeded(state, command.Messages);
     }
 }

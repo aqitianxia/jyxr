@@ -34,17 +34,18 @@ public sealed partial class BattleEngine
     {
         ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: false);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
         var context = state.CurrentAction!;
         if (context.HasCommittedMainAction)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Main action has already been committed.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.MainActionCommitted,
+                command.Messages);
         }
 
         TriggerHooks(state, HookTiming.BeforeMove, unit);
@@ -52,7 +53,9 @@ public sealed partial class BattleEngine
         var reachable = FindReachable(state, unit, context.CurrentPosition, context.RemainingMovePower);
         if (!reachable.Costs.TryGetValue(destination, out var cost))
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Destination is not reachable.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.DestinationUnreachable,
+                command.Messages);
         }
 
         var path = RebuildPath(reachable.Previous, context.CurrentPosition, destination);
@@ -67,24 +70,25 @@ public sealed partial class BattleEngine
         AddMessage(state, battleEvent);
         TriggerHooks(state, HookTiming.AfterMove, unit);
         return BattleCommandResult<BattleActionResult>.Succeeded(
-            new BattleActionResult([unit.Id], []), command.Messages, "Moved.");
+            new BattleActionResult([unit.Id], []), command.Messages);
     }
 
     public BattleCommandResult<BattleActionResult> RollbackMove(BattleState state, string unitId)
     {
         ArgumentNullException.ThrowIfNull(state);
         using var command = state.BeginCommand();
-        var validation = ValidateActingUnit(state, unitId, requireMainActionAvailable: false);
-        if (!validation.Success)
+        if (ValidateActingUnit(state, unitId, requireMainActionAvailable: false) is { } failure)
         {
-            return BattleCommandResult<BattleActionResult>.Failed(validation.Message, command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(failure, command.Messages);
         }
 
         var unit = state.GetUnit(unitId);
         var context = state.CurrentAction!;
         if (context.HasCommittedMainAction)
         {
-            return BattleCommandResult<BattleActionResult>.Failed("Cannot rollback movement after main action.", command.Messages);
+            return BattleCommandResult<BattleActionResult>.Failed(
+                BattleCommandFailureReason.MovementRollbackAfterMainAction,
+                command.Messages);
         }
 
         unit.Position = context.StartPosition;
@@ -97,7 +101,7 @@ public sealed partial class BattleEngine
         var battleEvent = new BattleFact(BattleFactKind.MovementRolledBack, unit.Id);
         AddMessage(state, battleEvent);
         return BattleCommandResult<BattleActionResult>.Succeeded(
-            new BattleActionResult([unit.Id], []), command.Messages, "Movement rolled back.");
+            new BattleActionResult([unit.Id], []), command.Messages);
     }
 
     private static Reachability FindReachable(

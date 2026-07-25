@@ -19,12 +19,12 @@ public sealed partial class BattleEngine
         return BattleCommandResult<BattleActionContext?>.Succeeded(context, command.Messages);
     }
 
-    private static string? TryGetBeginActionFailure(BattleState state, string unitId)
+    private static BattleCommandFailureReason? TryGetBeginActionFailure(BattleState state, string unitId)
     {
-        if (state.CurrentAction is not null) return "A unit is already acting.";
+        if (state.CurrentAction is not null) return BattleCommandFailureReason.UnitAlreadyActing;
         var unit = state.GetUnit(unitId);
-        if (!unit.IsAlive) return $"Unit '{unit.Id}' is defeated.";
-        if (unit.ActionGauge < ActionGaugeThreshold) return $"Unit '{unit.Id}' is not ready to act.";
+        if (!unit.IsAlive) return BattleCommandFailureReason.UnitDefeated;
+        if (unit.ActionGauge < ActionGaugeThreshold) return BattleCommandFailureReason.UnitNotReady;
         return null;
     }
 
@@ -77,7 +77,7 @@ public sealed partial class BattleEngine
         if (state.CurrentAction is not null)
         {
             return BattleCommandResult<BattleUnit>.Failed(
-                "Cannot advance timeline while a unit is acting.", command.Messages);
+                BattleCommandFailureReason.UnitAlreadyActing, command.Messages);
         }
 
         for (var i = 0; i < maxTicks; i++)
@@ -98,7 +98,7 @@ public sealed partial class BattleEngine
         }
 
         return BattleCommandResult<BattleUnit>.Failed(
-            "No unit became actionable before maxTicks was reached.", command.Messages);
+            BattleCommandFailureReason.TimelineAdvanceLimitReached, command.Messages);
     }
 
     private static BattleUnit? SelectReadyUnit(BattleState state) =>
