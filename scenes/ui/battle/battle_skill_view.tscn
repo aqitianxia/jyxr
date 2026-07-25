@@ -1,8 +1,6 @@
 [gd_scene format=3 uid="uid://nurcdlqh47ai"]
 
 [ext_resource type="Script" uid="uid://w5lsteeu1tcd" path="res://src/Game.Godot/UI/Battle/Widgets/BattleSkillView.cs" id="1_skill_view"]
-[ext_resource type="Texture2D" path="res://assets/art/atlas_texture/gunzi-skill/gunzi-skill-0.tres" id="2_logri"]
-[ext_resource type="AnimationLibrary" uid="uid://dg5ad8mj3jdf4" path="res://assets/animation/skill/gunzi.tres" id="3_72ynb"]
 
 [node name="BattleSkillView" type="Node2D" unique_id=769855336]
 script = ExtResource("1_skill_view")
@@ -12,11 +10,9 @@ scale = Vector2(1.66, 1.66)
 
 [node name="Sprite" type="Sprite2D" parent="AnimationSlot" unique_id=826931294]
 unique_name_in_owner = true
-scale = Vector2(1.369863, 1.369863)
-texture = ExtResource("2_logri")
+scale = Vector2(1.953125, 1.953125)
 centered = false
-offset = Vector2(-72.61325, -111.77588)
+offset = Vector2(-12.723877, -59.44387)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="AnimationSlot" unique_id=485261862]
 unique_name_in_owner = true
-libraries/ = ExtResource("3_72ynb")
