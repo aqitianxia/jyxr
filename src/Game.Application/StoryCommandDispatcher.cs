@@ -438,32 +438,27 @@ public sealed class StoryCommandDispatcher
 
     [StoryCommand("xilian")]
     private ValueTask<StoryCommandResult> ExecuteXilianAsync(
-        CancellationToken cancellationToken,
-        params ExprValue[] _) =>
+        CancellationToken cancellationToken) =>
         _session.EquipmentRefinementService.RunAsync(_host, cancellationToken);
 
     [StoryCommand("tower")]
     private ValueTask<StoryCommandResult> ExecuteTowerAsync(
-        CancellationToken cancellationToken,
-        params ExprValue[] _) =>
+        CancellationToken cancellationToken) =>
         _session.SpecialBattleService.RunTowerAsync(_host, cancellationToken);
 
     [StoryCommand("huashan")]
     private ValueTask<StoryCommandResult> ExecuteHuashanAsync(
-        CancellationToken cancellationToken,
-        params ExprValue[] _) =>
+        CancellationToken cancellationToken) =>
         _session.SpecialBattleService.RunHuashanAsync(_host, cancellationToken);
 
     [StoryCommand("trial")]
     private ValueTask<StoryCommandResult> ExecuteTrialAsync(
-        CancellationToken cancellationToken,
-        params ExprValue[] _) =>
+        CancellationToken cancellationToken) =>
         _session.SpecialBattleService.RunTrialAsync(_host, cancellationToken);
 
     [StoryCommand("zhenlongqiju")]
     private ValueTask<StoryCommandResult> ExecuteZhenlongqijuAsync(
-        CancellationToken cancellationToken,
-        params ExprValue[] _) =>
+        CancellationToken cancellationToken) =>
         _session.SpecialBattleService.RunZhenlongqijuAsync(_host, cancellationToken);
 
     [StoryCommand("arena")]

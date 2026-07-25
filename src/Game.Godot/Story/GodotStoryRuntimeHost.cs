@@ -227,13 +227,8 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 	}
 
 	[StoryCommand("restart")]
-	private async ValueTask ExecuteRestartAsync(string mode = "restart", CancellationToken cancellationToken = default)
+	private async ValueTask ExecuteRestartAsync(CancellationToken cancellationToken)
 	{
-		if (!string.Equals(mode, "restart", StringComparison.OrdinalIgnoreCase))
-		{
-			throw new InvalidOperationException($"Unsupported restart mode '{mode}'.");
-		}
-
 		await GameFlow.StartNewGameAsync(cancellationToken);
 	}
 

@@ -4,6 +4,7 @@ using Game.Core.Battle;
 using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
+using Game.Core.Story;
 using GrantModelAffix = Game.Core.Affix.GrantModelAffix;
 using GrantTalentAffix = Game.Core.Affix.GrantTalentAffix;
 
@@ -24,6 +25,32 @@ public sealed class ContentLoadingTests
         Assert.Contains(repository.GetScopedBattleEffects(), effect => effect.Id == "金刚伏魔圈.组阵");
         Assert.Contains(repository.GetTalent("五行阵").Affixes,
             affix => affix is HookAffix { Timing: HookTiming.OnBattleStart });
+    }
+
+    [Fact]
+    public void JsonLoader_BaseModParameterlessCommandsHaveNoArguments()
+    {
+        var dataPath = Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
+        var repository = new JsonContentLoader().LoadFromDirectory(dataPath);
+        var parameterlessCommandNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "huashan",
+            "restart",
+            "tower",
+            "trial",
+            "xilian",
+            "zhenlongqiju",
+        };
+
+        var commands = new[] { "cg", "main", "py" }
+            .Select(repository.GetStoryScript)
+            .SelectMany(static script => script.Segments)
+            .SelectMany(static segment => EnumerateCommands(segment.Steps))
+            .Where(command => parameterlessCommandNames.Contains(command.Name))
+            .ToArray();
+
+        Assert.NotEmpty(commands);
+        Assert.All(commands, static command => Assert.Empty(command.Args));
     }
 
     [Fact]
@@ -1280,6 +1307,47 @@ public sealed class ContentLoadingTests
         finally
         {
             File.Delete(tempPath);
+        }
+    }
+
+    private static IEnumerable<CommandStep> EnumerateCommands(IEnumerable<Step> steps)
+    {
+        foreach (var step in steps)
+        {
+            switch (step)
+            {
+                case CommandStep command:
+                    yield return command;
+                    break;
+                case ChoiceStep choice:
+                    foreach (var command in choice.Groups
+                                 .SelectMany(static group => group.Options)
+                                 .SelectMany(static option => EnumerateCommands(option.Steps)))
+                    {
+                        yield return command;
+                    }
+                    break;
+                case BattleStep battle:
+                    foreach (var command in battle.Outcomes.Values.SelectMany(EnumerateCommands))
+                    {
+                        yield return command;
+                    }
+                    break;
+                case BranchStep branch:
+                    foreach (var command in branch.Cases
+                                 .SelectMany(static branchCase => EnumerateCommands(branchCase.Steps)))
+                    {
+                        yield return command;
+                    }
+                    if (branch.Fallback is not null)
+                    {
+                        foreach (var command in EnumerateCommands(branch.Fallback))
+                        {
+                            yield return command;
+                        }
+                    }
+                    break;
+            }
         }
     }
 

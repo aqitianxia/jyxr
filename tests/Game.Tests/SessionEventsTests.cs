@@ -462,6 +462,23 @@ public sealed class SessionEventsTests
         Assert.Equal(0d, session.State.Adventure.Rank);
     }
 
+    [Theory]
+    [InlineData("xilian")]
+    [InlineData("tower")]
+    [InlineData("huashan")]
+    [InlineData("trial")]
+    [InlineData("zhenlongqiju")]
+    public async Task StoryCommandDispatcher_ParameterlessCommandsRejectArguments(string commandName)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        var dispatcher = new StoryCommandDispatcher(session, new ThrowingRuntimeHost());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await dispatcher.ExecuteCommandAsync(commandName, [ExprValue.FromNumber(0)], default));
+
+        Assert.Equal($"Invocation '{commandName}' received too many arguments.", exception.Message);
+    }
+
     [Fact]
     public async Task StoryCommandDispatcher_xilian_NoEligibleEquipment_JumpsNoEquipment_NoCharge_NoChoice()
     {
@@ -472,7 +489,7 @@ public sealed class SessionEventsTests
         var dispatcher = new StoryCommandDispatcher(session, new ThrowingRuntimeHost());
         var publishedEvents = CollectPublishedEvents(session);
 
-        var result = await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         Assert.Equal("洗练_没有装备", result.JumpTarget);
         Assert.Equal(1, session.Profile.Yuanbao);
@@ -497,7 +514,7 @@ public sealed class SessionEventsTests
         var dispatcher = new StoryCommandDispatcher(session, host);
         var publishedEvents = CollectPublishedEvents(session);
 
-        var result = await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         Assert.Equal("洗练选择", result.JumpTarget);
         Assert.Equal(0, session.Profile.Yuanbao);
@@ -527,7 +544,7 @@ public sealed class SessionEventsTests
         var session = new GameSession(state, repository, initialProfile: profile);
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        var result = await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         Assert.Equal("洗练选择", result.JumpTarget);
         Assert.Equal([firstEntry, secondEntry], host.RefinementEquipmentSelections.Single());
@@ -559,7 +576,7 @@ public sealed class SessionEventsTests
         var dispatcher = new StoryCommandDispatcher(session, host);
         var publishedEvents = CollectPublishedEvents(session);
 
-        var result = await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         Assert.Equal("洗练选择", result.JumpTarget);
         var refinedEntry = Assert.IsType<EquipmentInstanceInventoryEntry>(Assert.Single(state.Inventory.Entries));
@@ -593,7 +610,7 @@ public sealed class SessionEventsTests
         var session = new GameSession(state, repository, initialProfile: profile);
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         var candidateChoice = host.Choices[1];
         Assert.Equal(9, candidateChoice.Options.Count);
@@ -620,7 +637,7 @@ public sealed class SessionEventsTests
         var dispatcher = new StoryCommandDispatcher(session, host);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default));
+            await dispatcher.ExecuteCommandAsync("xilian", [], default));
 
         Assert.Equal(1, session.Profile.Yuanbao);
         Assert.Single(host.Choices);
@@ -666,7 +683,7 @@ public sealed class SessionEventsTests
         var session = new GameSession(state, repository, initialProfile: profile);
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        var result = await dispatcher.ExecuteCommandAsync("xilian", [ExprValue.FromNumber(0)], default);
+        var result = await dispatcher.ExecuteCommandAsync("xilian", [], default);
 
         Assert.Equal("洗练选择", result.JumpTarget);
         var refinedEntry = Assert.IsType<EquipmentInstanceInventoryEntry>(Assert.Single(state.Inventory.Entries));

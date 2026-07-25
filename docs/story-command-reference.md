@@ -62,7 +62,7 @@ command arg1 arg2 ...
 
 | 指令 | 参数 | 效果 | 示例 |
 | --- | --- | --- | --- |
-| `xilian` | `...` | 打开洗练流程：选择背包中带附加词条的装备，选择旧词条，消耗 1 元宝后从 8 个新候选中选择替换；无可洗装备会跳转到 `洗练_没有装备`。 | `xilian 0` |
+| `xilian` | 无 | 打开洗练流程：选择背包中带附加词条的装备，选择旧词条，消耗 1 元宝后从 8 个新候选中选择替换；无可洗装备会跳转到 `洗练_没有装备`。 | `xilian` |
 
 ### 时间与周目状态
 
@@ -160,7 +160,7 @@ command arg1 arg2 ...
 | `game` | `qinggong` | 打开轻功训练小游戏，结束后按坚持秒数结算奖励与身法成长。 | `game qinggong` |
 | `game` | `dianxue` | 打开点穴训练小游戏，结束后按得分结算物品与臂力成长。 | `game dianxue` |
 | `mainmenu` | 无 | 返回主菜单。 | `mainmenu` |
-| `restart` | `[mode=restart]` | 重新开始新游戏；当前只支持 `restart`。 | `restart` |
+| `restart` | 无 | 重新开始新游戏。 | `restart` |
 | `nextzhoumu` | 无 | 进入下一周目流程。 | `nextzhoumu` |
 | `gameover` | 无 | 增加全局死亡数，并显示失败界面。 | `gameover` |
 | `gamefin` | 无 | 显示通关界面。 | `gamefin` |
