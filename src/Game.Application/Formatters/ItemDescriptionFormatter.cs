@@ -147,7 +147,7 @@ public static class ItemDescriptionFormatter
             builder.Append('\n');
         }
 
-        AppendLine(builder, Colorize("black", $"冷却 {cooldown} 回合"));
+        AppendLine(builder, Colorize("white", $"冷却 {cooldown} 回合"));
     }
 
     private static void AppendLine(StringBuilder builder, string text)

@@ -45,7 +45,7 @@ public sealed class ItemDescriptionFormatterTests
         Assert.Contains("[color=yellow]使用效果：[/color]", text, StringComparison.Ordinal);
         Assert.Contains("[color=yellow]◇怒气 +2[/color]", text, StringComparison.Ordinal);
         Assert.Contains("[color=yellow]◇附加状态「醉酒」（等级 0，持续 3 回合）[/color]", text, StringComparison.Ordinal);
-        Assert.Contains("[color=black]冷却 8 回合[/color]", text, StringComparison.Ordinal);
+        Assert.Contains("[color=white]冷却 8 回合[/color]", text, StringComparison.Ordinal);
     }
 
     [Fact]
