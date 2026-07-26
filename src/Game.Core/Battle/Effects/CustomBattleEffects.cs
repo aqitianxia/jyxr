@@ -140,6 +140,8 @@ public sealed class CustomBattleEffectRegistry
         registry.Register("sever_in_two", new SeverInTwoBattleEffectHandler());
         registry.Register("mutual_destruction_sword", new MutualDestructionSwordBattleEffectHandler());
         registry.Register("heaven_and_earth_same_lifespan", new HeavenAndEarthSameLifespanBattleEffectHandler());
+        registry.Register("corpse_poison", new CorpsePoisonBattleEffectHandler());
+        registry.Register("random_buff", new RandomBuffBattleEffectHandler());
         registry.Register("formless_healing", new FormlessHealingBattleEffectHandler());
         registry.Register("toad_mastery_attack", new ToadMasteryAttackBattleEffectHandler());
         registry.Register("attribute_contest_debuff", new AttributeContestDebuffBattleEffectHandler());

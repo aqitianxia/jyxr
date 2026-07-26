@@ -13,6 +13,7 @@ internal static class BattleUnitSelectorResolver
             SelfBattleUnitSelectorDefinition => [contextUnit],
             SourceBattleUnitSelectorDefinition => [source],
             TargetBattleUnitSelectorDefinition => primaryTargets,
+            AllUnitsBattleUnitSelectorDefinition => state.GetLivingUnits(),
             AllAlliesBattleUnitSelectorDefinition allAllies => state.GetLivingUnits()
                 .Where(unit => unit.Team == contextUnit.Team)
                 .Where(unit => allAllies.IncludeSelf || !string.Equals(unit.Id, contextUnit.Id, StringComparison.Ordinal))
@@ -46,6 +47,7 @@ internal static class BattleUnitSelectorResolver
         ArgumentNullException.ThrowIfNull(explicitUnitIds);
         return selector switch
         {
+            AllUnitsBattleUnitSelectorDefinition => state.GetLivingUnits(),
             AllAlliesBattleUnitSelectorDefinition allAllies => state.GetLivingUnits()
                 .Where(unit => unit.Team == team)
                 .Where(unit => allAllies.IncludeSelf || anchor is null || unit.Id != anchor.Id)

@@ -32,6 +32,7 @@ public interface IBattleAbilityEffectContext
 
     bool IsCellAvailable(GridPosition position, BattleUnit movingUnit);
     bool TryRelocate(BattleUnit target, GridPosition destination);
+    bool ApplyBuff(BattleUnit target, string buffId, int level, int duration);
     int ApplyHpRecovery(BattleUnit target, int amount);
     int ApplyDirectDamage(BattleUnit target, int amount, string? detail = null);
 }

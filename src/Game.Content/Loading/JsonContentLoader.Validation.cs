@@ -720,6 +720,7 @@ public sealed partial class JsonContentLoader
             case SelfBattleUnitSelectorDefinition:
             case SourceBattleUnitSelectorDefinition:
             case TargetBattleUnitSelectorDefinition:
+            case AllUnitsBattleUnitSelectorDefinition:
             case AllAlliesBattleUnitSelectorDefinition:
             case AllEnemiesBattleUnitSelectorDefinition:
                 break;
@@ -872,6 +873,7 @@ public sealed partial class JsonContentLoader
     {
         switch (selector)
         {
+            case AllUnitsBattleUnitSelectorDefinition:
             case AllAlliesBattleUnitSelectorDefinition:
             case AllEnemiesBattleUnitSelectorDefinition:
             case ExplicitUnitsBattleUnitSelectorDefinition:

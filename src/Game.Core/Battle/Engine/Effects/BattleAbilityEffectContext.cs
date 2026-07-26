@@ -28,6 +28,9 @@ internal sealed class BattleAbilityEffectContext(
     public bool TryRelocate(BattleUnit target, GridPosition destination) =>
         engine.TryRelocateByEffect(state, target, destination);
 
+    public bool ApplyBuff(BattleUnit target, string buffId, int level, int duration) =>
+        engine.ApplyBuffByEffect(state, Source, target, buffId, level, duration);
+
     public int ApplyHpRecovery(BattleUnit target, int amount) =>
         engine.ApplyDirectHpRecovery(state, Source, target, amount);
 

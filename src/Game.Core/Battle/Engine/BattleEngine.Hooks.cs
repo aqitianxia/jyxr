@@ -32,6 +32,32 @@ public sealed partial class BattleEngine
             eventTiming: timing,
             detail: detail).ActualAmount;
 
+    internal bool ApplyBuffByEffect(
+        BattleState state,
+        BattleUnit source,
+        BattleUnit target,
+        string buffId,
+        int level,
+        int duration,
+        HookTiming? timing = null)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentException.ThrowIfNullOrWhiteSpace(buffId);
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(duration);
+
+        return _battleBuffResolver.Apply(
+            state,
+            source,
+            target,
+            _battleBuffResolver.Resolve(buffId),
+            level,
+            duration,
+            timing);
+    }
+
     internal BattleHookContext TriggerHooks(
         BattleState state,
         HookTiming timing,

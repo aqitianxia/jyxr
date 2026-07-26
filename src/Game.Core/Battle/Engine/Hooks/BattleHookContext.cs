@@ -396,17 +396,12 @@ public sealed class BattleHookContext :
                 $"A hit-confirmed buff can only be applied during '{HookTiming.OnHitConfirmed}'.");
         }
 
-        ArgumentNullException.ThrowIfNull(target);
-        ArgumentException.ThrowIfNullOrWhiteSpace(buffId);
-        ArgumentOutOfRangeException.ThrowIfNegative(level);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(duration);
-
         var source = Source ?? Unit;
-        return Engine.BuffResolver.Apply(
+        return Engine.ApplyBuffByEffect(
             State,
             source,
             target,
-            Engine.BuffResolver.Resolve(buffId),
+            buffId,
             level,
             duration,
             Timing);
