@@ -5,7 +5,8 @@ namespace Game.Godot.UI.ModLauncher;
 
 public partial class ModLauncherPanel : Control
 {
-	private const string ClientVersion = "V0.1.0";
+	private const string ClientAuthor = "虹乡俗人";
+	private const string ClientVersionSetting = "application/config/version";
 	private const string AndroidProjectDataRootPath = "/storage/emulated/0/JYXR";
 
 	private TextureButton _refreshButton = null!;
@@ -19,7 +20,8 @@ public partial class ModLauncherPanel : Control
 		_showcasePage = GetNode<ModShowcasePage>("%ModShowcasePage");
 		_clientVersionLabel = GetNode<Label>("%ClientVersionLabel");
 
-		_clientVersionLabel.Text = $"XR客户端版本: {ClientVersion}";
+		var clientVersion = ProjectSettings.GetSetting(ClientVersionSetting).AsString();
+		_clientVersionLabel.Text = $"XR 客户端 v{clientVersion} · 重制：{ClientAuthor} · 原作：汉家松鼠";
 		_refreshButton.Pressed += RefreshMods;
 		_showcasePage.StartRequested += OnStartRequested;
 

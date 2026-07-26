@@ -19,12 +19,6 @@ outline_color = Color(0.86, 0.76, 0.56, 0.58)
 shadow_size = 4
 shadow_color = Color(0, 0, 0, 0.42)
 
-[sub_resource type="LabelSettings" id="LabelSettings_white"]
-font_size = 38
-font_color = Color(0, 0, 0, 1)
-shadow_size = 3
-shadow_color = Color(0.5064698, 0.5064697, 0.5064697, 0.4509804)
-
 [sub_resource type="LabelSettings" id="LabelSettings_button"]
 font_size = 39
 font_color = Color(1, 1, 1, 0.95)
@@ -124,16 +118,17 @@ text = "启动器"
 label_settings = SubResource("LabelSettings_title")
 vertical_alignment = 1
 
-[node name="Description" type="Label" parent="ContentRoot" unique_id=49318989]
+[node name="Description" type="RichTextLabel" parent="ContentRoot" unique_id=2024833597]
+custom_minimum_size = Vector2(1230, 0)
 layout_mode = 0
-offset_left = 334.0
-offset_top = 213.0
-offset_right = 1565.0
-offset_bottom = 312.0
-text = "说明：该Godot重置版启动器由金x爱好者自行制作，并免费、开源分享。
-江湖路远，侠心如初！"
-label_settings = SubResource("LabelSettings_white")
-autowrap_mode = 3
+offset_left = 267.0
+offset_top = 217.0
+offset_right = 1650.0
+offset_bottom = 329.0
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 35
+bbcode_enabled = true
+text = "    本项目为武侠爱好者基于 Godot 免费开源重制，仅供学习交流，不得用于任何商业用途。致敬金庸先生与经典武侠文化，愿诸君弘扬侠义精神！[wave amp=15.0 freq=4.0][color=#C53D35]江湖路远，侠心如初！[/color][/wave]"
 
 [node name="SideButtons" type="VBoxContainer" parent="ContentRoot" unique_id=256536755]
 visible = false
@@ -183,13 +178,13 @@ layout_mode = 1
 [node name="ClientVersionLabel" type="Label" parent="ContentRoot" unique_id=1801328943]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 1444.0
-offset_top = 962.0
-offset_right = 1764.0
-offset_bottom = 1000.0
+offset_left = 483.0
+offset_top = 925.0
+offset_right = 1483.0
+offset_bottom = 973.0
 theme_override_colors/font_color = Color(1, 0.92, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.55)
-theme_override_font_sizes/font_size = 32
-text = "XR客户端版本: V0.1.0"
+theme_override_font_sizes/font_size = 40
+text = "XR 客户端 vX.Y.Z · 重制：虹乡俗人 · 原作：汉家松鼠"
 horizontal_alignment = 2
 vertical_alignment = 1
