@@ -140,12 +140,3 @@ theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 18
 text = "主角"
 horizontal_alignment = 1
-
-[node name="DragHighlight" type="ColorRect" parent="Content" unique_id=1991012401]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_right = 280.0
-offset_bottom = 280.0
-mouse_filter = 2
-color = Color(1, 0.9137255, 0.35686275, 0.18039216)

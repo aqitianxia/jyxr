@@ -8,7 +8,10 @@ namespace Game.Godot.UI;
 
 public partial class PartyCharacterBox : Button
 {
-	private const string DragTargetGroupName = "party_character_boxes";
+	private const double MobileLongPressSeconds = 0.35d;
+	private const float MobileLongPressMoveTolerance = 16f;
+	private const int MobileDragStartVibrationMilliseconds = 35;
+	private const float MobileDragStartVibrationAmplitude = 0.45f;
 
 	private TextureRect _avatar = null!;
 	private Label _nameLabel = null!;
@@ -18,16 +21,19 @@ public partial class PartyCharacterBox : Button
 	private TextureRect _maleLogo = null!;
 	private TextureRect _femaleLogo = null!;
 	private Label _lockLabel = null!;
-	private ColorRect _dragHighlight = null!;
 
 	private CharacterInstance? _character;
+	private PartyPanel? _ownerPanel;
 	private int _partyIndex;
+	private bool _mobileLongPressPending;
+	private bool _suppressSelection;
+	private int _mobileTouchIndex = -1;
+	private double _mobileLongPressElapsed;
+	private Vector2 _mobileTouchOrigin;
+	private Vector2 _mobileTouchPosition;
 
 	[Signal]
 	public delegate void CharacterSelectedEventHandler(string characterId);
-
-	[Signal]
-	public delegate void CharacterMoveRequestedEventHandler(string characterId, int targetIndex);
 
 	public override void _Ready()
 	{
@@ -39,19 +45,79 @@ public partial class PartyCharacterBox : Button
 		_maleLogo = GetNode<TextureRect>("%MaleLogo");
 		_femaleLogo = GetNode<TextureRect>("%FemaleLogo");
 		_lockLabel = GetNode<Label>("%LockLabel");
-		_dragHighlight = GetNode<ColorRect>("%DragHighlight");
 
-		AddToGroup(DragTargetGroupName);
 		Pressed += OnPressed;
-		ClearDropHighlight();
+		SetProcess(false);
 		RefreshView();
 	}
 
-	public void Setup(CharacterInstance character, int partyIndex)
+	public override void _ExitTree()
+	{
+		CancelMobileLongPress();
+		_ownerPanel?.EndCharacterDrag();
+	}
+
+	public override void _Process(double delta)
+	{
+		if (!_mobileLongPressPending)
+		{
+			SetProcess(false);
+			return;
+		}
+
+		_mobileLongPressElapsed += delta;
+		if (_mobileLongPressElapsed < MobileLongPressSeconds)
+		{
+			return;
+		}
+
+		_mobileLongPressPending = false;
+		SetProcess(false);
+		StartMobileDrag();
+	}
+
+	public override void _GuiInput(InputEvent @event)
+	{
+		base._GuiInput(@event);
+		if (!Game.IsMobilePlatform || _character is null || IsHeroLocked)
+		{
+			return;
+		}
+
+		switch (@event)
+		{
+			case InputEventScreenTouch touch when touch.Pressed:
+				BeginMobileLongPress(touch);
+				break;
+			case InputEventScreenTouch touch when touch.Index == _mobileTouchIndex:
+				_mobileTouchPosition = touch.Position;
+				CancelMobileLongPress();
+				if (_suppressSelection)
+				{
+					CallDeferred(MethodName.ResetSelectionSuppression);
+				}
+
+				break;
+			case InputEventScreenDrag drag when drag.Index == _mobileTouchIndex:
+				_mobileTouchPosition = drag.Position;
+				if (_mobileLongPressPending &&
+					_mobileTouchOrigin.DistanceSquaredTo(drag.Position) >
+					MobileLongPressMoveTolerance * MobileLongPressMoveTolerance)
+				{
+					CancelMobileLongPress();
+				}
+
+				break;
+		}
+	}
+
+	public void Setup(CharacterInstance character, int partyIndex, PartyPanel ownerPanel)
 	{
 		ArgumentNullException.ThrowIfNull(character);
+		ArgumentNullException.ThrowIfNull(ownerPanel);
 		_character = character;
 		_partyIndex = partyIndex;
+		_ownerPanel = ownerPanel;
 		RefreshView();
 	}
 
@@ -82,50 +148,38 @@ public partial class PartyCharacterBox : Button
 
 	public override Variant _GetDragData(Vector2 atPosition)
 	{
-		if (_character is null || IsHeroLocked)
+		if (Game.IsMobilePlatform || _character is null || IsHeroLocked || _ownerPanel is null)
 		{
 			return default;
 		}
 
+		_ownerPanel.BeginCharacterDrag(
+			_character.Id,
+			_partyIndex,
+			GetGlobalRect().Position + atPosition);
 		SetDragPreview(CreateDragPreview());
 		return Variant.CreateFrom(_character.Id);
 	}
 
-	public override bool _CanDropData(Vector2 atPosition, Variant data)
-	{
-		var canDrop = CanAcceptDraggedCharacter(data);
-		SetDropHighlight(canDrop);
-		return canDrop;
-	}
-
-	public override void _DropData(Vector2 atPosition, Variant data)
-	{
-		if (_character is null || !TryGetDraggedCharacterId(data, out var characterId))
-		{
-			ClearDropHighlight();
-			return;
-		}
-
-		EmitSignal(SignalName.CharacterMoveRequested, characterId, _partyIndex);
-		ClearDropHighlight();
-	}
-
 	public override void _Notification(int what)
 	{
-		if (what == NotificationDragEnd && IsInsideTree())
+		if (what == NotificationScrollBegin)
 		{
-			GetTree().CallGroup(DragTargetGroupName, nameof(ClearDropHighlight));
+			CancelMobileLongPress();
 		}
-	}
-
-	public void ClearDropHighlight()
-	{
-		SetDropHighlight(false);
+		else if (what == NotificationDragEnd)
+		{
+			_ownerPanel?.EndCharacterDrag();
+			if (_suppressSelection && IsInsideTree())
+			{
+				CallDeferred(MethodName.ResetSelectionSuppression);
+			}
+		}
 	}
 
 	private void OnPressed()
 	{
-		if (_character is null)
+		if (_character is null || _suppressSelection)
 		{
 			return;
 		}
@@ -138,26 +192,46 @@ public partial class PartyCharacterBox : Button
 		_partyIndex == 0 &&
 		string.Equals(_character.Id, Party.HeroCharacterId, StringComparison.Ordinal);
 
-	private bool CanAcceptDraggedCharacter(Variant data)
+	private void BeginMobileLongPress(InputEventScreenTouch touch)
 	{
-		if (_character is null || IsHeroLocked)
-		{
-			return false;
-		}
-
-		if (!TryGetDraggedCharacterId(data, out var characterId))
-		{
-			return false;
-		}
-
-		return !string.Equals(characterId, _character.Id, StringComparison.Ordinal) &&
-			!string.Equals(characterId, Party.HeroCharacterId, StringComparison.Ordinal);
+		_mobileTouchIndex = touch.Index;
+		_mobileTouchOrigin = touch.Position;
+		_mobileTouchPosition = touch.Position;
+		_mobileLongPressElapsed = 0d;
+		_mobileLongPressPending = true;
+		SetProcess(true);
 	}
 
-	private static bool TryGetDraggedCharacterId(Variant data, out string characterId)
+	private void CancelMobileLongPress()
 	{
-		characterId = data.AsString();
-		return !string.IsNullOrWhiteSpace(characterId);
+		_mobileLongPressPending = false;
+		_mobileLongPressElapsed = 0d;
+		SetProcess(false);
+	}
+
+	private void StartMobileDrag()
+	{
+		if (_character is null || _ownerPanel is null || IsHeroLocked)
+		{
+			return;
+		}
+
+		_suppressSelection = true;
+		_ownerPanel.BeginCharacterDrag(
+			_character.Id,
+			_partyIndex,
+			_mobileTouchPosition,
+			_mobileTouchIndex);
+		Input.VibrateHandheld(
+			MobileDragStartVibrationMilliseconds,
+			MobileDragStartVibrationAmplitude);
+		ForceDrag(Variant.CreateFrom(_character.Id), CreateDragPreview());
+	}
+
+	private void ResetSelectionSuppression()
+	{
+		_suppressSelection = false;
+		_mobileTouchIndex = -1;
 	}
 
 	private Control CreateDragPreview()
@@ -177,13 +251,5 @@ public partial class PartyCharacterBox : Button
 		}
 
 		return preview;
-	}
-
-	private void SetDropHighlight(bool highlighted)
-	{
-		if (_dragHighlight is not null)
-		{
-			_dragHighlight.Visible = highlighted;
-		}
 	}
 }
