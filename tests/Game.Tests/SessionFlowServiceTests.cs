@@ -7,6 +7,26 @@ namespace Game.Tests;
 public sealed class SessionFlowServiceTests
 {
     [Fact]
+    public void StartNextRound_ResetsNoRegret()
+    {
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var repository = TestContentFactory.CreateRepository(characters: [heroDefinition]);
+        var state = new GameState();
+        state.Adventure.SetNoRegret(true);
+        var session = new GameSession(
+            state,
+            repository,
+            config: new GameConfig
+            {
+                InitialPartyCharacterIds = ["hero"],
+            });
+
+        session.SessionFlowService.StartNextRound();
+
+        Assert.False(session.State.Adventure.NoRegret);
+    }
+
+    [Fact]
     public void StartNextRound_ResetsSilverToFixedInitialAmount()
     {
         var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");

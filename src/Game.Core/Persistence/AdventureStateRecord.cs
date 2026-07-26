@@ -8,4 +8,5 @@ public sealed record AdventureStateRecord(
     string? SectId,
     int Morality,
     IReadOnlyDictionary<string, int>? FavorabilityByTarget,
-    double Rank);
+    double Rank,
+    bool NoRegret = false);

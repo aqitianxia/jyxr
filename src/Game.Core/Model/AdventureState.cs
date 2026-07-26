@@ -14,6 +14,8 @@ public sealed class AdventureState
 
     public GameDifficulty Difficulty { get; private set; } = GameDifficulty.Normal;
 
+    public bool NoRegret { get; private set; }
+
     public string? SectId { get; private set; }
 
     public int Morality { get; private set; } = 50;
@@ -37,6 +39,7 @@ public sealed class AdventureState
         {
             Round = record.Round,
             Difficulty = record.Difficulty,
+            NoRegret = record.NoRegret,
             SectId = string.IsNullOrWhiteSpace(record.SectId) ? null : record.SectId,
             Morality = record.Morality,
             Rank = record.Rank,
@@ -65,6 +68,8 @@ public sealed class AdventureState
 
         Difficulty = difficulty;
     }
+
+    public void SetNoRegret(bool enabled) => NoRegret = enabled;
 
     public void SetSect(string? sectId) =>
         SectId = string.IsNullOrWhiteSpace(sectId)
@@ -119,7 +124,8 @@ public sealed class AdventureState
             _favorabilityByTarget
                 .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
                 .ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
-            Rank);
+            Rank,
+            NoRegret);
 
     private static string NormalizeFavorabilityTarget(string targetId)
     {

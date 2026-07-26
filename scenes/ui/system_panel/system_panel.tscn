@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://bbc8vj3vn1kxx" path="res://assets/art/ui/icon_load.svg" id="4_load_icon"]
 [ext_resource type="Texture2D" uid="uid://yw4d3sy6ibqr" path="res://assets/art/ui/icon_save.svg" id="5_save_icon"]
 [ext_resource type="Texture2D" uid="uid://bk4oxdt3ugto2" path="res://assets/art/ui/icon_delete.svg" id="6_delete_icon"]
+[ext_resource type="Texture2D" uid="uid://dm0vjpb2ne3ac" path="res://assets/theme/art/checkbox_checked.svg" id="7_checkbox_checked"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent_normal"]
 bg_color = Color(1, 1, 1, 0)
@@ -365,6 +366,7 @@ offset_left = 455.0
 offset_top = 53.0
 offset_right = 655.0
 offset_bottom = 308.0
+theme_override_styles/disabled = SubResource("StyleBoxFlat_transparent_normal")
 theme_override_styles/normal = SubResource("StyleBoxFlat_transparent_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_transparent_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_transparent_hover")
@@ -513,6 +515,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 button_pressed = true
+theme_override_icons/checked_disabled = ExtResource("7_checkbox_checked")
 text = "自动存档"
 
 [node name="LargeMapMovementAnimationCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=100000213]

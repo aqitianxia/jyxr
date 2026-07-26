@@ -34,7 +34,8 @@ public partial class AutoSaveCoordinator : Node
 
 	private bool SaveIfEnabled(string reason)
 	{
-		if (_session is null || !Game.Settings.AutoSave)
+		if (_session is null ||
+			(!Game.Settings.AutoSave && !_session.State.Adventure.NoRegret))
 		{
 			return false;
 		}

@@ -92,6 +92,7 @@ public partial class SystemPanel : Control
 
 		PopulateScreenAspectOptions();
 		LoadSettings();
+		ApplyNoRegretRestrictions();
 		ApplyConsoleConfig();
 	}
 
@@ -196,7 +197,7 @@ public partial class SystemPanel : Control
 	private UserSettingsRecord ReadSettingsFromControls() => new(
 		UserSettingsRecord.CurrentVersion,
 		_showBattleHpCheckBox.ButtonPressed,
-		_autoSaveCheckBox.ButtonPressed,
+		Game.State.Adventure.NoRegret ? _settings.AutoSave : _autoSaveCheckBox.ButtonPressed,
 		_autoBattleCheckBox.ButtonPressed,
 		_battleSpeedUpCheckBox.ButtonPressed,
 		ClampBattleSpeedMultiplier((int)Math.Round(_battleSpeedMultiplierSlider.Value)),
@@ -261,6 +262,7 @@ public partial class SystemPanel : Control
 		try
 		{
 			var invocation = await Game.StoryService.CommandLine.ExecuteAsync(commandLine);
+			ApplyNoRegretRestrictions();
 			AppendConsoleLine("控制台", $"已执行剧本指令：{FormatInvocation(invocation)}");
 		}
 		catch (Exception exception)
@@ -272,6 +274,12 @@ public partial class SystemPanel : Control
 
 	private void OnSavePressed()
 	{
+		if (Game.State.Adventure.NoRegret)
+		{
+			UIRoot.Instance.ShowSuggestion("无悔周目只允许自动存档。");
+			return;
+		}
+
 		try
 		{
 			UIRoot.Instance.ShowSaveSlotSelectionPanel(SaveSlotPanelMode.Save);
@@ -313,6 +321,17 @@ public partial class SystemPanel : Control
 	{
 		AppendConsoleLine("系统", "正在返回主菜单。");
 		GameFlow.ReturnToMainMenu();
+	}
+
+	private void ApplyNoRegretRestrictions()
+	{
+		var noRegret = Game.State.Adventure.NoRegret;
+		_saveButton.Disabled = noRegret;
+		_saveButton.Modulate = noRegret ? new Color(0.55f, 0.55f, 0.55f, 0.72f) : Colors.White;
+		_saveButton.TooltipText = noRegret ? "无悔周目只允许自动存档。" : string.Empty;
+		_autoSaveCheckBox.Disabled = noRegret;
+		_autoSaveCheckBox.SetPressedNoSignal(noRegret || _settings.AutoSave);
+		_autoSaveCheckBox.TooltipText = noRegret ? "无悔周目强制开启自动存档。" : string.Empty;
 	}
 
 	private void AppendConsoleLine(string source, string message)

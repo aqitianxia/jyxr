@@ -49,6 +49,19 @@ public sealed class StoryCommandLineServiceTests
 		Assert.Equal(0, session.State.Currency.Silver);
 	}
 
+	[Fact]
+	public async Task ExecuteAsync_SetNoRegretEnablesRuleAndPublishesEvent()
+	{
+		var service = CreateService(out var session);
+		var events = new List<AdventureStateChangedEvent>();
+		using var subscription = session.Events.Subscribe<AdventureStateChangedEvent>(events.Add);
+
+		await service.ExecuteAsync("set_no_regret");
+
+		Assert.True(session.State.Adventure.NoRegret);
+		Assert.Single(events);
+	}
+
 	private static StoryCommandLineService CreateService(out GameSession session)
 	{
 		var repository = TestContentFactory.CreateRepository(

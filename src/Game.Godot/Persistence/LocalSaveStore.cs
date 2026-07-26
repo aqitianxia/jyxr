@@ -62,8 +62,18 @@ public sealed class LocalSaveStore
 		_storagePaths = storagePaths;
 	}
 
-	public string SaveCurrentSession(LocalSaveId saveId) =>
-		SaveCurrentSession(ResolveSavePath(saveId), GetLogName(saveId));
+	public string SaveCurrentSession(LocalSaveId saveId)
+	{
+		if (!CanWriteCurrentSession(saveId))
+		{
+			throw new InvalidOperationException("无悔周目只允许自动存档。");
+		}
+
+		return SaveCurrentSession(ResolveSavePath(saveId), GetLogName(saveId));
+	}
+
+	private static bool CanWriteCurrentSession(LocalSaveId saveId) =>
+		!Game.State.Adventure.NoRegret || saveId.Kind == LocalSaveKind.Auto;
 
 	private static string SaveCurrentSession(string savePath, string logName)
 	{

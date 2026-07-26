@@ -24,7 +24,7 @@ public sealed record SaveGame(
     MiniGameStateRecord? MiniGameState = null)
 {
     public const int MinSupportedVersion = 21;
-    public const int CurrentVersion = 23;
+    public const int CurrentVersion = 24;
 
     public static SaveGame Create(
         AdventureState adventure,

@@ -127,6 +127,14 @@ public sealed class StoryCommandDispatcher
         return ValueTask.CompletedTask;
     }
 
+    [StoryCommand("set_no_regret")]
+    private ValueTask ExecuteSetNoRegretAsync()
+    {
+        State.Adventure.SetNoRegret(true);
+        _session.Events.Publish(new AdventureStateChangedEvent());
+        return ValueTask.CompletedTask;
+    }
+
     [StoryCommand("log")]
     private ValueTask ExecuteLogAsync(string text)
     {

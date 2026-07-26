@@ -39,6 +39,7 @@ command arg1 arg2 ...
 常用固定参数：
 
 - `set_game_mode mode`: `normal`、`hard`、`crazy`。
+- `set_no_regret`: 开启无悔周目规则。
 - `toast mode`: `on` 显示 toast，`off` 抑制 toast。
 - `learn type`: `skill`、`external`、`internal`、`special`、`talent`；`skill` 会按外功、内功、特技顺序尝试匹配。
 - `upgrade target`: 属性名，或 `skill`、`external`、`internal`；`skill` 会按外功、内功顺序尝试匹配。
@@ -71,6 +72,7 @@ command arg1 arg2 ...
 | `cost_day` | `days` | 推进世界日期。 | `cost_day 3` |
 | `set_round` | `round` | 设置当前周目数。 | `set_round 2` |
 | `set_game_mode` | `mode` | 设置难度模式。 | `set_game_mode hard` |
+| `set_no_regret` | 无 | 开启无悔周目规则；启用后禁止快速和手动存档，并强制自动存档。 | `set_no_regret` |
 
 ### 剧情状态与日志
 

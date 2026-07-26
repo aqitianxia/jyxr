@@ -94,11 +94,14 @@ public partial class HeroPanel : JyPanel
 		var adventure = Game.State.Adventure;
 		var sectName = ResolveSectName();
 		var maxHpMp = Game.CharacterResourceLimitPolicy.GetMaxHpMp();
+		var noRegretTag = adventure.NoRegret
+			? "[color=magenta]【无悔】[/color]"
+			: string.Empty;
 		_adventurePageSubtitle.Text =
 			$"门派：[color=red]{sectName}[/color]\n" +
 			$"道德：[color=red]{adventure.Morality}[/color]\n" +
 			$"女主角好感：[color=red]{adventure.Favorability}[/color]\n" +
-			$"难度：[color=red]{GameDifficultyFormatter.FormatNameCn(adventure.Difficulty)}[/color]\n" +
+			$"难度：[color=red]{GameDifficultyFormatter.FormatNameCn(adventure.Difficulty)}[/color]{noRegretTag}\n" +
 			$"周目：[color=red]{adventure.Round}[/color]\n" +
 			$"血内上限：[color=red]{maxHpMp}[/color]";
 	}

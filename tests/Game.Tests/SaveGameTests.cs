@@ -14,6 +14,54 @@ namespace Game.Tests;
 public sealed class SaveGameTests
 {
     [Fact]
+    public void SaveGame_RoundTripsNoRegret()
+    {
+        var adventure = new AdventureState();
+        adventure.SetNoRegret(true);
+        var saveGame = SaveGame.Create(
+            adventure,
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            new MapEventProgressState(),
+            new WorldTriggerState());
+
+        var json = JsonSerializer.Serialize(saveGame, GameJson.Default);
+        var roundTripped = JsonSerializer.Deserialize<SaveGame>(json, GameJson.Default);
+
+        Assert.NotNull(roundTripped);
+        Assert.True(roundTripped!.RestoreAdventureState().NoRegret);
+    }
+
+    [Fact]
+    public void SaveGame_OlderRecordWithoutNoRegretRestoresDisabled()
+    {
+        var saveGame = SaveGame.Create(
+            new AdventureState(),
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            new MapEventProgressState(),
+            new WorldTriggerState());
+        var json = JsonSerializer.Serialize(saveGame, GameJson.Default)
+            .Replace(",\"NoRegret\":false", string.Empty, StringComparison.Ordinal)
+            .Replace($"\"Version\":{SaveGame.CurrentVersion}", "\"Version\":23", StringComparison.Ordinal);
+
+        var restored = JsonSerializer.Deserialize<SaveGame>(json, GameJson.Default);
+
+        Assert.NotNull(restored);
+        Assert.False(restored!.RestoreAdventureState().NoRegret);
+    }
+
+    [Fact]
     public void SaveGame_RoundTripsCharactersAndParties()
     {
         var slashForm = new FormSkillDefinition(
