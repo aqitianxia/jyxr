@@ -84,6 +84,38 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_latest_badge"]
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.42, 0.27, 0.06, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.91, 0.68, 0.2, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_no_regret_badge"]
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.34, 0.05, 0.29, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.88, 0.22, 0.76, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [node name="SaveSlotCard" type="Button" unique_id=1168732317]
 custom_minimum_size = Vector2(650, 295)
 offset_right = 650.0
@@ -104,7 +136,12 @@ offset_bottom = 327.0
 mouse_filter = 2
 theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="VBox" unique_id=78954124]
+[node name="TitleRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="VBox/TitleRow" unique_id=78954124]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.27, 0.91, 0.93, 1)
@@ -112,6 +149,38 @@ theme_override_colors/font_outline_color = Color(0.05, 0.05, 0.04, 0.8)
 theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 42
 text = "存档1"
+
+[node name="LatestBadge" type="PanelContainer" parent="VBox/TitleRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_latest_badge")
+
+[node name="Label" type="Label" parent="VBox/TitleRow/LatestBadge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.34, 1)
+theme_override_font_sizes/font_size = 26
+text = "最近"
+vertical_alignment = 1
+
+[node name="NoRegretBadge" type="PanelContainer" parent="VBox/TitleRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_no_regret_badge")
+
+[node name="Label" type="Label" parent="VBox/TitleRow/NoRegretBadge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.48, 0.9, 1)
+theme_override_font_sizes/font_size = 26
+text = "无悔"
+vertical_alignment = 1
 
 [node name="ContentRow" type="HBoxContainer" parent="VBox" unique_id=970388627]
 layout_mode = 2

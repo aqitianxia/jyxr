@@ -19,6 +19,8 @@ public partial class SaveSlotCard : Button
 	private Label _savedAtLabel = null!;
 	private Label _hintLabel = null!;
 	private TextureRect _portrait = null!;
+	private Control _latestBadge = null!;
+	private Control _noRegretBadge = null!;
 
 	public override void _Ready()
 	{
@@ -32,9 +34,14 @@ public partial class SaveSlotCard : Button
 		_savedAtLabel = GetNode<Label>("%SavedAtLabel");
 		_hintLabel = GetNode<Label>("%HintLabel");
 		_portrait = GetNode<TextureRect>("%Portrait");
+		_latestBadge = GetNode<Control>("%LatestBadge");
+		_noRegretBadge = GetNode<Control>("%NoRegretBadge");
 	}
 
-	public void Configure(LocalSaveSummary summary, SaveSlotPanelMode mode)
+	public void Configure(
+		LocalSaveSummary summary,
+		SaveSlotPanelMode mode,
+		bool isMostRecentNonAuto)
 	{
 		Disabled = mode switch
 		{
@@ -47,6 +54,8 @@ public partial class SaveSlotCard : Button
 			? new Color(1f, 1f, 1f, 0.55f)
 			: Colors.White;
 		_titleLabel.Text = summary.SaveId.Title;
+		_latestBadge.Visible = summary.CanLoad && isMostRecentNonAuto;
+		_noRegretBadge.Visible = summary.CanLoad && summary.NoRegret;
 
 		if (!summary.HasSave)
 		{

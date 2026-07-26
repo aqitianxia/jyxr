@@ -66,11 +66,30 @@ public partial class SaveSlotSelectionPanel : JyPanel
 
 	private void RefreshSlots()
 	{
+		var summaries = GetAllSaveIds()
+			.ToDictionary(saveId => saveId, _saveStore.GetSummary);
+		var mostRecentNonAutoSaveId = ResolveMostRecentNonAutoSaveId(summaries.Values);
+
 		foreach (var (saveId, card) in _saveCards)
 		{
-			card.Configure(_saveStore.GetSummary(saveId), _mode);
+			card.Configure(
+				summaries[saveId],
+				_mode,
+				saveId == mostRecentNonAutoSaveId);
 		}
 	}
+
+	private static LocalSaveId? ResolveMostRecentNonAutoSaveId(IEnumerable<LocalSaveSummary> summaries) =>
+		summaries
+			.Where(summary =>
+				summary.SaveId.Kind != LocalSaveKind.Auto &&
+				summary.CanLoad &&
+				summary.SavedAtUtc.HasValue)
+			.OrderByDescending(summary => summary.SavedAtUtc)
+			.ThenBy(summary => summary.SaveId.Kind == LocalSaveKind.Quick ? 0 : 1)
+			.ThenBy(summary => summary.SaveId.SlotIndex)
+			.Select(summary => summary.SaveId)
+			.FirstOrDefault();
 
 	private IReadOnlyDictionary<LocalSaveId, SaveSlotCard> CreateSaveCards()
 	{
@@ -93,6 +112,17 @@ public partial class SaveSlotSelectionPanel : JyPanel
 			yield return LocalSaveId.Auto;
 			yield return LocalSaveId.Quick;
 		}
+
+		for (var slotIndex = 1; slotIndex <= LocalSaveStore.SlotCount; slotIndex++)
+		{
+			yield return LocalSaveId.Manual(slotIndex);
+		}
+	}
+
+	private static IEnumerable<LocalSaveId> GetAllSaveIds()
+	{
+		yield return LocalSaveId.Auto;
+		yield return LocalSaveId.Quick;
 
 		for (var slotIndex = 1; slotIndex <= LocalSaveStore.SlotCount; slotIndex++)
 		{

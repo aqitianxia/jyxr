@@ -160,7 +160,8 @@ public sealed class LocalSaveStore
 			Difficulty: saveGame.Adventure.Difficulty,
 			Clock: saveGame.Clock,
 			CurrentMapId: saveGame.Location.CurrentMapId,
-			SavedAtUtc: envelope.SavedAtUtc);
+			SavedAtUtc: envelope.SavedAtUtc,
+			NoRegret: saveGame.Adventure.NoRegret);
 	}
 
 	internal static void ValidateSlotIndex(int slotIndex)
@@ -254,6 +255,7 @@ public sealed record LocalSaveSummary(
 	ClockRecord? Clock = null,
 	string? CurrentMapId = null,
 	DateTimeOffset? SavedAtUtc = null,
+	bool NoRegret = false,
 	LocalSaveReadFailureReason FailureReason = LocalSaveReadFailureReason.None)
 {
 	public bool CanLoad => HasSave && FailureReason == LocalSaveReadFailureReason.None;
