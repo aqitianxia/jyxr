@@ -188,3 +188,46 @@ theme_override_font_sizes/font_size = 40
 text = "XR 客户端 vX.Y.Z · 重制：虹乡俗人 · 原作：汉家松鼠"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="LoadingOverlay" type="ColorRect" parent="." unique_id=154767508]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.035, 0.027, 0.02, 0.82)
+
+[node name="Center" type="CenterContainer" parent="LoadingOverlay" unique_id=199263746]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Text" type="VBoxContainer" parent="LoadingOverlay/Center" unique_id=174541707]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="LoadingTitleLabel" type="Label" parent="LoadingOverlay/Center/Text" unique_id=118058724]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.68, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 50
+text = "正在加载《MOD 名称》"
+horizontal_alignment = 1
+
+[node name="LoadingHintLabel" type="Label" parent="LoadingOverlay/Center/Text" unique_id=726288045]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.82)
+theme_override_font_sizes/font_size = 40
+text = "请稍候…"
+horizontal_alignment = 1
