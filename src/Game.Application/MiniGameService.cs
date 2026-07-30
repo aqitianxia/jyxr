@@ -47,7 +47,7 @@ public sealed class MiniGameService
         "黄金项链",
         "乌蚕衣",
         "凌波微步图谱",
-        "天下轻功总决",
+        "天下轻功总诀",
     };
 
     private static readonly string[] StrengthTrainingItemIds =
@@ -71,7 +71,7 @@ public sealed class MiniGameService
         new(14, 16, ["生生造化丹", "冬虫夏草", "罗汉拳谱", "天山掌法谱", "松风剑法秘籍", "华山剑法秘籍", "三分剑术", "雷震剑法秘籍", "南山刀法谱", "袖箭秘诀", "拂尘秘诀", "蛇鹤八打"], "OMG...少侠我好崇拜你哦。"),
         new(17, 19, ["生生造化丹", "黑玉断续膏", "君子剑", "淑女剑"], "OMG少侠，你真的是人类么？"),
         new(20, 22, ["生生造化丹", "黑玉断续膏", "天王保命丹", "乌蚕衣"], "...你已经是God Like了。"),
-        new(23, null, ["生生造化丹", "黑玉断续膏", "天王保命丹", "凌波微步图谱", "天下轻功总决"], "Oh, S**t！你已经超神了！"),
+        new(23, null, ["生生造化丹", "黑玉断续膏", "天王保命丹", "凌波微步图谱", "天下轻功总诀"], "Oh, S**t！你已经超神了！"),
     ];
 
     private readonly GameSession _session;

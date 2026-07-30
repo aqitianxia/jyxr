@@ -73,7 +73,7 @@ public sealed class MiniGameServiceTests
     public async Task LightnessTraining_SkipsClaimedUniqueRewards()
     {
         var session = CreateSession(heroShenfa: 80);
-        foreach (var itemId in new[] { "凌波微步图谱", "天下轻功总决" })
+        foreach (var itemId in new[] { "凌波微步图谱", "天下轻功总诀" })
         {
             session.State.MiniGame.MarkUniqueRewardClaimed(itemId);
         }
@@ -85,7 +85,7 @@ public sealed class MiniGameServiceTests
         }
 
         Assert.DoesNotContain(session.State.Inventory.Entries.OfType<StackInventoryEntry>(), entry =>
-            entry.Definition.Id is "凌波微步图谱" or "天下轻功总决");
+            entry.Definition.Id is "凌波微步图谱" or "天下轻功总诀");
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class MiniGameServiceTests
             "天王保命丹",
             "乌蚕衣",
             "凌波微步图谱",
-            "天下轻功总决",
+            "天下轻功总诀",
             "大还丹",
             "大蟠桃",
             "九转熊蛇丸",
