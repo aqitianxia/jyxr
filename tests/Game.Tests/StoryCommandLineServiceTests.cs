@@ -1,5 +1,6 @@
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Story;
 
@@ -60,6 +61,34 @@ public sealed class StoryCommandLineServiceTests
 
 		Assert.True(session.State.Adventure.NoRegret);
 		Assert.Single(events);
+	}
+
+	[Fact]
+	public async Task ExecuteAsync_LearnDoesNotDowngradeKnownSkills()
+	{
+		var externalSkill = TestContentFactory.CreateExternalSkill("external");
+		var internalSkill = TestContentFactory.CreateInternalSkill("internal");
+		var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+			"hero",
+			externalSkills: [new InitialExternalSkillEntryDefinition(externalSkill, Level: 8)],
+			internalSkills: [new InitialInternalSkillEntryDefinition(internalSkill, Level: 9)]);
+		var state = new GameState();
+		var hero = TestContentFactory.CreateCharacterInstance(
+			"hero",
+			heroDefinition,
+			state.EquipmentInstanceFactory);
+		state.Party.AddMember(hero);
+		var repository = TestContentFactory.CreateRepository(
+			characters: [heroDefinition],
+			externalSkills: [externalSkill],
+			internalSkills: [internalSkill]);
+		var session = new GameSession(state, repository, new RecordingRuntimeHost());
+
+		await session.StoryService.CommandLine.ExecuteAsync("learn skill hero external 3");
+		await session.StoryService.CommandLine.ExecuteAsync("learn internal hero internal 4");
+
+		Assert.Equal(8, hero.GetExternalSkillLevel(externalSkill.Id));
+		Assert.Equal(9, hero.GetInternalSkillLevel(internalSkill.Id));
 	}
 
 	private static StoryCommandLineService CreateService(out GameSession session)

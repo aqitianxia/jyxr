@@ -480,12 +480,24 @@ public sealed class CharacterService
 
     private void ApplyGrantedExternalSkill(CharacterInstance character, ExternalSkillDefinition externalSkill, int level)
     {
+        if (character.GetExternalSkillLevel(externalSkill.Id) is int currentLevel &&
+            currentLevel >= level)
+        {
+            return;
+        }
+
         character.SetExternalSkillState(externalSkill, level, 0, true);
         PublishToastAndCharacterChanged(character, $"{character.Name} 习得外功【{externalSkill.Name}】 {level}级");
     }
 
     private void ApplyGrantedInternalSkill(CharacterInstance character, InternalSkillDefinition internalSkill, int level)
     {
+        if (character.GetInternalSkillLevel(internalSkill.Id) is int currentLevel &&
+            currentLevel >= level)
+        {
+            return;
+        }
+
         character.SetInternalSkillState(internalSkill, level, 0);
         PublishToastAndCharacterChanged(character, $"{character.Name} 习得内功【{internalSkill.Name}】 {level}级");
     }
