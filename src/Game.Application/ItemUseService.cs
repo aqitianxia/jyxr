@@ -340,11 +340,13 @@ public sealed class ItemUseService
             }
         }
 
-        if (target.GetExternalSkills().Count + newExternalSkillIds.Count > Config.MaxExternalSkillCount)
+        if (newExternalSkillIds.Count > 0 &&
+            target.GetExternalSkills().Count + newExternalSkillIds.Count > Config.MaxExternalSkillCount)
         {
             return "外功数量已达上限";
         }
-        if (target.GetInternalSkills().Count + newInternalSkillIds.Count > Config.MaxInternalSkillCount)
+        if (newInternalSkillIds.Count > 0 &&
+            target.GetInternalSkills().Count + newInternalSkillIds.Count > Config.MaxInternalSkillCount)
         {
             return "内功数量已达上限";
         }

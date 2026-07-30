@@ -478,6 +478,64 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
+    public void Use_Booster_SucceedsWhenStoryGrantedSkillsExceedBookLimits()
+    {
+        var externalSkills = new[]
+        {
+            TestContentFactory.CreateExternalSkill("external_1"),
+            TestContentFactory.CreateExternalSkill("external_2"),
+        };
+        var internalSkills = new[]
+        {
+            TestContentFactory.CreateInternalSkill("internal_1"),
+            TestContentFactory.CreateInternalSkill("internal_2"),
+        };
+        var booster = CreateItem(
+            "peach",
+            ItemType.Booster,
+            [new AddMaxHpItemUseEffectDefinition(100)],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            new Dictionary<StatType, int>
+            {
+                [StatType.MaxHp] = 200,
+            });
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(booster);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            externalSkills: externalSkills,
+            internalSkills: internalSkills,
+            items: [booster]);
+        var session = new GameSession(
+            state,
+            repository,
+            config: new GameConfig
+            {
+                MaxExternalSkillCount = 1,
+                MaxInternalSkillCount = 1,
+            });
+        foreach (var skill in externalSkills)
+        {
+            session.CharacterService.GrantExternalSkill(hero, skill.Id);
+        }
+        foreach (var skill in internalSkills)
+        {
+            session.CharacterService.GrantInternalSkill(hero, skill.Id);
+        }
+        var entry = state.Inventory.GetStack(booster);
+
+        var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
+        var result = session.ItemUseService.Use(entry, hero.Id);
+
+        Assert.True(candidate.CanUse);
+        Assert.True(result.Success);
+        Assert.Equal(300, hero.GetBaseStat(StatType.MaxHp));
+        Assert.Empty(state.Inventory.Entries);
+    }
+
+    [Fact]
     public void Use_Equipment_ReplacesOccupiedSlotAndReturnsOldEquipmentToInventory()
     {
         var oldSword = TestContentFactory.CreateEquipment("old_sword");
