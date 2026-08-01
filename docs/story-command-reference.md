@@ -148,7 +148,7 @@ command arg1 arg2 ...
 | `effect` | `effectId` | 播放音效。 | `effect hit_01` |
 | `background` | `backgroundId` | 设置世界背景。 | `background changan_night` |
 | `suggest` | `text` | 显示剧情提示，并等待提示流程结束。 | `suggest "前方似有异动"` |
-| `shake` | `[amplitude=12] [duration=0.22]` | 播放屏幕震动。 | `shake 16 0.3` |
+| `shake` | `[amplitude=10] [duration=0.5]` | 播放二维衰减屏幕震动。 | `shake 16 0.3` |
 
 ### 开局与流程 UI
 

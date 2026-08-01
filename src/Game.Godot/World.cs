@@ -15,6 +15,7 @@ public partial class World : Control
 	public PackedScene MapScreenScene { get; set; } = null!;
 
 	private Vector2 _basePosition;
+	private Tween? _screenShakeTween;
 	private TextureRect _background = null!;
 
 	public Control? CurrentScene { get; private set; }
@@ -54,19 +55,27 @@ public partial class World : Control
 		_background.Visible = _background.Texture is not null;
 	}
 
-	public void PlayScreenShake(float amplitude = 12f, double durationSeconds = 0.22d)
+	public void PlayScreenShake(float amplitude = 10f, double durationSeconds = 0.5d)
 	{
-		if (MapScreenScene is null)
-		{
-			throw new InvalidOperationException("World map screen scene is not assigned.");
-		}
+		const int vibrationCount = 10;
+		var stepDuration = durationSeconds / (vibrationCount + 1);
+
+		_screenShakeTween?.Kill();
+		Position = _basePosition;
 
 		var tween = CreateTween();
-		tween.SetParallel(false);
-		tween.TweenProperty(this, "position", _basePosition + new Vector2(amplitude, 0f), durationSeconds * 0.25d);
-		tween.TweenProperty(this, "position", _basePosition + new Vector2(-amplitude, 0f), durationSeconds * 0.25d);
-		tween.TweenProperty(this, "position", _basePosition + new Vector2(amplitude * 0.5f, 0f), durationSeconds * 0.2d);
-		tween.TweenProperty(this, "position", _basePosition, durationSeconds * 0.3d);
+		_screenShakeTween = tween;
+
+		for (var index = 0; index < vibrationCount; index++)
+		{
+			var strength = amplitude * (1f - (float)index / vibrationCount);
+			var offset = new Vector2(
+				Random.Shared.NextSingle() * 2f - 1f,
+				Random.Shared.NextSingle() * 2f - 1f) * strength;
+			tween.TweenProperty(this, "position", _basePosition + offset, stepDuration);
+		}
+
+		tween.TweenProperty(this, "position", _basePosition, stepDuration);
 	}
 
 	private MapScreen ShowMap(MapEnterResult result)

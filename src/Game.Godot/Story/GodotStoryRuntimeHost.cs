@@ -189,7 +189,7 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 		new(UIRoot.Instance.ShowRollStatsPanelAsync("主角", cancellationToken));
 
 	[StoryCommand("shake")]
-	private ValueTask ExecuteShakeAsync(double amplitude = 12d, double duration = 0.22d)
+	private ValueTask ExecuteShakeAsync(double amplitude = 10d, double duration = 0.5d)
 	{
 		GetWorld().PlayScreenShake((float)amplitude, duration);
 		return ValueTask.CompletedTask;
