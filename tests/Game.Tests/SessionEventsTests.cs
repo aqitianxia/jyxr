@@ -1167,11 +1167,11 @@ public sealed class SessionEventsTests
         var session = new GameSession(new GameState(), repository);
         var publishedEvents = CollectPublishedEvents(session);
 
-        session.PartyService.RenameOrCreateReserve("女主", "玲兰");
+        session.PartyService.RenameOrCreateReserve("女主", "铃兰");
 
         var female = Assert.Single(session.State.Party.Reserves);
         Assert.Equal("女主", female.Id);
-        Assert.Equal("玲兰", female.Name);
+        Assert.Equal("铃兰", female.Name);
         Assert.Empty(session.State.Party.Members);
         Assert.Empty(session.State.Party.Followers);
         Assert.Contains(publishedEvents, static sessionEvent => sessionEvent is PartyChangedEvent);
