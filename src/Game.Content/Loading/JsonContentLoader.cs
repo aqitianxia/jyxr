@@ -4,6 +4,15 @@ using Game.Core.Serialization;
 
 namespace Game.Content.Loading;
 
+public sealed record ModContentInput(
+    string ModId,
+    string ModDirectoryPath,
+    bool Required)
+{
+    public string DataDirectoryPath => Path.Combine(ModDirectoryPath, "data");
+    public string PatchDirectoryPath => Path.Combine(ModDirectoryPath, "patches");
+}
+
 public sealed partial class JsonContentLoader
 {
     public InMemoryContentRepository LoadFromFile(string filePath)
@@ -16,6 +25,12 @@ public sealed partial class JsonContentLoader
 
     public InMemoryContentRepository LoadFromDirectory(string directoryPath) =>
         LoadFromPackage(LoadPackageFromDirectory(directoryPath));
+
+    public InMemoryContentRepository LoadFromMods(IReadOnlyList<ModContentInput> inputs)
+        => LoadModContent(inputs).Repository;
+
+    public LoadedModContent LoadModContent(IReadOnlyList<ModContentInput> inputs) =>
+        ModContentLoader.Load(inputs);
 
     public InMemoryContentRepository LoadFromPackage(ContentPackage package)
     {

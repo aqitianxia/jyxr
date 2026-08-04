@@ -1,18 +1,44 @@
-using Game.Content.Loading;
+using System.Text.Json;
 using Game.Core.Affix;
+using Game.Core.Definitions;
+using Game.Core.Serialization;
 
 namespace Game.Tests;
 
 public sealed class BattleContentDefinitionTests
 {
-    private static string RealContentDirectoryPath =>
-        Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
-
     [Fact]
     public void AttackStrengthening_DefinesLegacyCompleteAttackMultiplier()
     {
-        var repository = new JsonContentLoader().LoadFromDirectory(RealContentDirectoryPath);
-        var buff = repository.GetBuff("攻击强化");
+        var buff = JsonSerializer.Deserialize<BuffDefinition>(
+            """
+            {
+              "id": "attack_up",
+              "name": "Attack Up",
+              "isDebuff": false,
+              "affixes": [
+                {
+                  "type": "hook",
+                  "timing": "BeforeDamageCalculation",
+                  "conditions": [
+                    {"type": "context_unit_role", "role": "source"}
+                  ],
+                  "effects": [
+                    {
+                      "type": "modify_damage_context",
+                      "field": "source_attack",
+                      "op": "more",
+                      "delta": 1.0,
+                      "deltaPerBuffLevel": 0.1
+                    }
+                  ]
+                }
+              ]
+            }
+            """,
+            GameJson.Default);
+
+        Assert.NotNull(buff);
 
         var hook = Assert.IsType<HookAffix>(Assert.Single(buff.Affixes));
         Assert.Equal(HookTiming.BeforeDamageCalculation, hook.Timing);

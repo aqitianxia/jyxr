@@ -1,6 +1,5 @@
 using System.Text.Json;
-using Game.Core.Definitions;
-using Game.Core.Definitions.Skills;
+using System.Text.Json.Nodes;
 using Game.Core.Serialization;
 using Game.Core.Story;
 
@@ -8,78 +7,56 @@ namespace Game.Content.Loading;
 
 public sealed partial class JsonContentLoader
 {
-    private const string BattlesFileName = "battles.json";
-    private const string ScopedBattleEffectsFileName = "scoped-battle-effects.json";
-    private const string CharactersFileName = "characters.json";
-    private const string ExternalSkillsFileName = "external-skills.json";
-    private const string GameTipsFileName = "game-tips.json";
-    private const string GrowTemplatesFileName = "grow-templates.json";
-    private const string InternalSkillsFileName = "internal-skills.json";
-    private const string LegendSkillsFileName = "legend-skills.json";
-    private const string MapsFileName = "maps.json";
-    private const string WorldTriggersFileName = "world-triggers.json";
-    private const string ResourcesFileName = "resources.json";
-    private const string SectsFileName = "sects.json";
-    private const string ShopsFileName = "shops.json";
-    private const string SpecialSkillsFileName = "special-skills.json";
     private const string StoryDirectoryName = "story";
     private const string StoryFilePattern = "*.story.json";
-    private const string ItemsFileName = "items.json";
-    private const string ItemTagsFileName = "item-tags.json";
-    private const string EquipmentRandomAffixTablesFileName = "equipment-random-affixes.json";
-    private const string BuffsFileName = "buffs.json";
-    private const string TalentsFileName = "talents.json";
-    private const string TowersFileName = "towers.json";
 
-    private static ContentPackage LoadPackageFromDirectory(string directoryPath)
+    private static ContentPackage LoadPackageFromDirectory(string directoryPath, bool required = true)
     {
         if (!Directory.Exists(directoryPath))
         {
+            if (!required)
+            {
+                return new ContentPackage();
+            }
+
             throw new DirectoryNotFoundException($"Content directory '{directoryPath}' was not found.");
         }
 
-        return new ContentPackage
+        var packageNode = new JsonObject();
+        foreach (var spec in ContentTypeCatalog.All)
         {
-            Battles = LoadRequiredList<BattleDefinition>(directoryPath, BattlesFileName),
-            ScopedBattleEffects = LoadRequiredList<ScopedBattleEffectDefinition>(directoryPath, ScopedBattleEffectsFileName),
-            Characters = LoadRequiredList<CharacterDefinition>(directoryPath, CharactersFileName),
-            ExternalSkills = LoadRequiredList<ExternalSkillDefinition>(directoryPath, ExternalSkillsFileName),
-            GameTips = LoadRequiredList<GameTipDefinition>(directoryPath, GameTipsFileName),
-            GrowTemplates = LoadRequiredList<GrowTemplateDefinition>(directoryPath, GrowTemplatesFileName),
-            InternalSkills = LoadRequiredList<InternalSkillDefinition>(directoryPath, InternalSkillsFileName),
-            LegendSkills = LoadRequiredList<LegendSkillDefinition>(directoryPath, LegendSkillsFileName),
-            Maps = LoadRequiredList<MapDefinition>(directoryPath, MapsFileName),
-            WorldTriggers = LoadRequiredList<WorldTriggerDefinition>(directoryPath, WorldTriggersFileName),
-            Resources = LoadRequiredList<ResourceDefinition>(directoryPath, ResourcesFileName),
-            Sects = LoadRequiredList<SectDefinition>(directoryPath, SectsFileName),
-            Shops = LoadRequiredList<ShopDefinition>(directoryPath, ShopsFileName),
-            SpecialSkills = LoadRequiredList<SpecialSkillDefinition>(directoryPath, SpecialSkillsFileName),
-            StoryScripts = LoadStoryScripts(directoryPath),
-            Items = LoadRequiredList<ItemDefinition>(directoryPath, ItemsFileName),
-            ItemTags = LoadRequiredList<ItemTagDefinition>(directoryPath, ItemTagsFileName),
-            EquipmentRandomAffixTables = LoadRequiredList<EquipmentRandomAffixTableDefinition>(directoryPath, EquipmentRandomAffixTablesFileName),
-            Buffs = LoadRequiredList<BuffDefinition>(directoryPath, BuffsFileName),
-            Talents = LoadRequiredList<TalentDefinition>(directoryPath, TalentsFileName),
-            Towers = LoadRequiredList<TowerDefinition>(directoryPath, TowersFileName),
-        };
+            packageNode[spec.PackagePropertyName] = LoadDefinitionArray(directoryPath, spec.FileName, required);
+        }
+
+        var package = packageNode.Deserialize<ContentPackage>(GameJson.Default)
+            ?? throw new InvalidOperationException($"Unable to deserialize content directory '{directoryPath}'.");
+        package.StoryScripts = LoadStoryScripts(directoryPath);
+        return package;
     }
 
-    private static List<T> LoadRequiredList<T>(string directoryPath, string fileName)
+    private static JsonArray LoadDefinitionArray(string directoryPath, string fileName, bool required)
     {
         var filePath = Path.Combine(directoryPath, fileName);
         if (!File.Exists(filePath))
         {
+            if (!required)
+            {
+                return [];
+            }
+
             throw new FileNotFoundException($"Content file '{fileName}' was not found in '{directoryPath}'.", filePath);
         }
 
         var json = File.ReadAllText(filePath);
-        using var document = GameJson.ParseDocument(json);
-        return document.RootElement.ValueKind switch
+        var node = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions
         {
-            JsonValueKind.Array => JsonSerializer.Deserialize<List<T>>(json, GameJson.Default)
-                ?? throw new InvalidOperationException($"Unable to deserialize content file '{fileName}'."),
-            JsonValueKind.Object => [JsonSerializer.Deserialize<T>(json, GameJson.Default)
-                ?? throw new InvalidOperationException($"Unable to deserialize content file '{fileName}'.")],
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        });
+        return node switch
+        {
+            JsonArray array => array,
+            JsonObject definition => new JsonArray(definition),
             _ => throw new InvalidOperationException($"Content file '{fileName}' must be a JSON object or array."),
         };
     }

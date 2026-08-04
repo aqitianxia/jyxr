@@ -1,4 +1,5 @@
 using Game.Application;
+using Game.Application.Mods;
 using Game.Core.Model;
 using Game.Core.Persistence;
 using Game.Godot.Assets;
@@ -108,13 +109,19 @@ public partial class SaveSlotCard : Button
 		_hintLabel.Text = mode switch
 		{
 			SaveSlotPanelMode.Save => "点击覆盖该存档",
+			SaveSlotPanelMode.Load when summary.ModWarningImpact == SaveImpact.Structural => "MOD 结构环境不同，读取存在高风险",
+			SaveSlotPanelMode.Load when summary.ModWarningImpact == SaveImpact.Gameplay => "MOD 玩法环境不同，点击确认读取",
 			SaveSlotPanelMode.Load => "点击读取该存档",
 			SaveSlotPanelMode.Delete => "点击删除该存档",
 			_ => throw new InvalidOperationException($"Unsupported save slot panel mode: {mode}"),
 		};
-		_hintLabel.Modulate = mode == SaveSlotPanelMode.Delete
-			? new Color(0.98f, 0.36f, 0.28f)
-			: Colors.White;
+		_hintLabel.Modulate = mode switch
+		{
+			SaveSlotPanelMode.Delete => new Color(0.98f, 0.36f, 0.28f),
+			SaveSlotPanelMode.Load when summary.ModWarningImpact == SaveImpact.Structural => new Color(0.98f, 0.36f, 0.28f),
+			SaveSlotPanelMode.Load when summary.ModWarningImpact == SaveImpact.Gameplay => new Color(0.98f, 0.72f, 0.24f),
+			_ => Colors.White,
+		};
 	}
 
 	private static string BuildGameTimeText(ClockRecord? clockRecord)

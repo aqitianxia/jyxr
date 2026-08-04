@@ -14,47 +14,102 @@ public partial class ModItemCard : PanelContainer
 	];
 
 	private ModContext? _context;
+	private Control _posterFrame = null!;
 	private TextureRect _poster = null!;
-	private Texture2D? _defaultPoster;
 	private Label _nameLabel = null!;
 	private Label _descriptionLabel = null!;
-	private Button _startButton = null!;
-	private Button _downloadButton = null!;
-	private Button _deleteButton = null!;
+	private Button _primarySelectionButton = null!;
+	private CheckBox _addonSelectionCheckBox = null!;
+	private Button _moveUpButton = null!;
+	private Button _moveDownButton = null!;
+	private bool _isGame;
+	private bool _configuring;
 
-	public event Action<ModContext>? StartRequested;
+	public event Action<ModContext>? PrimarySelected;
+	public event Action<ModContext, bool>? AddonToggled;
+	public event Action<ModContext, int>? MoveRequested;
 
 	public override void _Ready()
 	{
+		_posterFrame = GetNode<Control>("%PosterFrame");
 		_poster = GetNode<TextureRect>("%Poster");
-		_defaultPoster = _poster.Texture;
 		_nameLabel = GetNode<Label>("%NameLabel");
 		_descriptionLabel = GetNode<Label>("%DescriptionLabel");
-		_startButton = GetNode<Button>("%StartButton");
-		_downloadButton = GetNode<Button>("%DownloadButton");
-		_deleteButton = GetNode<Button>("%DeleteButton");
+		_primarySelectionButton = GetNode<Button>("%PrimarySelectionButton");
+		_addonSelectionCheckBox = GetNode<CheckBox>("%AddonSelectionCheckBox");
+		_moveUpButton = GetNode<Button>("%MoveUpButton");
+		_moveDownButton = GetNode<Button>("%MoveDownButton");
 
-		_startButton.Pressed += OnStartPressed;
-		_downloadButton.Disabled = true;
-		_deleteButton.Disabled = true;
+		_primarySelectionButton.Toggled += OnPrimarySelectionToggled;
+		_addonSelectionCheckBox.Toggled += OnAddonSelectionToggled;
+		_moveUpButton.Pressed += () => RequestMove(-1);
+		_moveDownButton.Pressed += () => RequestMove(1);
 	}
 
-	public void Configure(ModContext context)
+	public void Configure(
+		ModContext context,
+		bool isPrimary,
+		bool isEnabled,
+		bool canMoveUp,
+		bool canMoveDown)
 	{
 		ArgumentNullException.ThrowIfNull(context);
+		_configuring = true;
 		_context = context;
 		_nameLabel.Text = context.Manifest.Name;
 		_descriptionLabel.Text = FormatDescription(context.Manifest);
 		var posterPath = FindPosterPath(context.ModDirectoryPath);
-		_poster.Texture = posterPath is null ? _defaultPoster : LoadPosterTexture(posterPath) ?? _defaultPoster;
-		_poster.TooltipText = posterPath ?? context.ModDirectoryPath;
+		var posterTexture = posterPath is null ? null : LoadPosterTexture(posterPath);
+		_posterFrame.Visible = posterTexture is not null;
+		_poster.Texture = posterTexture;
+		_poster.TooltipText = posterTexture is null ? string.Empty : posterPath!;
+
+		_isGame = context.Manifest.Type == ModType.Game;
+		var isSelected = _isGame ? isPrimary : isEnabled;
+		_primarySelectionButton.Visible = _isGame;
+		_primarySelectionButton.ButtonPressed = _isGame && isSelected;
+		_addonSelectionCheckBox.Visible = !_isGame;
+		_addonSelectionCheckBox.ButtonPressed = !_isGame && isSelected;
+		_moveUpButton.Visible = !_isGame && isEnabled;
+		_moveDownButton.Visible = !_isGame && isEnabled;
+		_moveUpButton.Disabled = !canMoveUp;
+		_moveDownButton.Disabled = !canMoveDown;
+		_configuring = false;
 	}
 
-	private void OnStartPressed()
+	private void OnPrimarySelectionToggled(bool selected)
+	{
+		if (_configuring || _context is null || !_isGame)
+		{
+			return;
+		}
+
+		if (selected)
+		{
+			PrimarySelected?.Invoke(_context);
+			return;
+		}
+
+		_configuring = true;
+		_primarySelectionButton.ButtonPressed = true;
+		_configuring = false;
+	}
+
+	private void OnAddonSelectionToggled(bool selected)
+	{
+		if (_configuring || _context is null || _isGame)
+		{
+			return;
+		}
+
+		AddonToggled?.Invoke(_context, selected);
+	}
+
+	private void RequestMove(int offset)
 	{
 		if (_context is not null)
 		{
-			StartRequested?.Invoke(_context);
+			MoveRequested?.Invoke(_context, offset);
 		}
 	}
 
@@ -68,12 +123,18 @@ public partial class ModItemCard : PanelContainer
 		}
 
 		metaParts.Add($"版本：{manifest.Version.Trim()}");
+		metaParts.Add($"存档影响：{FormatSaveImpact(manifest.SaveImpact)}");
 		if (!string.IsNullOrWhiteSpace(manifest.Date))
 		{
 			metaParts.Add($"时间：{manifest.Date.Trim()}");
 		}
 
 		parts.Add(string.Join("  ", metaParts));
+		if (manifest.ResolvedDependencies.Count > 0)
+		{
+			parts.Add($"依赖：{string.Join("、", manifest.ResolvedDependencies)}");
+		}
+
 		if (!string.IsNullOrWhiteSpace(manifest.Description))
 		{
 			parts.Add(manifest.Description.Trim());
@@ -81,6 +142,14 @@ public partial class ModItemCard : PanelContainer
 
 		return string.Join("\n", parts);
 	}
+
+	private static string FormatSaveImpact(SaveImpact impact) => impact switch
+	{
+		SaveImpact.None => "无",
+		SaveImpact.Gameplay => "玩法",
+		SaveImpact.Structural => "结构",
+		_ => throw new ArgumentOutOfRangeException(nameof(impact), impact, "Unsupported save impact."),
+	};
 
 	private static string? FindPosterPath(string modDirectoryPath)
 	{

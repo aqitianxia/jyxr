@@ -80,7 +80,7 @@ public sealed class LocalProfileStore
 			? profile
 			: GameProfileRecord.Create(new GameProfile());
 
-	private string ResolveAbsolutePath() => _profilePath ?? Game.ActiveMod.StoragePaths.ProfilePath;
+	private string ResolveAbsolutePath() => _profilePath ?? Game.ActiveModLoadout.StoragePaths.ProfilePath;
 
 	private IDiagnosticLogger Logger => _logger ?? Game.Logger;
 }

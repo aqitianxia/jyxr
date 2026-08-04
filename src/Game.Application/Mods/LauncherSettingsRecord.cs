@@ -5,11 +5,12 @@ namespace Game.Application.Mods;
 
 public sealed record LauncherSettingsRecord(
     int Version,
-    string? ActiveModId)
+    string? PrimaryModId,
+    IReadOnlyList<string> EnabledAddonIds)
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
-    public static LauncherSettingsRecord Empty => new(CurrentVersion, null);
+    public static LauncherSettingsRecord Empty => new(CurrentVersion, null, []);
 }
 
 public sealed class LauncherSettingsStore
@@ -33,7 +34,7 @@ public sealed class LauncherSettingsStore
         {
             var json = File.ReadAllText(_settingsPath);
             var settings = JsonSerializer.Deserialize<LauncherSettingsRecord>(json, GameJson.Default);
-            return settings is { Version: LauncherSettingsRecord.CurrentVersion }
+            return settings is { Version: LauncherSettingsRecord.CurrentVersion, EnabledAddonIds: not null }
                 ? settings
                 : LauncherSettingsRecord.Empty;
         }

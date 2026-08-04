@@ -676,6 +676,7 @@ public sealed class SessionEventsTests
             [
                 new EquipmentRandomAffixTableDefinition
                 {
+                    Id = "defence-combo",
                     MinItemLevel = 1,
                     MaxItemLevel = 1,
                     Options =
@@ -1227,6 +1228,7 @@ public sealed class SessionEventsTests
     private static EquipmentRandomAffixTableDefinition CreateSpeedAffixTable(string value) =>
         new()
         {
+            Id = "speed",
             MinItemLevel = 1,
             MaxItemLevel = 1,
             Options =

@@ -202,6 +202,7 @@ public sealed class SpecialBattleServiceTests
     private static EquipmentRandomAffixTableDefinition CreateFourRandomAffixTable() =>
         new()
         {
+            Id = "four-affixes",
             MinItemLevel = 1,
             MaxItemLevel = 99,
             Options =
@@ -236,6 +237,7 @@ public sealed class SpecialBattleServiceTests
     private static EquipmentRandomAffixTableDefinition CreateSingleRandomAffixTable() =>
         new()
         {
+            Id = "single-affix",
             MinItemLevel = 1,
             MaxItemLevel = 99,
             Options =

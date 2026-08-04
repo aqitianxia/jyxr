@@ -31,12 +31,6 @@
     <Content Include="..\..\src\Game.Content\SampleData\**\*.json" Link="SampleData\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\mods\jyxr-base\data\**\*.json" Link="mods\jyxr-base\data\%(RecursiveDir)%(Filename)%(Extension)">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\mods\jyxr-base\mod.json" Link="mods\jyxr-base\mod.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
 </Project>

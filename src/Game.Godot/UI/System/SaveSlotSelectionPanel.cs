@@ -158,7 +158,7 @@ public partial class SaveSlotSelectionPanel : JyPanel
 				return;
 			}
 
-			Load(saveId);
+			await LoadAsync(saveId);
 		}
 		catch (Exception exception)
 		{
@@ -210,12 +210,17 @@ public partial class SaveSlotSelectionPanel : JyPanel
 		RefreshSlots();
 	}
 
-	private void Load(LocalSaveId saveId)
+	private async Task LoadAsync(LocalSaveId saveId)
 	{
 		if (!_saveStore.TryLoad(saveId, out var envelope, out var failureReason) || envelope is null)
 		{
 			UIRoot.Instance.ShowSuggestion(BuildLoadFailureText(saveId, failureReason));
 			RefreshSlots();
+			return;
+		}
+
+		if (!await SaveLoadWarningCoordinator.ConfirmAsync(envelope))
+		{
 			return;
 		}
 

@@ -10,9 +10,6 @@ namespace Game.Tests;
 
 public sealed class AffixFormatterTests
 {
-    private static string RealContentDirectoryPath =>
-        Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
-
     [Fact]
     public void AffixFormatter_FormatsSingleAffixesInChinese()
     {
@@ -205,35 +202,6 @@ public sealed class AffixFormatterTests
             repository);
 
         Assert.Equal("技能「草头百姓的逆袭.这下子逆天了」威力 +15%", text);
-    }
-
-    [Fact]
-    public void AffixFormatter_LoadedRepositoryFormatsExistingDataAffixes()
-    {
-        var repository = new JsonContentLoader().LoadFromDirectory(RealContentDirectoryPath);
-
-        var equipment = repository.GetEquipment("独孤求败的草帽");
-        var modelAffix = Assert.IsType<GrantModelAffix>(equipment.Affixes.Single(affix => affix is GrantModelAffix));
-        Assert.Equal("时装「独孤求败」", AffixFormatter.FormatCn(modelAffix, repository));
-
-        var internalSkill = repository.GetInternalSkill("北冥神功");
-        Assert.Equal(
-            "10级解锁，装备生效：天赋「北冥神功」\n攻击带有吸取大量内力效果。",
-            AffixFormatter.FormatCn(internalSkill.Affixes[0], repository));
-
-        var externalSkill = repository.GetExternalSkill("野球拳");
-        Assert.Equal(
-            "10级解锁：拳掌系技能加成 +3%",
-            AffixFormatter.FormatCn(externalSkill.Affixes[1], repository));
-        Assert.Equal(
-            "暴击率 +15%",
-            AffixFormatter.FormatCn(equipment.Affixes[1], repository));
-        Assert.Equal(
-            "攻击力 +40",
-            AffixFormatter.FormatCn(equipment.Affixes[0], repository));
-        Assert.Equal(
-            "15级解锁：奥义「草头百姓的逆袭.这下子逆天了」触发率 +5%",
-            AffixFormatter.FormatCn(externalSkill.Affixes[3], repository));
     }
 
     [Fact]

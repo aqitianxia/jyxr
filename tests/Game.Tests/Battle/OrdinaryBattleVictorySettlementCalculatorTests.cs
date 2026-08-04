@@ -456,6 +456,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
             [
                 new EquipmentRandomAffixTableDefinition
                 {
+                    Id = "attack-combo",
                     MinItemLevel = 1,
                     MaxItemLevel = 7,
                     Options =
@@ -491,6 +492,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
             [
                 new EquipmentRandomAffixTableDefinition
                 {
+                    Id = "defence-combo",
                     MinItemLevel = 1,
                     MaxItemLevel = 7,
                     Options =

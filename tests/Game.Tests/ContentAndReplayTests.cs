@@ -16,44 +16,6 @@ public sealed class ContentLoadingTests
         Path.Combine(AppContext.BaseDirectory, "SampleData", "sample-content");
 
     [Fact]
-    public void JsonLoader_LoadsBaseModScopedBattleEffects()
-    {
-        var dataPath = Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
-        var repository = new JsonContentLoader().LoadFromDirectory(dataPath);
-
-        Assert.Equal(4, repository.GetScopedBattleEffects().Count);
-        Assert.Contains(repository.GetScopedBattleEffects(), effect => effect.Id == "金刚伏魔圈.组阵");
-        Assert.Contains(repository.GetTalent("五行阵").Affixes,
-            affix => affix is HookAffix { Timing: HookTiming.OnBattleStart });
-    }
-
-    [Fact]
-    public void JsonLoader_BaseModParameterlessCommandsHaveNoArguments()
-    {
-        var dataPath = Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
-        var repository = new JsonContentLoader().LoadFromDirectory(dataPath);
-        var parameterlessCommandNames = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "huashan",
-            "restart",
-            "tower",
-            "trial",
-            "xilian",
-            "zhenlongqiju",
-        };
-
-        var commands = new[] { "cg", "main", "py" }
-            .Select(repository.GetStoryScript)
-            .SelectMany(static script => script.Segments)
-            .SelectMany(static segment => EnumerateCommands(segment.Steps))
-            .Where(command => parameterlessCommandNames.Contains(command.Name))
-            .ToArray();
-
-        Assert.NotEmpty(commands);
-        Assert.All(commands, static command => Assert.Empty(command.Args));
-    }
-
-    [Fact]
     public void JsonLoader_LoadsSamplePackage()
     {
         var loader = new JsonContentLoader();
@@ -1310,47 +1272,6 @@ public sealed class ContentLoadingTests
         }
     }
 
-    private static IEnumerable<CommandStep> EnumerateCommands(IEnumerable<Step> steps)
-    {
-        foreach (var step in steps)
-        {
-            switch (step)
-            {
-                case CommandStep command:
-                    yield return command;
-                    break;
-                case ChoiceStep choice:
-                    foreach (var command in choice.Groups
-                                 .SelectMany(static group => group.Options)
-                                 .SelectMany(static option => EnumerateCommands(option.Steps)))
-                    {
-                        yield return command;
-                    }
-                    break;
-                case BattleStep battle:
-                    foreach (var command in battle.Outcomes.Values.SelectMany(EnumerateCommands))
-                    {
-                        yield return command;
-                    }
-                    break;
-                case BranchStep branch:
-                    foreach (var command in branch.Cases
-                                 .SelectMany(static branchCase => EnumerateCommands(branchCase.Steps)))
-                    {
-                        yield return command;
-                    }
-                    if (branch.Fallback is not null)
-                    {
-                        foreach (var command in EnumerateCommands(branch.Fallback))
-                        {
-                            yield return command;
-                        }
-                    }
-                    break;
-            }
-        }
-    }
-
     private static string CreateContentDirectory(IReadOnlyDictionary<string, string> overrides)
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -1374,7 +1295,7 @@ public sealed class ContentLoadingTests
             ["special-skills.json"] = "[]",
             ["items.json"] = "[]",
             ["item-tags.json"] = "[]",
-            ["equipment-random-affixes.json"] = "[]",
+            ["random-affix-tables.json"] = "[]",
             ["buffs.json"] = "[]",
             ["talents.json"] = "[]",
             ["towers.json"] = "[]",

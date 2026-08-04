@@ -17,7 +17,7 @@ public static class Game
 {
 	private static GameSession _currentSession = null!;
 	private static IDiagnosticLogger _diagnosticLogger = null!;
-	private static ModContext _activeMod = null!;
+	private static ModLoadout _activeModLoadout = null!;
 
 	public static bool IsInitialized =>
 		_currentSession is not null &&
@@ -88,14 +88,15 @@ public static class Game
 	public static MapService MapService => Session.MapService;
 	public static StoryService StoryService => Session.StoryService;
 	public static AudioManager Audio => AudioManager.Instance;
-	public static ModContext ActiveMod
+	public static ModLoadout ActiveModLoadout
 	{
 		get
 		{
 			EnsureInitialized();
-			return _activeMod;
+			return _activeModLoadout;
 		}
 	}
+	public static ModContext PrimaryMod => ActiveModLoadout.PrimaryMod;
 
 	public static GameClientPlatformKind ClientPlatform => ResolveClientPlatform();
 	public static bool IsDesktopPlatform => ClientPlatform == GameClientPlatformKind.Desktop;
@@ -103,20 +104,21 @@ public static class Game
 
 	public static void Initialize(
 		GameSession initialSession,
-		ModContext activeMod,
+		ModLoadout activeModLoadout,
 		IDiagnosticLogger? diagnosticLogger = null)
 	{
 		ArgumentNullException.ThrowIfNull(initialSession);
-		ArgumentNullException.ThrowIfNull(activeMod);
+		ArgumentNullException.ThrowIfNull(activeModLoadout);
 		if (initialSession.Config.InitialPartyCharacterIds.Count == 0)
 		{
 			throw new InvalidOperationException("Game initialization requires at least one initial party character.");
 		}
 
 		_currentSession = initialSession;
-		_activeMod = activeMod;
+		_activeModLoadout = activeModLoadout;
 		_diagnosticLogger = diagnosticLogger ?? NullDiagnosticLogger.Instance;
-		_diagnosticLogger.Info($"Game initialized with mod '{activeMod.ModId}'.");
+		_diagnosticLogger.Info(
+			$"Game initialized with mods: {string.Join(", ", activeModLoadout.ModsInLoadOrder.Select(static mod => $"{mod.ModId}@{mod.Manifest.Version}"))}.");
 	}
 
 	private static void EnsureInitialized()

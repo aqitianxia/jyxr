@@ -31,7 +31,7 @@ public partial class QuickSaveCoordinator : Node
 			return;
 		}
 
-		Load();
+		LoadAsync();
 	}
 
 	private static bool CanUseQuickSaveOrLoad() =>
@@ -60,11 +60,16 @@ public partial class QuickSaveCoordinator : Node
 		}
 	}
 
-	private void Load()
+	private async void LoadAsync()
 	{
 		try
 		{
 			if (!_saveStore.TryLoad(LocalSaveId.Quick, out var envelope, out _) || envelope is null)
+			{
+				return;
+			}
+
+			if (!await SaveLoadWarningCoordinator.ConfirmAsync(envelope))
 			{
 				return;
 			}

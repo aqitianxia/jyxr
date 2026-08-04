@@ -80,7 +80,8 @@ public sealed class LocalSaveStore
 		var envelope = new LocalSaveEnvelope(
 			LocalSaveEnvelope.CurrentVersion,
 			Game.SaveGameService.CreateSave(),
-			DateTimeOffset.UtcNow);
+			DateTimeOffset.UtcNow,
+			Game.ActiveModLoadout.CreateVersionReferences());
 
 		var absolutePath = savePath;
 		var directoryPath = Path.GetDirectoryName(absolutePath);
@@ -144,6 +145,7 @@ public sealed class LocalSaveStore
 	private static LocalSaveSummary BuildSummary(LocalSaveId saveId, LocalSaveEnvelope envelope)
 	{
 		var saveGame = envelope.SaveGame;
+		var modComparison = AssessCompatibility(envelope);
 		var leaderId = saveGame.Party.MemberIds.FirstOrDefault();
 		var leader = leaderId is null
 			? saveGame.Characters.FirstOrDefault()
@@ -161,7 +163,9 @@ public sealed class LocalSaveStore
 			Clock: saveGame.Clock,
 			CurrentMapId: saveGame.Location.CurrentMapId,
 			SavedAtUtc: envelope.SavedAtUtc,
-			NoRegret: saveGame.Adventure.NoRegret);
+			NoRegret: saveGame.Adventure.NoRegret,
+			ModWarningImpact: modComparison.WarningImpact,
+			ModDifferences: modComparison.Differences);
 	}
 
 	internal static void ValidateSlotIndex(int slotIndex)
@@ -188,7 +192,7 @@ public sealed class LocalSaveStore
 		_ => throw new ArgumentOutOfRangeException(nameof(saveId), saveId, "Unsupported save kind."),
 	};
 
-	private ModStoragePaths StoragePaths => _storagePaths ?? Game.ActiveMod.StoragePaths;
+	private ModStoragePaths StoragePaths => _storagePaths ?? Game.ActiveModLoadout.StoragePaths;
 
 	private static bool TryReadEnvelope(string savePath, out LocalSaveEnvelope? envelope, out LocalSaveReadFailureReason failureReason)
 	{
@@ -222,6 +226,13 @@ public sealed class LocalSaveStore
 				return Fail(out envelope, out failureReason, LocalSaveReadFailureReason.SaveVersionMismatch);
 			}
 
+			var modComparison = AssessCompatibility(rawEnvelope);
+			if (modComparison.HasWarning)
+			{
+				Game.Logger.Warning(
+					$"Save file mod loadout differs from the active loadout with {modComparison.WarningImpact} impact: {absolutePath}");
+			}
+
 			envelope = rawEnvelope;
 			failureReason = LocalSaveReadFailureReason.None;
 			return true;
@@ -231,6 +242,12 @@ public sealed class LocalSaveStore
 			Game.Logger.Warning($"Save file read failed: {absolutePath}. {exception.Message}");
 			return Fail(out envelope, out failureReason, LocalSaveReadFailureReason.InvalidFormat);
 		}
+	}
+
+	public static ModLoadoutComparison AssessCompatibility(LocalSaveEnvelope envelope)
+	{
+		ArgumentNullException.ThrowIfNull(envelope);
+		return Game.ActiveModLoadout.Compare(envelope.Mods);
 	}
 
 	private static bool Fail(
@@ -256,6 +273,8 @@ public sealed record LocalSaveSummary(
 	string? CurrentMapId = null,
 	DateTimeOffset? SavedAtUtc = null,
 	bool NoRegret = false,
+	SaveImpact ModWarningImpact = SaveImpact.None,
+	IReadOnlyList<ModLoadoutDifference>? ModDifferences = null,
 	LocalSaveReadFailureReason FailureReason = LocalSaveReadFailureReason.None)
 {
 	public bool CanLoad => HasSave && FailureReason == LocalSaveReadFailureReason.None;
@@ -264,7 +283,8 @@ public sealed record LocalSaveSummary(
 public sealed record LocalSaveEnvelope(
 	int Version,
 	SaveGame SaveGame,
-	DateTimeOffset SavedAtUtc)
+	DateTimeOffset SavedAtUtc,
+	IReadOnlyList<ModVersionReference>? Mods = null)
 {
-	public const int CurrentVersion = 2;
+	public const int CurrentVersion = 3;
 }

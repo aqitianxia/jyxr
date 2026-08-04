@@ -16,6 +16,18 @@ public sealed class ModRegistry
         "packs",
         "assemblies",
         "minClientVersion",
+        "type",
+        "dependencies",
+        "saveImpact",
+    ];
+    private static readonly string[] RequiredManifestFields =
+    [
+        "id",
+        "name",
+        "version",
+        "type",
+        "dependencies",
+        "saveImpact",
     ];
 
     private readonly ProjectDataRoot _projectDataRoot;
@@ -74,7 +86,7 @@ public sealed class ModRegistry
         manifest.Validate();
 
         var context = new ModContext(projectDataRoot, Path.GetFullPath(modDirectoryPath), manifest);
-        if (!Directory.Exists(context.DataDirectoryPath))
+        if (manifest.Type == ModType.Game && !Directory.Exists(context.DataDirectoryPath))
         {
             throw new DirectoryNotFoundException($"Mod data directory was not found: {context.DataDirectoryPath}");
         }
@@ -111,6 +123,15 @@ public sealed class ModRegistry
             {
                 throw new InvalidOperationException(
                     $"Unsupported mod manifest field '{property.Name}' in '{manifestPath}'.");
+            }
+        }
+
+        foreach (var fieldName in RequiredManifestFields)
+        {
+            if (!document.RootElement.TryGetProperty(fieldName, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Required mod manifest field '{fieldName}' is missing in '{manifestPath}'.");
             }
         }
     }

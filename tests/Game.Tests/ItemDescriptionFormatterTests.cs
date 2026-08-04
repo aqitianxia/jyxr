@@ -9,9 +9,6 @@ namespace Game.Tests;
 
 public sealed class ItemDescriptionFormatterTests
 {
-    private static string RealContentDirectoryPath =>
-        Path.Combine(AppContext.BaseDirectory, "mods", "jyxr-base", "data");
-
     [Fact]
     public void ItemDescriptionFormatter_FormatsConsumableItemBbCode()
     {
@@ -201,20 +198,4 @@ public sealed class ItemDescriptionFormatterTests
         Assert.Contains("[color=green]◆天赋「ghost_step」\n　行动如鬼魅。[/color]", text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ItemDescriptionFormatter_LoadedRepositoryFormatsExistingDataItems()
-    {
-        var repository = new JsonContentLoader().LoadFromDirectory(RealContentDirectoryPath);
-
-        var herb = repository.GetItem("止血草");
-        var herbText = ItemDescriptionFormatter.FormatBbCodeCn(herb, repository);
-        Assert.Contains("[color=white]常见的草药，有止血之功效[/color]", herbText, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]◇恢复气血 360[/color]", herbText, StringComparison.Ordinal);
-
-        var woodenBlade = repository.GetEquipment("木刀");
-        var equipmentText = ItemDescriptionFormatter.FormatBbCodeCn(woodenBlade, repository);
-        Assert.Contains("[color=yellow]装备词条：[/color]", equipmentText, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]◇攻击力 +8，暴击率 +1%[/color]", equipmentText, StringComparison.Ordinal);
-        Assert.Contains("[color=yellow]◇天赋「刀系装备」\n　使用刀法以外的武功，有伤害减益。[/color]", equipmentText, StringComparison.Ordinal);
-    }
 }

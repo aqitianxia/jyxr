@@ -3,16 +3,40 @@ using System.Text.Json.Serialization;
 
 namespace Game.Application.Mods;
 
+public enum ModType
+{
+    [JsonStringEnumMemberName("game")]
+    Game,
+
+    [JsonStringEnumMemberName("addon")]
+    Addon,
+}
+
+public enum SaveImpact
+{
+    [JsonStringEnumMemberName("none")]
+    None = 0,
+
+    [JsonStringEnumMemberName("gameplay")]
+    Gameplay = 1,
+
+    [JsonStringEnumMemberName("structural")]
+    Structural = 2,
+}
+
 public sealed record ModManifest(
     string Id,
     string Name,
     string Version,
+    ModType Type,
+    SaveImpact SaveImpact,
     string? Date = null,
     string? Description = null,
     string? Author = null,
     IReadOnlyList<string>? Packs = null,
     IReadOnlyList<string>? Assemblies = null,
-    string? MinClientVersion = null)
+    string? MinClientVersion = null,
+    IReadOnlyList<string>? Dependencies = null)
 {
     public const string FileName = "mod.json";
     public const string DataDirectoryName = "data";
@@ -23,14 +47,53 @@ public sealed record ModManifest(
     [JsonIgnore]
     public IReadOnlyList<string> ResolvedAssemblies => NormalizeRelativePaths(Assemblies);
 
+    [JsonIgnore]
+    public IReadOnlyList<string> ResolvedDependencies =>
+        Dependencies is null
+            ? []
+            : Dependencies
+                .Select(static id => id?.Trim())
+                .Where(static id => !string.IsNullOrWhiteSpace(id))
+                .Select(static id => id!)
+                .ToArray();
+
     public void Validate()
     {
         EnsureStableId(Id, nameof(Id));
         EnsureRequired(Name, nameof(Name));
         EnsureRequired(Version, nameof(Version));
         EnsureDate(Date, nameof(Date));
+        if (!Enum.IsDefined(SaveImpact))
+        {
+            throw new InvalidOperationException($"Mod manifest field '{nameof(SaveImpact)}' is invalid: {SaveImpact}.");
+        }
+
+        if (Dependencies is null)
+        {
+            throw new InvalidOperationException($"Mod manifest field '{nameof(Dependencies)}' is required.");
+        }
+
+        if (Type == ModType.Game && SaveImpact != SaveImpact.Structural)
+        {
+            throw new InvalidOperationException($"Game mod '{Id}' must declare structural save impact.");
+        }
+
         _ = ResolvedPacks;
         _ = ResolvedAssemblies;
+        var dependencies = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var dependencyId in ResolvedDependencies)
+        {
+            EnsureStableId(dependencyId, nameof(Dependencies));
+            if (string.Equals(dependencyId, Id, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Mod '{Id}' cannot depend on itself.");
+            }
+
+            if (!dependencies.Add(dependencyId))
+            {
+                throw new InvalidOperationException($"Mod '{Id}' declares dependency '{dependencyId}' more than once.");
+            }
+        }
     }
 
     private static IReadOnlyList<string> NormalizeRelativePaths(IReadOnlyList<string>? paths) =>

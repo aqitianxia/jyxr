@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://b45kac4nmbbu4"]
 
-[ext_resource type="Texture2D" uid="uid://cble7ay6ny35p" path="res://assets/launcher_art/template_poster.jpg" id="1_poster"]
 [ext_resource type="Script" uid="uid://de3u2rr4ce0or" path="res://src/Game.Godot/UI/ModLauncher/ModItemCard.cs" id="2_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
@@ -26,77 +25,41 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.18, 0.13, 0.07, 0.76)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_green"]
-bg_color = Color(0.17, 0.6, 0.03, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_radio_normal"]
+bg_color = Color(0.08, 0.065, 0.05, 0.28)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
-border_color = Color(0.09, 0.29, 0.02, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+border_color = Color(0.55, 0.36, 0.1, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_green_hover"]
-bg_color = Color(0.22, 0.74, 0.05, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_radio_hover"]
+bg_color = Color(0.95, 0.72, 0.29, 0.2)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
-border_color = Color(0.11, 0.34, 0.03, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+border_color = Color(0.95, 0.72, 0.29, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_gold"]
-bg_color = Color(0.87, 0.58, 0.06, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.38, 0.25, 0.04, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_gold_hover"]
-bg_color = Color(1, 0.69, 0.09, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.43, 0.28, 0.04, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_red"]
-bg_color = Color(0.72, 0.08, 0.04, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.31, 0.03, 0.02, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_red_hover"]
-bg_color = Color(0.9, 0.12, 0.06, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.39, 0.04, 0.02, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_radio_pressed"]
+bg_color = Color(0.95, 0.72, 0.29, 1)
+border_width_left = 8
+border_width_top = 8
+border_width_right = 8
+border_width_bottom = 8
+border_color = Color(0.38, 0.24, 0.04, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
 [node name="ModItemCard" type="PanelContainer" unique_id=624374474]
 custom_minimum_size = Vector2(1040, 168)
@@ -117,6 +80,7 @@ layout_mode = 2
 theme_override_constants/separation = 14
 
 [node name="PosterFrame" type="PanelContainer" parent="Content/Rows" unique_id=222485699]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(184, 124)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_poster")
@@ -124,7 +88,6 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_poster")
 [node name="Poster" type="TextureRect" parent="Content/Rows/PosterFrame" unique_id=708684608]
 unique_name_in_owner = true
 layout_mode = 2
-texture = ExtResource("1_poster")
 expand_mode = 1
 stretch_mode = 6
 
@@ -155,40 +118,42 @@ custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="StartButton" type="Button" parent="Content/Rows/Actions" unique_id=1116525692]
+[node name="PrimarySelectionButton" type="Button" parent="Content/Rows/Actions" unique_id=519261548]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 140)
+custom_minimum_size = Vector2(46, 46)
 layout_mode = 2
+size_flags_horizontal = 4
 focus_mode = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("StyleBoxFlat_action_green")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_action_green")
-theme_override_styles/hover = SubResource("StyleBoxFlat_action_green_hover")
-text = "启动"
+toggle_mode = true
+theme_override_styles/normal = SubResource("StyleBoxFlat_radio_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_radio_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_radio_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_radio_pressed")
 
-[node name="DownloadButton" type="Button" parent="Content/Rows/Actions" unique_id=519261549]
+[node name="AddonSelectionCheckBox" type="CheckBox" parent="Content/Rows/Actions" unique_id=519261549]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(108, 38)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
+size_flags_horizontal = 4
 focus_mode = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("StyleBoxFlat_action_gold")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_action_gold")
-theme_override_styles/hover = SubResource("StyleBoxFlat_action_gold_hover")
-text = "更新"
 
-[node name="DeleteButton" type="Button" parent="Content/Rows/Actions" unique_id=1590838283]
+[node name="OrderButtons" type="HBoxContainer" parent="Content/Rows/Actions" unique_id=1590838283]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MoveUpButton" type="Button" parent="Content/Rows/Actions/OrderButtons" unique_id=1590838284]
 unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(108, 38)
+custom_minimum_size = Vector2(66, 46)
 layout_mode = 2
 focus_mode = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("StyleBoxFlat_action_red")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_action_red")
-theme_override_styles/hover = SubResource("StyleBoxFlat_action_red_hover")
-text = "删除"
+theme_override_font_sizes/font_size = 19
+text = "上移"
+
+[node name="MoveDownButton" type="Button" parent="Content/Rows/Actions/OrderButtons" unique_id=1590838285]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(66, 46)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 19
+text = "下移"

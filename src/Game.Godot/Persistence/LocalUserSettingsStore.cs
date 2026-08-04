@@ -78,7 +78,7 @@ public sealed class LocalUserSettingsStore
 			? settings
 			: UserSettingsRecord.Default;
 
-	private string ResolveAbsolutePath() => _settingsPath ?? Game.ActiveMod.StoragePaths.SettingsPath;
+	private string ResolveAbsolutePath() => _settingsPath ?? Game.ActiveModLoadout.StoragePaths.SettingsPath;
 
 	private IDiagnosticLogger Logger => _logger ?? Game.Logger;
 }

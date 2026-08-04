@@ -2,6 +2,13 @@ using Godot;
 
 namespace Game.Godot.UI;
 
+public enum ConfirmDialogTone
+{
+	Normal,
+	Warning,
+	Danger,
+}
+
 public partial class ConfirmDialog : Control
 {
 	private RichTextLabel _contentLabel = null!;
@@ -19,13 +26,23 @@ public partial class ConfirmDialog : Control
 		Hide();
 	}
 
-	public async Task<bool> ShowConfirmAsync(string text, CancellationToken cancellationToken = default)
+	public async Task<bool> ShowConfirmAsync(
+		string text,
+		ConfirmDialogTone tone = ConfirmDialogTone.Normal,
+		CancellationToken cancellationToken = default)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
 		_completion?.TrySetResult(false);
 		_completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		_contentLabel.Text = text;
+		_contentLabel.Modulate = tone switch
+		{
+			ConfirmDialogTone.Warning => new Color(0.98f, 0.72f, 0.24f),
+			ConfirmDialogTone.Danger => new Color(0.98f, 0.36f, 0.28f),
+			_ => Colors.White,
+		};
+		_confirmButton.Modulate = _contentLabel.Modulate;
 		Show();
 		MoveToFront();
 

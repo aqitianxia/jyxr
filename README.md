@@ -126,6 +126,8 @@
 
 - 当前主运行路径从 MOD loose data 目录加载内容；基础内容包是 `mods/jyxr-base/data`。
 - launcher 会从项目数据根的 `mods` 目录发现 `mod.json`，启动后由 `GameRuntimeBootstrap` 读取该 MOD 的 `data/game-config.json` 和 JSON 内容目录。
+- `mod.json` 必须声明 `saveImpact`：`none` 用于纯图片、音频或界面替换，`gameplay` 用于武功、物品和数值变化，`structural` 用于剧情、地图或状态结构变化；`game` 类型必须使用 `structural`。
+- 存档记录写档时的完整 MOD 加载列表。读档环境发生增删、版本或有效加载顺序变化时，按差异中的最高 `saveImpact` 给出普通或高风险确认；`none` 差异不提示。
 - `JsonContentLoader` 支持：
   - `LoadFromDirectory(...)`
   - `LoadFromFile(...)`

@@ -17,7 +17,7 @@ public partial class PreviewRoot : Control
 		{
 			var root = ProjectDataRoot.FromPath(ProjectSettings.GlobalizePath("res://"));
 			var mod = new ModRegistry(root).LoadRequired("jyxr-base");
-			GameRuntimeBootstrap.Initialize(mod, GetTree());
+			GameRuntimeBootstrap.Initialize(new ModLoadout(mod, []), GetTree());
 			OpenMap();
 		}
 		catch (Exception exception)

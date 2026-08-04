@@ -1,9 +1,7 @@
-using System.Text.Json;
 using Game.Application;
 using Game.Application.Mods;
 using Game.Content.Loading;
 using Game.Core.Model;
-using Game.Core.Serialization;
 using Game.Godot.Persistence;
 using Game.Godot.Settings;
 using Game.Godot.Story;
@@ -16,35 +14,43 @@ namespace Game.Godot;
 
 public static class GameRuntimeBootstrap
 {
-	private const string GameConfigFileName = "game-config.json";
 	private const string RuntimeRootName = "__GameRuntime";
 	private const string WorldScenePath = "res://autoload/world.tscn";
 	private const string UIRootScenePath = "res://autoload/ui_root.tscn";
 	private const string AudioManagerScenePath = "res://autoload/audio_manager.tscn";
 
 	private static DiagnosticLogger? _logger;
-	private static ModContext? _activeMod;
+	private static ModLoadout? _activeModLoadout;
 
-	public static ModContext ActiveMod =>
-		_activeMod ?? throw new InvalidOperationException("No active mod has been bootstrapped.");
+	public static ModLoadout ActiveModLoadout =>
+		_activeModLoadout ?? throw new InvalidOperationException("No active mod loadout has been bootstrapped.");
 
-	public static void Initialize(ModContext modContext, SceneTree sceneTree)
+	public static void Initialize(ModLoadout modLoadout, SceneTree sceneTree)
 	{
-		ArgumentNullException.ThrowIfNull(modContext);
+		ArgumentNullException.ThrowIfNull(modLoadout);
 		ArgumentNullException.ThrowIfNull(sceneTree);
 
-		_activeMod = modContext;
+		_activeModLoadout = modLoadout;
 		var logger = EnsureLogger();
-		LoadResourcePacks(modContext, logger);
+		LoadResourcePacks(modLoadout, logger);
 		EnsureRuntimeNodes(sceneTree);
 
-		var config = LoadConfig(modContext);
-		var repository = new JsonContentLoader().LoadFromDirectory(modContext.DataDirectoryPath);
-		var settings = new LocalUserSettingsStore(modContext.StoragePaths.SettingsPath, logger).LoadOrDefault();
-		var profile = new LocalProfileStore(modContext.StoragePaths.ProfilePath, logger).LoadOrEmpty().Restore();
+		var contentInputs = modLoadout.ModsInLoadOrder
+			.Select((mod, index) => new ModContentInput(mod.ModId, mod.ModDirectoryPath, index == 0))
+			.ToArray();
+		var loadedContent = new JsonContentLoader().LoadModContent(contentInputs);
+		foreach (var warning in loadedContent.Report.Warnings)
+		{
+			logger.Warning(warning.Message);
+		}
+
+		var config = loadedContent.Config;
+		var repository = loadedContent.Repository;
+		var settings = new LocalUserSettingsStore(modLoadout.StoragePaths.SettingsPath, logger).LoadOrDefault();
+		var profile = new LocalProfileStore(modLoadout.StoragePaths.ProfilePath, logger).LoadOrEmpty().Restore();
 		var session = BuildSession(repository, logger, config, profile);
 
-		Game.Initialize(session, modContext, logger);
+		Game.Initialize(session, modLoadout, logger);
 		UserSettingsApplier.Apply(settings);
 		BindUiToSession(session);
 	}
@@ -65,48 +71,23 @@ public static class GameRuntimeBootstrap
 			config);
 	}
 
-	private static GameConfig LoadConfig(ModContext modContext)
-	{
-		var configPath = Path.Combine(modContext.DataDirectoryPath, GameConfigFileName);
-		if (!File.Exists(configPath))
-		{
-			throw new FileNotFoundException($"Mod game config was not found: {configPath}", configPath);
-		}
-
-		var json = File.ReadAllText(configPath);
-		var config = JsonSerializer.Deserialize<GameConfig>(json, GameJson.Default)
-			?? throw new InvalidOperationException($"无法反序列化游戏配置文件: {configPath}");
-		if (string.IsNullOrWhiteSpace(config.InitialStorySegmentId))
-		{
-			throw new InvalidOperationException("游戏配置缺少 initialStorySegmentId。");
-		}
-
-		if (config.InitialPartyCharacterIds.Count == 0)
-		{
-			throw new InvalidOperationException("游戏配置缺少 initialPartyCharacterIds。");
-		}
-
-		if (config.SelectablePortraitIds.Count == 0)
-		{
-			throw new InvalidOperationException("游戏配置缺少 selectablePortraitIds。");
-		}
-
-		return config;
-	}
-
 	private static DiagnosticLogger EnsureLogger() =>
 		_logger ??= new GodotDiagnosticLogger(GD.Print, GD.PushWarning, GD.PushError);
 
-	private static void LoadResourcePacks(ModContext modContext, DiagnosticLogger logger)
+	private static void LoadResourcePacks(ModLoadout modLoadout, DiagnosticLogger logger)
 	{
-		foreach (var packFilePath in modContext.PackFilePaths)
+		foreach (var modContext in modLoadout.ModsInLoadOrder)
 		{
-			if (!ProjectSettings.LoadResourcePack(packFilePath, replaceFiles: true))
+			foreach (var packFilePath in modContext.PackFilePaths)
 			{
-				throw new InvalidOperationException($"Failed to load mod resource pack: {packFilePath}");
-			}
+				if (!ProjectSettings.LoadResourcePack(packFilePath, replaceFiles: true))
+				{
+					throw new InvalidOperationException(
+						$"Failed to load resource pack '{packFilePath}' from mod '{modContext.ModId}'.");
+				}
 
-			logger.Info($"Loaded mod resource pack: {packFilePath}");
+				logger.Info($"Loaded resource pack from mod '{modContext.ModId}': {packFilePath}");
+			}
 		}
 	}
 

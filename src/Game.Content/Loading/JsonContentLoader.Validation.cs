@@ -115,8 +115,13 @@ public sealed partial class JsonContentLoader
 
     private static void ValidateEquipmentRandomAffixTables(InMemoryContentRepository repository)
     {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var table in repository.EquipmentRandomAffixTables)
         {
+            Ensure(!string.IsNullOrWhiteSpace(table.Id),
+                "Equipment random affix table has empty id.");
+            Ensure(ids.Add(table.Id),
+                $"Equipment random affix table '{table.Id}' is duplicated.");
             Ensure(table.MinItemLevel > 0,
                 "Equipment random affix table minItemLevel must be positive.");
             Ensure(table.MaxItemLevel >= table.MinItemLevel,

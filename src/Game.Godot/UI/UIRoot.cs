@@ -518,8 +518,11 @@ public partial class UIRoot : Control
 	public Task ShowSuggestionAsync(string text, CancellationToken cancellationToken = default) =>
 		_hintBox.ShowHintAsync(text, cancellationToken);
 
-	public Task<bool> ShowConfirmAsync(string text, CancellationToken cancellationToken = default) =>
-		_confirmDialog.ShowConfirmAsync(text, cancellationToken);
+	public Task<bool> ShowConfirmAsync(
+		string text,
+		ConfirmDialogTone tone = ConfirmDialogTone.Normal,
+		CancellationToken cancellationToken = default) =>
+		_confirmDialog.ShowConfirmAsync(text, tone, cancellationToken);
 
 	public void ShowToast(string text)
 	{

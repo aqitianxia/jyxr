@@ -20,10 +20,10 @@ public sealed class ContentPackage
     public List<SectDefinition> Sects { get; init; } = [];
     public List<ShopDefinition> Shops { get; init; } = [];
     public List<SpecialSkillDefinition> SpecialSkills { get; init; } = [];
-    public Dictionary<string, StoryScript> StoryScripts { get; init; } = new(StringComparer.Ordinal);
+    public Dictionary<string, StoryScript> StoryScripts { get; set; } = new(StringComparer.Ordinal);
     public List<ItemDefinition> Items { get; init; } = [];
     public List<ItemTagDefinition> ItemTags { get; init; } = [];
-    public List<EquipmentRandomAffixTableDefinition> EquipmentRandomAffixTables { get; init; } = [];
+    public List<EquipmentRandomAffixTableDefinition> RandomAffixTables { get; init; } = [];
     public List<BuffDefinition> Buffs { get; init; } = [];
     public List<TalentDefinition> Talents { get; init; } = [];
     public List<TowerDefinition> Towers { get; init; } = [];

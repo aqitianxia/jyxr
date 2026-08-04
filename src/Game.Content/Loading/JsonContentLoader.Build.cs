@@ -30,7 +30,7 @@ public sealed partial class JsonContentLoader
             StorySegments = BuildStorySegments(package.StoryScripts),
             Items = BuildItems(package),
             ItemTags = IndexById(package.ItemTags, "ItemTag"),
-            EquipmentRandomAffixTables = package.EquipmentRandomAffixTables.ToList(),
+            EquipmentRandomAffixTables = package.RandomAffixTables.ToList(),
             Buffs = IndexById(package.Buffs, "Buff"),
             Talents = IndexById(package.Talents, "Talent"),
             Equipments = IndexById(package.Items.OfType<EquipmentDefinition>(), "Equipment"),

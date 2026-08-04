@@ -224,6 +224,7 @@ public sealed class BattleServiceTests
     private static EquipmentRandomAffixTableDefinition CreateZhenlongEquipmentAffixTable() =>
         new()
         {
+            Id = "zhenlong",
             MinItemLevel = 1,
             MaxItemLevel = 99,
             Options =

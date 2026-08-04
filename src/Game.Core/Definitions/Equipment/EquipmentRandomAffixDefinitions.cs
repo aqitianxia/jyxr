@@ -5,6 +5,8 @@ namespace Game.Core.Definitions;
 
 public sealed record EquipmentRandomAffixTableDefinition
 {
+    public required string Id { get; init; }
+
     public int MinItemLevel { get; init; }
 
     public int MaxItemLevel { get; init; }
