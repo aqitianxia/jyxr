@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://sdtyoj35nitl" path="res://scenes/ui/system_panel/system_panel.tscn" id="9_system_panel"]
 [ext_resource type="Script" uid="uid://d0fqg0iuf06b" path="res://src/Game.Godot/UI/ToastPanel.cs" id="9_toast_panel"]
 [ext_resource type="Texture2D" uid="uid://dh8ti123spcg0" path="res://assets/art/ui/toast.png" id="10_1766m"]
+[ext_resource type="Shader" uid="uid://bkkv5qham5ddy" path="res://assets/shader/story_screen_filter.gdshader" id="10_story_filter"]
 [ext_resource type="PackedScene" uid="uid://cxqxd285b6u0o" path="res://scenes/ui/hint/hint_box.tscn" id="10_hint_box"]
 [ext_resource type="PackedScene" uid="uid://brltgo8b2opqk" path="res://scenes/ui/system_panel/save_slot_selection_panel.tscn" id="10_save_slots"]
 [ext_resource type="PackedScene" uid="uid://b4kveik4eci2d" path="res://scenes/ui/base/confirm_dialog.tscn" id="11_confirm_dialog"]
@@ -32,6 +33,10 @@
 [ext_resource type="PackedScene" uid="uid://bqpi5b5jp7vof" path="res://scenes/ui/equipment_refinement/refinement_equipment_selection_panel.tscn" id="22_refinement_equipment"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minigame/lightness_training_screen.tscn" id="23_lightness_training"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minigame/strength_training_screen.tscn" id="24_strength_training"]
+[ext_resource type="Script" uid="uid://564a0r68gkg3" path="res://src/Game.Godot/UI/StoryVisualEffects.cs" id="25_story_effects"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_story_filter"]
+shader = ExtResource("10_story_filter")
 
 [node name="UIRoot" type="Control" unique_id=684934628]
 layout_mode = 3
@@ -162,3 +167,54 @@ text = "获得称号【草头百姓】"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="VisualEffectsLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+layer = 60
+
+[node name="StoryVisualEffects" type="Control" parent="VisualEffectsLayer"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("25_story_effects")
+
+[node name="FilterRect" type="ColorRect" parent="VisualEffectsLayer/StoryVisualEffects"]
+unique_name_in_owner = true
+visible = false
+material = SubResource("ShaderMaterial_story_filter")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FlashRect" type="ColorRect" parent="VisualEffectsLayer/StoryVisualEffects"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="FadeRect" type="ColorRect" parent="VisualEffectsLayer/StoryVisualEffects"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)

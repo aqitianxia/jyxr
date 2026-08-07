@@ -189,11 +189,47 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 		new(UIRoot.Instance.ShowRollStatsPanelAsync("主角", cancellationToken));
 
 	[StoryCommand("shake")]
-	private ValueTask ExecuteShakeAsync(double amplitude = 10d, double duration = 0.5d)
+	private ValueTask ExecuteShakeAsync(
+		double amplitude = 10d,
+		double duration = 0.5d,
+		CancellationToken cancellationToken = default)
 	{
-		GetWorld().PlayScreenShake((float)amplitude, duration);
-		return ValueTask.CompletedTask;
+		ValidateShakeArguments(amplitude, duration, "shake");
+		return new ValueTask(UIRoot.Instance.VisualEffects.ShakeAsync((float)amplitude, duration, cancellationToken));
 	}
+
+	[StoryCommand("fade")]
+	private ValueTask ExecuteFadeAsync(
+		string mode,
+		double duration = 0.5d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.FadeAsync(mode, duration, cancellationToken));
+
+	[StoryCommand("flash")]
+	private ValueTask ExecuteFlashAsync(
+		string preset = "white",
+		double duration = 0.25d,
+		double strength = 1d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.FlashAsync(preset, duration, strength, cancellationToken));
+
+	[StoryCommand("filter")]
+	private ValueTask ExecuteFilterAsync(
+		string preset,
+		double strength = 1d,
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ApplyFilterAsync(preset, strength, duration, cancellationToken));
+
+	[StoryCommand("filter_clear")]
+	private ValueTask ExecuteFilterClearAsync(
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ClearFilterAsync(duration, cancellationToken));
+
+	[StoryCommand("wait")]
+	private ValueTask ExecuteWaitAsync(double duration, CancellationToken cancellationToken) =>
+		new(UIRoot.Instance.VisualEffects.WaitAsync(duration, cancellationToken));
 
 	[StoryCommand("head")]
 	private ValueTask ExecuteHeadAsync(string portraitId)
@@ -248,6 +284,19 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 			"on" => false,
 			_ => throw new InvalidOperationException($"Unsupported toast mode '{mode}'. Use 'on' or 'off'."),
 		};
+	}
+
+	private static void ValidateShakeArguments(double amplitude, double duration, string commandName)
+	{
+		if (!double.IsFinite(amplitude) || amplitude < 0d)
+		{
+			throw new ArgumentOutOfRangeException(nameof(amplitude), $"Command '{commandName}' amplitude must be finite and non-negative.");
+		}
+
+		if (!double.IsFinite(duration) || duration < 0d)
+		{
+			throw new ArgumentOutOfRangeException(nameof(duration), $"Command '{commandName}' duration must be finite and non-negative.");
+		}
 	}
 
 	private static World GetWorld() => World.Instance;

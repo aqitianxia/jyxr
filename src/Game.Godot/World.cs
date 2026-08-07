@@ -14,8 +14,6 @@ public partial class World : Control
 	[Export]
 	public PackedScene MapScreenScene { get; set; } = null!;
 
-	private Vector2 _basePosition;
-	private Tween? _screenShakeTween;
 	private TextureRect _background = null!;
 
 	public Control? CurrentScene { get; private set; }
@@ -24,7 +22,6 @@ public partial class World : Control
 
 	public override void _Ready()
 	{
-		_basePosition = Position;
 		_background = GetNode<TextureRect>("%Background");
 		AutoSave = GetNode<AutoSaveCoordinator>("%AutoSaveCoordinator");
 		Instance = this;
@@ -53,29 +50,6 @@ public partial class World : Control
 	{
 		_background.Texture = AssetResolver.LoadTextureResource(resourceId);
 		_background.Visible = _background.Texture is not null;
-	}
-
-	public void PlayScreenShake(float amplitude = 10f, double durationSeconds = 0.5d)
-	{
-		const int vibrationCount = 10;
-		var stepDuration = durationSeconds / (vibrationCount + 1);
-
-		_screenShakeTween?.Kill();
-		Position = _basePosition;
-
-		var tween = CreateTween();
-		_screenShakeTween = tween;
-
-		for (var index = 0; index < vibrationCount; index++)
-		{
-			var strength = amplitude * (1f - (float)index / vibrationCount);
-			var offset = new Vector2(
-				Random.Shared.NextSingle() * 2f - 1f,
-				Random.Shared.NextSingle() * 2f - 1f) * strength;
-			tween.TweenProperty(this, "position", _basePosition + offset, stepDuration);
-		}
-
-		tween.TweenProperty(this, "position", _basePosition, stepDuration);
 	}
 
 	private MapScreen ShowMap(MapEnterResult result)

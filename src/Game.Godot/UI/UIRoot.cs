@@ -82,6 +82,7 @@ public partial class UIRoot : Control
 	public CanvasLayer BattleLayer { get; private set; } = null!;
 	public CanvasLayer ModalLayer { get; private set; } = null!;
 	public CanvasLayer OverlayLayer { get; private set; } = null!;
+	public StoryVisualEffects VisualEffects { get; private set; } = null!;
 	public bool IsBattleActive => BattleLayer.GetChildCount() > 0;
 	private HudPanel? _hud;
 	private StoryDialoguePanel _storyDialoguePanel = null!;
@@ -107,6 +108,7 @@ public partial class UIRoot : Control
 		BattleLayer = GetNode<CanvasLayer>("%BattleLayer");
 		ModalLayer = GetNode<CanvasLayer>("%ModalLayer");
 		OverlayLayer = GetNode<CanvasLayer>("%OverlayLayer");
+		VisualEffects = GetNode<StoryVisualEffects>("%StoryVisualEffects");
 		_hud = GetNodeOrNull<HudPanel>("%Hud");
 		_storyDialoguePanel = GetNode<StoryDialoguePanel>("%StoryDialoguePanel");
 		_regularStoryChoicePanel = GetNode<StoryChoicePanel>("%StoryRegularChoicePanel");
@@ -173,6 +175,7 @@ public partial class UIRoot : Control
 		}
 		else
 		{
+			ResetStoryEffects();
 			ShowHud();
 		}
 
@@ -189,6 +192,7 @@ public partial class UIRoot : Control
 
 	public void ResetPresentationAfterLoad()
 	{
+		ResetStoryEffects();
 		CloseMainPanel();
 		_detailPanelHost.Close();
 
@@ -199,6 +203,11 @@ public partial class UIRoot : Control
 		}
 
 		RefreshHud();
+	}
+
+	private void ResetStoryEffects()
+	{
+		VisualEffects.ResetImmediate();
 	}
 
 	public void BindSessionEvents(GameSession session)

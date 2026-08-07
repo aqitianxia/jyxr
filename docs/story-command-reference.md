@@ -148,7 +148,31 @@ command arg1 arg2 ...
 | `effect` | `effectId` | 播放音效。 | `effect hit_01` |
 | `background` | `backgroundId` | 设置世界背景。 | `background changan_night` |
 | `suggest` | `text` | 显示剧情提示，并等待提示流程结束。 | `suggest "前方似有异动"` |
-| `shake` | `[amplitude=10] [duration=0.5]` | 播放二维衰减屏幕震动。 | `shake 16 0.3` |
+| `shake` | `[amplitude=10] [duration=0.5]` | 播放覆盖世界与 UI 的衰减屏幕震动，并等待震动结束。 | `shake 16 0.3` |
+| `fade` | `in/out [duration=0.5]` | 全屏淡入或淡出到黑场，并等待过渡结束。 | `fade out 0.6` |
+| `flash` | `[preset=white] [duration=0.25] [strength=1]` | 播放全屏闪光并等待结束；预设为 `white`、`red`、`gold`、`blue`。 | `flash red 0.2 0.8` |
+| `filter` | `preset [strength=1] [duration=0.3]` | 渐变应用并保持全屏滤镜；预设为 `grayscale`、`sepia`、`cold`、`warm`、`poison`、`night`。 | `filter night 0.75 0.4` |
+| `filter_clear` | `[duration=0.3]` | 渐隐并清除当前全屏滤镜。 | `filter_clear 0.4` |
+| `wait` | `duration` | 暂停剧情推进；计时不受游戏时间缩放影响。 | `wait 1.2` |
+
+视觉指令的 `duration`、震屏 `amplitude` 不得为负数，`strength` 必须位于 `0` 到 `1`。`duration` 为 `0` 时立即设置最终状态。滤镜会保持到被替换、执行 `filter_clear`，或当前剧情表现流程结束。
+
+剧情 JSON 中可以用黑场安全切换背景：
+
+```json
+[
+  {"kind": "command", "name": "fade", "args": ["out", 0.6]},
+  {"kind": "command", "name": "background", "args": ["地图.夜晚客栈"]},
+  {"kind": "command", "name": "filter", "args": ["night", 0.7, 0]},
+  {"kind": "command", "name": "fade", "args": ["in", 0.6]}
+]
+```
+
+受击闪屏可以单独使用，不会清除当前滤镜：
+
+```json
+{"kind": "command", "name": "flash", "args": ["red", 0.2, 0.85]}
+```
 
 ### 开局与流程 UI
 
