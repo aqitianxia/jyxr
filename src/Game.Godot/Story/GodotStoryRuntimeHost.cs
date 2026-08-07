@@ -227,9 +227,46 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 		CancellationToken cancellationToken = default) =>
 		new(UIRoot.Instance.VisualEffects.ClearFilterAsync(duration, cancellationToken));
 
+	[StoryCommand("distort")]
+	private ValueTask ExecuteDistortAsync(
+		string preset,
+		double strength = 1d,
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ApplyDistortionAsync(preset, strength, duration, cancellationToken));
+
+	[StoryCommand("distort_clear")]
+	private ValueTask ExecuteDistortClearAsync(
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ClearDistortionAsync(duration, cancellationToken));
+
+	[StoryCommand("tint")]
+	private ValueTask ExecuteTintAsync(
+		string color,
+		double strength = 0.25d,
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ApplyTintAsync(color, strength, duration, cancellationToken));
+
+	[StoryCommand("tint_clear")]
+	private ValueTask ExecuteTintClearAsync(
+		double duration = 0.3d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.VisualEffects.ClearTintAsync(duration, cancellationToken));
+
 	[StoryCommand("wait")]
 	private ValueTask ExecuteWaitAsync(double duration, CancellationToken cancellationToken) =>
 		new(UIRoot.Instance.VisualEffects.WaitAsync(duration, cancellationToken));
+
+	[StoryCommand("intertitle")]
+	private ValueTask ExecuteIntertitleAsync(
+		string text,
+		string position = "center",
+		string mode = "typewriter",
+		double speed = 36d,
+		CancellationToken cancellationToken = default) =>
+		new(UIRoot.Instance.ShowIntertitleAsync(text, position, mode, speed, cancellationToken));
 
 	[StoryCommand("head")]
 	private ValueTask ExecuteHeadAsync(string portraitId)

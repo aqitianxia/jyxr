@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://jon61teprdc7" path="res://scenes/ui/party_panel/party_panel.tscn" id="2_party_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/character_panel/character_roster_panel.tscn" id="3_i0hgf"]
 [ext_resource type="PackedScene" uid="uid://beqsxw0hmqwm" path="res://scenes/ui/story/story_dialogue_panel.tscn" id="4_story_dialogue"]
+[ext_resource type="PackedScene" uid="uid://cg6ljvde1okgt" path="res://scenes/ui/story/story_intertitle_panel.tscn" id="4_story_intertitle"]
 [ext_resource type="PackedScene" uid="uid://0gybacdn8xd4" path="res://scenes/ui/story/story_regular_choice_panel.tscn" id="5_story_choice"]
 [ext_resource type="PackedScene" uid="uid://dyyqo1cn7w3rm" path="res://scenes/ui/story/story_bold_choice_panel.tscn" id="5_story_choice_bold"]
 [ext_resource type="PackedScene" uid="uid://bnk146v0yfw02" path="res://scenes/ui/hud/hud.tscn" id="6_hud"]
@@ -218,3 +219,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0)
+
+[node name="StoryIntertitlePanel" parent="VisualEffectsLayer" instance=ExtResource("4_story_intertitle")]
+unique_name_in_owner = true

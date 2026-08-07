@@ -1,4 +1,5 @@
 using Godot;
+using System.Globalization;
 
 namespace Game.Godot.UI;
 
@@ -6,8 +7,11 @@ public sealed partial class StoryVisualEffects : Control
 {
 	private const string FilterPresetNames = "grayscale, sepia, cold, warm, poison, night";
 	private const string FlashPresetNames = "white, red, gold, blue";
+	private const string DistortionPresetNames = "ripple, wave, heat, fisheye";
 
+	private readonly TweenChannel _distortionChannel = new();
 	private readonly TweenChannel _filterChannel = new();
+	private readonly TweenChannel _tintChannel = new();
 	private readonly TweenChannel _flashChannel = new();
 	private readonly TweenChannel _fadeChannel = new();
 	private readonly TweenChannel _shakeChannel = new();
@@ -15,8 +19,12 @@ public sealed partial class StoryVisualEffects : Control
 	private ColorRect _flashRect = null!;
 	private ColorRect _fadeRect = null!;
 	private ShaderMaterial _filterMaterial = null!;
+	private string? _distortionPreset;
+	private float _distortionStrength;
 	private string? _filterPreset;
 	private float _filterStrength;
+	private Color _tintColor = Colors.White;
+	private float _tintStrength;
 	private float _flashStrength;
 	private float _fadeStrength;
 	private Vector2 _screenOffset;
@@ -33,7 +41,9 @@ public sealed partial class StoryVisualEffects : Control
 
 	public override void _ExitTree()
 	{
+		CancelChannel(_distortionChannel);
 		CancelChannel(_filterChannel);
+		CancelChannel(_tintChannel);
 		CancelChannel(_flashChannel);
 		CancelChannel(_fadeChannel);
 		CancelChannel(_shakeChannel);
@@ -61,6 +71,59 @@ public sealed partial class StoryVisualEffects : Control
 			_fadeChannel,
 			tween => tween.TweenMethod(Callable.From<float>(SetFadeStrength), _fadeStrength, target, duration),
 			cancellationToken);
+	}
+
+	public Task ApplyDistortionAsync(string preset, double strength, double duration, CancellationToken cancellationToken)
+	{
+		ValidateDuration(duration, "distort");
+		var presetId = ResolveDistortionPreset(preset);
+		var targetStrength = ValidateStrength(strength, "distort");
+		var normalizedPreset = preset.Trim();
+
+		if (duration == 0d)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			CancelChannel(_distortionChannel);
+			SetDistortionPreset(normalizedPreset, presetId);
+			SetDistortionStrength(targetStrength);
+			return Task.CompletedTask;
+		}
+
+		if (_distortionPreset is not null &&
+			!string.Equals(_distortionPreset, normalizedPreset, StringComparison.Ordinal) &&
+			_distortionStrength > 0f)
+		{
+			var halfDuration = duration / 2d;
+			return RunTweenAsync(
+				_distortionChannel,
+				tween =>
+				{
+					tween.TweenMethod(Callable.From<float>(SetDistortionStrength), _distortionStrength, 0f, halfDuration);
+					tween.TweenCallback(Callable.From(() => SetDistortionPreset(normalizedPreset, presetId)));
+					tween.TweenMethod(Callable.From<float>(SetDistortionStrength), 0f, targetStrength, halfDuration);
+				},
+				cancellationToken);
+		}
+
+		SetDistortionPreset(normalizedPreset, presetId);
+		return RunTweenAsync(
+			_distortionChannel,
+			tween => tween.TweenMethod(Callable.From<float>(SetDistortionStrength), _distortionStrength, targetStrength, duration),
+			cancellationToken);
+	}
+
+	public Task ClearDistortionAsync(double duration, CancellationToken cancellationToken)
+	{
+		ValidateDuration(duration, "distort_clear");
+		if (duration == 0d || _distortionStrength == 0f)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			CancelChannel(_distortionChannel);
+			ClearDistortionState();
+			return Task.CompletedTask;
+		}
+
+		return ClearDistortionCoreAsync(duration, cancellationToken);
 	}
 
 	public Task FlashAsync(string preset, double duration, double strength, CancellationToken cancellationToken)
@@ -142,6 +205,46 @@ public sealed partial class StoryVisualEffects : Control
 		return ClearFilterCoreAsync(duration, cancellationToken);
 	}
 
+	public Task ApplyTintAsync(string color, double strength, double duration, CancellationToken cancellationToken)
+	{
+		ValidateDuration(duration, "tint");
+		var targetColor = ParseTintColor(color);
+		var targetStrength = ValidateStrength(strength, "tint");
+
+		if (duration == 0d)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			CancelChannel(_tintChannel);
+			SetTintColor(targetColor);
+			SetTintStrength(targetStrength);
+			return Task.CompletedTask;
+		}
+
+		return RunTweenAsync(
+			_tintChannel,
+			tween =>
+			{
+				tween.SetParallel();
+				tween.TweenMethod(Callable.From<Color>(SetTintColor), _tintColor, targetColor, duration);
+				tween.TweenMethod(Callable.From<float>(SetTintStrength), _tintStrength, targetStrength, duration);
+			},
+			cancellationToken);
+	}
+
+	public Task ClearTintAsync(double duration, CancellationToken cancellationToken)
+	{
+		ValidateDuration(duration, "tint_clear");
+		if (duration == 0d || _tintStrength == 0f)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			CancelChannel(_tintChannel);
+			ClearTintState();
+			return Task.CompletedTask;
+		}
+
+		return ClearTintCoreAsync(duration, cancellationToken);
+	}
+
 	public Task ShakeAsync(float amplitude, double duration, CancellationToken cancellationToken)
 	{
 		ValidateAmplitude(amplitude);
@@ -184,11 +287,15 @@ public sealed partial class StoryVisualEffects : Control
 
 	public void ResetImmediate()
 	{
+		CancelChannel(_distortionChannel);
 		CancelChannel(_filterChannel);
+		CancelChannel(_tintChannel);
 		CancelChannel(_flashChannel);
 		CancelChannel(_fadeChannel);
 		CancelChannel(_shakeChannel);
+		ClearDistortionState();
 		ClearFilterState();
+		ClearTintState();
 		SetFlashStrength(0f);
 		SetFadeStrength(0f);
 		SetScreenOffset(Vector2.Zero);
@@ -236,6 +343,24 @@ public sealed partial class StoryVisualEffects : Control
 			tween => tween.TweenMethod(Callable.From<float>(SetFilterStrength), _filterStrength, 0f, duration),
 			cancellationToken);
 		ClearFilterState();
+	}
+
+	private async Task ClearDistortionCoreAsync(double duration, CancellationToken cancellationToken)
+	{
+		await RunTweenAsync(
+			_distortionChannel,
+			tween => tween.TweenMethod(Callable.From<float>(SetDistortionStrength), _distortionStrength, 0f, duration),
+			cancellationToken);
+		ClearDistortionState();
+	}
+
+	private async Task ClearTintCoreAsync(double duration, CancellationToken cancellationToken)
+	{
+		await RunTweenAsync(
+			_tintChannel,
+			tween => tween.TweenMethod(Callable.From<float>(SetTintStrength), _tintStrength, 0f, duration),
+			cancellationToken);
+		ClearTintState();
 	}
 
 	private Task RunTweenAsync(
@@ -310,6 +435,19 @@ public sealed partial class StoryVisualEffects : Control
 		_filterMaterial.SetShaderParameter("preset", presetId);
 	}
 
+	private void SetDistortionPreset(string preset, int presetId)
+	{
+		_distortionPreset = preset;
+		_filterMaterial.SetShaderParameter("distortion_preset", presetId);
+	}
+
+	private void SetDistortionStrength(float strength)
+	{
+		_distortionStrength = strength;
+		_filterMaterial.SetShaderParameter("distortion_strength", strength);
+		UpdateScreenEffectVisibility();
+	}
+
 	private void SetFilterStrength(float strength)
 	{
 		_filterStrength = strength;
@@ -324,13 +462,38 @@ public sealed partial class StoryVisualEffects : Control
 		UpdateScreenEffectVisibility();
 	}
 
+	private void SetTintColor(Color color)
+	{
+		_tintColor = color;
+		_filterMaterial.SetShaderParameter("tint_color", color);
+	}
+
+	private void SetTintStrength(float strength)
+	{
+		_tintStrength = strength;
+		_filterMaterial.SetShaderParameter("tint_strength", strength);
+		UpdateScreenEffectVisibility();
+	}
+
 	private void UpdateScreenEffectVisibility() =>
-		_filterRect.Visible = _filterStrength > 0f || _screenOffset != Vector2.Zero;
+		_filterRect.Visible = _distortionStrength > 0f || _filterStrength > 0f || _tintStrength > 0f || _screenOffset != Vector2.Zero;
+
+	private void ClearDistortionState()
+	{
+		_distortionPreset = null;
+		SetDistortionStrength(0f);
+	}
 
 	private void ClearFilterState()
 	{
 		_filterPreset = null;
 		SetFilterStrength(0f);
+	}
+
+	private void ClearTintState()
+	{
+		SetTintColor(Colors.White);
+		SetTintStrength(0f);
 	}
 
 	private void SetFlashStrength(float strength)
@@ -360,6 +523,16 @@ public sealed partial class StoryVisualEffects : Control
 			$"Unsupported filter preset '{preset}'. Use one of: {FilterPresetNames}."),
 	};
 
+	private static int ResolveDistortionPreset(string preset) => preset.Trim() switch
+	{
+		"ripple" => 0,
+		"wave" => 1,
+		"heat" => 2,
+		"fisheye" => 3,
+		_ => throw new InvalidOperationException(
+			$"Unsupported distortion preset '{preset}'. Use one of: {DistortionPresetNames}."),
+	};
+
 	private static Color ResolveFlashColor(string preset) => preset.Trim() switch
 	{
 		"white" => Colors.White,
@@ -369,6 +542,36 @@ public sealed partial class StoryVisualEffects : Control
 		_ => throw new InvalidOperationException(
 			$"Unsupported flash preset '{preset}'. Use one of: {FlashPresetNames}."),
 	};
+
+	private static Color ParseTintColor(string value)
+	{
+		var text = value.Trim();
+		if (text.Length is not (7 or 9) || text[0] != '#')
+		{
+			throw new InvalidOperationException(
+				$"Invalid tint color '{value}'. Use #RRGGBB or #RRGGBBAA hexadecimal format.");
+		}
+
+		if (!uint.TryParse(text.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var packed))
+		{
+			throw new InvalidOperationException(
+				$"Invalid tint color '{value}'. Use #RRGGBB or #RRGGBBAA hexadecimal format.");
+		}
+
+		if (text.Length == 7)
+		{
+			return new Color(
+				((packed >> 16) & 0xff) / 255f,
+				((packed >> 8) & 0xff) / 255f,
+				(packed & 0xff) / 255f);
+		}
+
+		return new Color(
+			((packed >> 24) & 0xff) / 255f,
+			((packed >> 16) & 0xff) / 255f,
+			((packed >> 8) & 0xff) / 255f,
+			(packed & 0xff) / 255f);
+	}
 
 	private static void ValidateDuration(double duration, string commandName)
 	{

@@ -86,6 +86,7 @@ public partial class UIRoot : Control
 	public bool IsBattleActive => BattleLayer.GetChildCount() > 0;
 	private HudPanel? _hud;
 	private StoryDialoguePanel _storyDialoguePanel = null!;
+	private StoryIntertitlePanel _storyIntertitlePanel = null!;
 	private StoryChoicePanel _regularStoryChoicePanel = null!;
 	private StoryChoicePanel _boldStoryChoicePanel = null!;
 	private ToastPanel _toastPanel = null!;
@@ -111,6 +112,7 @@ public partial class UIRoot : Control
 		VisualEffects = GetNode<StoryVisualEffects>("%StoryVisualEffects");
 		_hud = GetNodeOrNull<HudPanel>("%Hud");
 		_storyDialoguePanel = GetNode<StoryDialoguePanel>("%StoryDialoguePanel");
+		_storyIntertitlePanel = GetNode<StoryIntertitlePanel>("%StoryIntertitlePanel");
 		_regularStoryChoicePanel = GetNode<StoryChoicePanel>("%StoryRegularChoicePanel");
 		_boldStoryChoicePanel = GetNode<StoryChoicePanel>("%StoryBoldChoicePanel");
 		_toastPanel = GetNode<ToastPanel>("%ToastPanel");
@@ -207,6 +209,7 @@ public partial class UIRoot : Control
 
 	private void ResetStoryEffects()
 	{
+		_storyIntertitlePanel.ResetImmediate();
 		VisualEffects.ResetImmediate();
 	}
 
@@ -486,6 +489,19 @@ public partial class UIRoot : Control
 		{
 			_ = HideDialogueWhenIdleAsync(dialog, version);
 		}
+	}
+
+	public Task ShowIntertitleAsync(
+		string text,
+		string position = "center",
+		string mode = "typewriter",
+		double speed = 36d,
+		CancellationToken cancellationToken = default)
+	{
+		_storyDialoguePanel.HidePanel();
+		_regularStoryChoicePanel.HidePanel();
+		_boldStoryChoicePanel.HidePanel();
+		return _storyIntertitlePanel.ShowAsync(text, position, mode, speed, cancellationToken);
 	}
 
 	public async Task<int> ShowChoicesAsync(

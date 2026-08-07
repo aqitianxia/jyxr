@@ -153,9 +153,14 @@ command arg1 arg2 ...
 | `flash` | `[preset=white] [duration=0.25] [strength=1]` | 播放全屏闪光并等待结束；预设为 `white`、`red`、`gold`、`blue`。 | `flash red 0.2 0.8` |
 | `filter` | `preset [strength=1] [duration=0.3]` | 渐变应用并保持全屏滤镜；预设为 `grayscale`、`sepia`、`cold`、`warm`、`poison`、`night`。 | `filter night 0.75 0.4` |
 | `filter_clear` | `[duration=0.3]` | 渐隐并清除当前全屏滤镜。 | `filter_clear 0.4` |
+| `distort` | `preset [strength=1] [duration=0.3]` | 渐变应用并保持屏幕形变；预设为 `ripple`、`wave`、`heat`、`fisheye`。 | `distort ripple 0.7 0.3` |
+| `distort_clear` | `[duration=0.3]` | 渐隐并清除当前屏幕形变。 | `distort_clear 0.4` |
+| `tint` | `color [strength=0.25] [duration=0.3]` | 使用 `#RRGGBB` 或 `#RRGGBBAA` 对画面乘色染色；可与预设滤镜同时生效。 | `tint "#4a6fa5" 0.35 0.5` |
+| `tint_clear` | `[duration=0.3]` | 渐隐并清除当前颜色染色，不影响预设滤镜。 | `tint_clear 0.4` |
 | `wait` | `duration` | 暂停剧情推进；计时不受游戏时间缩放影响。 | `wait 1.2` |
+| `intertitle` | `text [position=center] [mode=typewriter] [speed=36]` | 显示水平居中的文字过场并等待点击；位置为 `upper`、`center`、`lower`，模式为 `typewriter`、`instant`。 | `intertitle "数年之后……" center typewriter 24` |
 
-视觉指令的 `duration`、震屏 `amplitude` 不得为负数，`strength` 必须位于 `0` 到 `1`。`duration` 为 `0` 时立即设置最终状态。滤镜会保持到被替换、执行 `filter_clear`，或当前剧情表现流程结束。
+视觉指令的 `duration`、震屏 `amplitude` 不得为负数，`strength` 必须位于 `0` 到 `1`。`duration` 为 `0` 时立即设置最终状态。屏幕形变、预设滤镜和颜色染色会分别保持到被替换、由对应的清除指令清除，或当前剧情表现流程结束。`#RRGGBBAA` 中的 Alpha 会作为 `strength` 之外的额外染色权重。
 
 剧情 JSON 中可以用黑场安全切换背景：
 
@@ -172,6 +177,22 @@ command arg1 arg2 ...
 
 ```json
 {"kind": "command", "name": "flash", "args": ["red", 0.2, 0.85]}
+```
+
+文字过场不管理背景，可以与黑场或背景图片组合。文字支持 BBCode、JSON 换行符和 `[br]`；打字过程中首次点击显示全文，再次点击关闭并继续剧情：
+
+```json
+[
+  {"kind": "command", "name": "fade", "args": ["out", 0.5]},
+  {"kind": "command", "name": "intertitle", "args": ["[color=light_blue]数年之后……[/color][br]江湖风波又起", "center", "typewriter", 24]},
+  {"kind": "command", "name": "fade", "args": ["in", 0.5]}
+]
+```
+
+如果当前 MOD 中存在独立测试 segment `debug_visual_effects`，可在控制台执行以下命令，依次检查黑场、文字过场、震屏、闪屏、滤镜、染色、屏幕形变与等待效果：
+
+```text
+dstory debug_visual_effects
 ```
 
 ### 开局与流程 UI
