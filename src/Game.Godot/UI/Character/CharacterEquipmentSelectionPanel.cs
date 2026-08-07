@@ -103,20 +103,16 @@ public partial class CharacterEquipmentSelectionPanel : JyPanel
 		var action = new DetailPanelAction(
 			candidate.CanUse ? "装备" : "不可装备",
 			candidate.CanUse,
-			() =>
-			{
-				EquipEntry(entry, detailPanel);
-				return Task.CompletedTask;
-			},
+			() => EquipEntryAsync(entry, detailPanel),
 			CloseAfterExecute: false);
 		detailPanel = UIRoot.Instance.ShowInventoryEntryDetailPanel(entry, action);
 	}
 
-	private void EquipEntry(InventoryEntry entry, Control? detailPanel)
+	private async Task EquipEntryAsync(InventoryEntry entry, Control? detailPanel)
 	{
 		try
 		{
-			var result = Game.ItemUseService.Use(entry, _characterId);
+			var result = await Game.ItemUseService.UseAsync(entry, _characterId);
 			if (!result.Success)
 			{
 				UIRoot.Instance.ShowSuggestion(result.Message);

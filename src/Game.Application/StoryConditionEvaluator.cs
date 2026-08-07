@@ -27,6 +27,11 @@ public sealed class StoryConditionEvaluator
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
+        if (name == ItemUseService.ItemTargetCharacterIdVariable && ItemTargetCharacterId is not null)
+        {
+            return ValueTask.FromResult(ExprValue.FromString(ItemTargetCharacterId));
+        }
+
         if (_variableResolver.TryGetVariable(name, out var value))
         {
             return ValueTask.FromResult(value);
@@ -39,6 +44,8 @@ public sealed class StoryConditionEvaluator
 
         return _host.GetVariableAsync(name, cancellationToken);
     }
+
+    internal string? ItemTargetCharacterId { get; set; }
 
     public ValueTask<bool> EvaluatePredicateAsync(
         string name,

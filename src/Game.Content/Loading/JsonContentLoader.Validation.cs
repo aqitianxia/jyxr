@@ -820,6 +820,19 @@ public sealed partial class JsonContentLoader
                         Ensure(double.IsFinite(reduction.Ratio) && reduction.Ratio > 0d && reduction.Ratio < 1d,
                             $"Item '{item.Id}' reduce_max_resource_ratio effect has invalid ratio '{reduction.Ratio}'.");
                         break;
+
+                    case RunStoryItemUseEffectDefinition runStory:
+                        Ensure(!string.IsNullOrWhiteSpace(runStory.StoryId),
+                            $"Item '{item.Id}' run_story effect is missing storyId.");
+                        Ensure(repository.StorySegments.ContainsKey(runStory.StoryId),
+                            $"Item '{item.Id}' references missing story segment '{runStory.StoryId}'.");
+                        Ensure(item is NormalItemDefinition &&
+                               item.Type is ItemType.SkillBook or ItemType.SpecialSkillBook or
+                                   ItemType.TalentBook or ItemType.Booster or ItemType.Utility,
+                            $"Item '{item.Id}' run_story effect is only supported by out-of-battle normal items.");
+                        Ensure(item.UseEffects is { Count: 1 },
+                            $"Item '{item.Id}' run_story effect must be the item's only use effect.");
+                        break;
                 }
             }
 
@@ -903,7 +916,8 @@ public sealed partial class JsonContentLoader
             AddMaxHpItemUseEffectDefinition or
             AddMaxMpItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
-            ReduceMaxResourceRatioItemUseEffectDefinition;
+            ReduceMaxResourceRatioItemUseEffectDefinition or
+            RunStoryItemUseEffectDefinition;
 
     private static void ValidateShops(InMemoryContentRepository repository)
     {

@@ -66,6 +66,7 @@ public sealed record GenderItemRequirementDefinition(
 [JsonDerivedType(typeof(GrantTalentItemUseEffectDefinition), "grant_talent")]
 [JsonDerivedType(typeof(SetGenderItemUseEffectDefinition), "set_gender")]
 [JsonDerivedType(typeof(ReduceMaxResourceRatioItemUseEffectDefinition), "reduce_max_resource_ratio")]
+[JsonDerivedType(typeof(RunStoryItemUseEffectDefinition), "run_story")]
 public abstract record ItemUseEffectDefinition;
 
 public sealed record AddBuffItemUseEffectDefinition(
@@ -118,3 +119,6 @@ public sealed record SetGenderItemUseEffectDefinition(
 public sealed record ReduceMaxResourceRatioItemUseEffectDefinition(
     StatType StatId,
     double Ratio) : ItemUseEffectDefinition;
+
+public sealed record RunStoryItemUseEffectDefinition(
+    string StoryId) : ItemUseEffectDefinition;

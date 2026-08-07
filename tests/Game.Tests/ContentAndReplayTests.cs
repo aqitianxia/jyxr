@@ -589,6 +589,107 @@ public sealed class ContentLoadingTests
     }
 
     [Fact]
+    public void JsonLoader_LoadsRunStoryItemEffectAndValidatesReference()
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>
+        {
+            ["items.json"] = """
+                [
+                  {
+                    "category": "normal",
+                    "id": "story_item",
+                    "name": "Story Item",
+                    "type": "utility",
+                    "consumeOnUse": true,
+                    "useEffects": [{ "type": "run_story", "storyId": "item_effect" }]
+                  }
+                ]
+                """,
+            ["story/item-effect.story.json"] = """
+                {
+                  "version": 2,
+                  "segments": [{ "name": "item_effect", "steps": [] }]
+                }
+                """,
+        });
+
+        try
+        {
+            var repository = new JsonContentLoader().LoadFromDirectory(directoryPath);
+            var item = repository.GetItem("story_item");
+            var effect = Assert.IsType<RunStoryItemUseEffectDefinition>(Assert.Single(item.UseEffects));
+            Assert.Equal("item_effect", effect.StoryId);
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsInvalidRunStoryItemEffects()
+    {
+        var invalidItemDocuments = new[]
+        {
+            """
+            [{
+              "category": "normal", "id": "empty", "name": "Empty", "type": "utility",
+              "consumeOnUse": true,
+              "useEffects": [{ "type": "run_story", "storyId": "" }]
+            }]
+            """,
+            """
+            [{
+              "category": "normal", "id": "missing", "name": "Missing", "type": "utility",
+              "consumeOnUse": true,
+              "useEffects": [{ "type": "run_story", "storyId": "missing_story" }]
+            }]
+            """,
+            """
+            [{
+              "category": "normal", "id": "mixed", "name": "Mixed", "type": "booster",
+              "consumeOnUse": true,
+              "useEffects": [
+                { "type": "run_story", "storyId": "item_effect" },
+                { "type": "add_maxhp", "value": 10 }
+              ]
+            }]
+            """,
+            """
+            [{
+              "category": "normal", "id": "battle_item", "name": "Battle Item", "type": "consumable",
+              "consumeOnUse": true,
+              "useEffects": [{ "type": "run_story", "storyId": "item_effect" }]
+            }]
+            """,
+        };
+
+        foreach (var itemsJson in invalidItemDocuments)
+        {
+            var directoryPath = CreateContentDirectory(new Dictionary<string, string>
+            {
+                ["items.json"] = itemsJson,
+                ["story/item-effect.story.json"] = """
+                    {
+                      "version": 2,
+                      "segments": [{ "name": "item_effect", "steps": [] }]
+                    }
+                    """,
+            });
+
+            try
+            {
+                Assert.Throws<InvalidOperationException>(
+                    () => new JsonContentLoader().LoadFromDirectory(directoryPath));
+            }
+            finally
+            {
+                Directory.Delete(directoryPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void JsonLoader_LoadsCharacterModelAndGrantModelAffixText()
     {
         const string json = """

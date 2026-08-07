@@ -10,6 +10,24 @@ namespace Game.Tests;
 public sealed class ItemDescriptionFormatterTests
 {
     [Fact]
+    public void ItemDescriptionFormatter_FormatsRunStoryEffect()
+    {
+        var item = new NormalItemDefinition
+        {
+            Id = "story_item",
+            Name = "story_item",
+            Type = ItemType.Utility,
+            ConsumeOnUse = true,
+            UseEffects = [new RunStoryItemUseEffectDefinition("item_story")],
+        };
+        var repository = TestContentFactory.CreateRepository(items: [item]);
+
+        var text = ItemDescriptionFormatter.FormatBbCodeCn(item, repository);
+
+        Assert.Contains("触发剧情效果", text);
+    }
+
+    [Fact]
     public void ItemDescriptionFormatter_FormatsConsumableItemBbCode()
     {
         var buff = new BuffDefinition

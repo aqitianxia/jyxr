@@ -3,13 +3,14 @@ using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Model.Character;
+using Game.Core.Story;
 
 namespace Game.Tests;
 
 public sealed class ItemUseServiceTests
 {
     [Fact]
-    public void Use_ExternalSkillBook_LearnsDefaultLevel10AndDoesNotConsume()
+    public async Task Use_ExternalSkillBook_LearnsDefaultLevel10AndDoesNotConsume()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -26,7 +27,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetExternalSkillLevel(skill.Id));
@@ -34,7 +35,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_ExternalSkillBook_UpgradesKnownSkillBelowMaxAndDoesNotConsume()
+    public async Task Use_ExternalSkillBook_UpgradesKnownSkillBelowMaxAndDoesNotConsume()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -53,7 +54,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetExternalSkillLevel(skill.Id));
@@ -61,7 +62,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_ExternalSkillBook_UpgradesKnownSkillWhenExternalSkillCountAtLimit()
+    public async Task Use_ExternalSkillBook_UpgradesKnownSkillWhenExternalSkillCountAtLimit()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -83,7 +84,7 @@ public sealed class ItemUseServiceTests
             config: new GameConfig { MaxExternalSkillCount = 1 });
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetExternalSkillLevel(skill.Id));
@@ -91,7 +92,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_ExternalSkillBook_RespectsBookEffectLevelByDefault()
+    public async Task Use_ExternalSkillBook_RespectsBookEffectLevelByDefault()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -108,14 +109,14 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(5, hero.GetExternalSkillLevel(skill.Id));
     }
 
     [Fact]
-    public void Use_ExternalSkillBook_IgnoresBookEffectLevelWhenConfigured()
+    public async Task Use_ExternalSkillBook_IgnoresBookEffectLevelWhenConfigured()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -135,14 +136,14 @@ public sealed class ItemUseServiceTests
             config: new GameConfig { IgnoreSkillBookLevelLimit = true });
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetExternalSkillLevel(skill.Id));
     }
 
     [Fact]
-    public void Use_ExternalSkillBook_ClampsBookEffectLevelToCurrentMaxLevel()
+    public async Task Use_ExternalSkillBook_ClampsBookEffectLevelToCurrentMaxLevel()
     {
         var skill = TestContentFactory.CreateExternalSkill("dragon_palm");
         var book = CreateItem(
@@ -159,14 +160,14 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetExternalSkillLevel(skill.Id));
     }
 
     [Fact]
-    public void AnalyzeTarget_DisablesNewExternalSkillWhenExternalSkillCountAtLimit()
+    public async Task AnalyzeTarget_DisablesNewExternalSkillWhenExternalSkillCountAtLimit()
     {
         var knownSkill = TestContentFactory.CreateExternalSkill("known_palm");
         var newSkill = TestContentFactory.CreateExternalSkill("dragon_palm");
@@ -190,7 +191,7 @@ public sealed class ItemUseServiceTests
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.False(candidate.CanUse);
         Assert.Equal("外功数量已达上限", candidate.Reason);
@@ -253,7 +254,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_InternalSkillBook_LearnsDefaultLevel10AndDoesNotConsume()
+    public async Task Use_InternalSkillBook_LearnsDefaultLevel10AndDoesNotConsume()
     {
         var skill = TestContentFactory.CreateInternalSkill("yijinjing");
         var book = CreateItem(
@@ -270,7 +271,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(10, hero.GetInternalSkillLevel(skill.Id));
@@ -278,7 +279,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_InternalSkillBook_RespectsBookEffectLevelByDefault()
+    public async Task Use_InternalSkillBook_RespectsBookEffectLevelByDefault()
     {
         var skill = TestContentFactory.CreateInternalSkill("yijinjing");
         var book = CreateItem(
@@ -295,7 +296,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(5, hero.GetInternalSkillLevel(skill.Id));
@@ -335,7 +336,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_SpecialSkillBook_LearnsAndConsumesOne()
+    public async Task Use_SpecialSkillBook_LearnsAndConsumesOne()
     {
         var skill = new SpecialSkillDefinition(
             "six_pulse",
@@ -365,7 +366,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Contains(hero.GetSpecialSkills(), learned => learned.Definition.Id == skill.Id);
@@ -373,7 +374,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_TalentBook_LearnsAndConsumesOne()
+    public async Task Use_TalentBook_LearnsAndConsumesOne()
     {
         var talent = new TalentDefinition { Id = "iron_body", Name = "iron_body" };
         var book = CreateItem(
@@ -392,7 +393,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(book);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.True(hero.HasTalent(talent.Id));
@@ -400,7 +401,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void AnalyzeTarget_DisablesTalentBookWhenWuxueCapacityIsInsufficient()
+    public async Task AnalyzeTarget_DisablesTalentBookWhenWuxueCapacityIsInsufficient()
     {
         var expensiveTalent = new TalentDefinition
         {
@@ -433,7 +434,7 @@ public sealed class ItemUseServiceTests
         var entry = state.Inventory.GetStack(book);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.False(candidate.CanUse);
         Assert.Equal("武学常识不足，需要30", candidate.Reason);
@@ -444,7 +445,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_Booster_IncreasesMaxStatsAndConsumesOne()
+    public async Task Use_Booster_IncreasesMaxStatsAndConsumesOne()
     {
         var booster = CreateItem(
             "peach",
@@ -469,7 +470,7 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(booster);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(300, hero.GetBaseStat(StatType.MaxHp));
@@ -478,7 +479,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_Booster_SucceedsWhenStoryGrantedSkillsExceedBookLimits()
+    public async Task Use_Booster_SucceedsWhenStoryGrantedSkillsExceedBookLimits()
     {
         var externalSkills = new[]
         {
@@ -527,7 +528,7 @@ public sealed class ItemUseServiceTests
         var entry = state.Inventory.GetStack(booster);
 
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(candidate.CanUse);
         Assert.True(result.Success);
@@ -536,7 +537,7 @@ public sealed class ItemUseServiceTests
     }
 
     [Fact]
-    public void Use_Equipment_ReplacesOccupiedSlotAndReturnsOldEquipmentToInventory()
+    public async Task Use_Equipment_ReplacesOccupiedSlotAndReturnsOldEquipmentToInventory()
     {
         var oldSword = TestContentFactory.CreateEquipment("old_sword");
         var newSword = TestContentFactory.CreateEquipment("new_sword");
@@ -549,13 +550,110 @@ public sealed class ItemUseServiceTests
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(newSword);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(newSword.Id, hero.GetEquipment(EquipmentSlotType.Weapon)?.Definition.Id);
         var returned = Assert.IsType<StackInventoryEntry>(Assert.Single(state.Inventory.Entries));
         Assert.Equal(oldSword.Id, returned.Definition.Id);
         Assert.Equal(1, returned.Quantity);
+    }
+
+    [Fact]
+    public async Task UseAsync_RunStory_PassesScopedTargetThroughCallAndConsumesBeforeExecution()
+    {
+        var item = CreateItem(
+            "story_booster",
+            ItemType.Booster,
+            [new RunStoryItemUseEffectDefinition("item_story")],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            new Dictionary<StatType, int> { [StatType.MaxHp] = 200 });
+        var allyDefinition = TestContentFactory.CreateCharacterDefinition(
+            "ally",
+            new Dictionary<StatType, int> { [StatType.MaxHp] = 200 });
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        var ally = TestContentFactory.CreateCharacterInstance(
+            "ally",
+            allyDefinition,
+            state.EquipmentInstanceFactory);
+        state.Party.AddMember(ally);
+        state.Inventory.AddItem(item);
+        var story = new StoryScript(
+            StoryScript.CurrentVersion,
+            [
+                new Segment("item_story", [new CallStep("apply_item_effect")]),
+                new Segment(
+                    "apply_item_effect",
+                    [
+                        new CommandStep(
+                            "upgrade",
+                            [
+                                new LiteralExprNode(ExprValue.FromString("maxhp")),
+                                new VariableExprNode(ItemUseService.ItemTargetCharacterIdVariable),
+                                new LiteralExprNode(ExprValue.FromNumber(100)),
+                            ]),
+                    ]),
+                new Segment(
+                    "probe_context",
+                    [
+                        new CommandStep(
+                            "upgrade",
+                            [
+                                new LiteralExprNode(ExprValue.FromString("maxhp")),
+                                new VariableExprNode(ItemUseService.ItemTargetCharacterIdVariable),
+                                new LiteralExprNode(ExprValue.FromNumber(1)),
+                            ]),
+                    ]),
+            ]);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition, allyDefinition],
+            storyScripts: [story],
+            items: [item]);
+        var session = new GameSession(state, repository);
+        var entry = state.Inventory.GetStack(item);
+
+        var result = await session.ItemUseService.UseAsync(entry, ally.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(200, hero.GetBaseStat(StatType.MaxHp));
+        Assert.Equal(300, ally.GetBaseStat(StatType.MaxHp));
+        Assert.Empty(state.Inventory.Entries);
+        Assert.False(state.Story.TryGetVariable(
+            ItemUseService.ItemTargetCharacterIdVariable,
+            out _));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => session.StoryService.ExecuteAsync("probe_context"));
+    }
+
+    [Fact]
+    public async Task UseAsync_RunStory_KeepsConsumedItemWhenStoryFails()
+    {
+        var item = CreateItem(
+            "broken_story_item",
+            ItemType.Utility,
+            [new RunStoryItemUseEffectDefinition("broken_story")],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(item);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            storyScripts:
+            [
+                new StoryScript(
+                    StoryScript.CurrentVersion,
+                    [new Segment("broken_story", [new CommandStep("unsupported", [])])]),
+            ],
+            items: [item]);
+        var session = new GameSession(state, repository);
+        var entry = state.Inventory.GetStack(item);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => session.ItemUseService.UseAsync(entry, hero.Id));
+
+        Assert.Empty(state.Inventory.Entries);
     }
 
     private static GameState CreateStateWithHero(

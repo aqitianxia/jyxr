@@ -117,7 +117,7 @@ public sealed class CharacterResourceLimitPolicyTests
     }
 
     [Fact]
-    public void Booster_ClampsMaxHpAndMaxMpToCurrentRoundLimit()
+    public async Task Booster_ClampsMaxHpAndMaxMpToCurrentRoundLimit()
     {
         var booster = new NormalItemDefinition
         {
@@ -155,7 +155,7 @@ public sealed class CharacterResourceLimitPolicyTests
             });
         var entry = state.Inventory.GetStack(booster);
 
-        var result = session.ItemUseService.Use(entry, hero.Id);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
 
         Assert.True(result.Success);
         Assert.Equal(150, hero.GetBaseStat(StatType.MaxHp));

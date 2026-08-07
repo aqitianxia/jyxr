@@ -7,6 +7,8 @@ namespace Game.Application;
 
 public sealed class ItemUseService
 {
+    public const string ItemTargetCharacterIdVariable = "item_target";
+
     private readonly GameSession _session;
 
     public ItemUseService(GameSession session)
@@ -64,7 +66,10 @@ public sealed class ItemUseService
         return ItemUseTargetCandidate.Enabled(character.Id);
     }
 
-    public ItemUseResult Use(InventoryEntry entry, string targetCharacterId)
+    public async Task<ItemUseResult> UseAsync(
+        InventoryEntry entry,
+        string targetCharacterId,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetCharacterId);
@@ -85,6 +90,22 @@ public sealed class ItemUseService
         if (!support.IsSupported)
         {
             return ItemUseResult.Failed(support.Message);
+        }
+
+        if (support.Effects is [RunStoryItemUseEffectDefinition runStory])
+        {
+            CommitSuccessfulUse(entry);
+            var storyService = _session.StoryService;
+            storyService.ConditionEvaluator.ItemTargetCharacterId = target.Id;
+            try
+            {
+                await storyService.ExecuteAsync(runStory.StoryId, cancellationToken);
+            }
+            finally
+            {
+                storyService.ConditionEvaluator.ItemTargetCharacterId = null;
+            }
+            return ItemUseResult.Succeeded($"【{target.Name}】使用【{entry.Definition.Name}】");
         }
 
         var result = support.Kind == ItemUseKind.Equipment
@@ -229,7 +250,8 @@ public sealed class ItemUseService
             AddMaxHpItemUseEffectDefinition or
             AddMaxMpItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
-            ReduceMaxResourceRatioItemUseEffectDefinition;
+            ReduceMaxResourceRatioItemUseEffectDefinition or
+            RunStoryItemUseEffectDefinition;
 
     private string? ValidateRequirements(ItemDefinition item, CharacterInstance target)
     {

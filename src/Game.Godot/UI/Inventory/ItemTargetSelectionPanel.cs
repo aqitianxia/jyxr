@@ -1,4 +1,5 @@
 using Game.Application;
+using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Core.Model.Character;
 using Godot;
@@ -15,6 +16,7 @@ public partial class ItemTargetSelectionPanel : JyPanel
 	private Label _hintLabel = null!;
 	private InventoryEntry? _entry;
 	private IDisposable? _saveLoadedSubscription;
+	private bool _isUsing;
 
 	public override void _Ready()
 	{
@@ -81,16 +83,26 @@ public partial class ItemTargetSelectionPanel : JyPanel
 		return box;
 	}
 
-	private void OnTargetSelected(string characterId)
+	private async void OnTargetSelected(string characterId)
 	{
-		if (_entry is null)
+		if (_entry is null || _isUsing)
 		{
 			return;
 		}
 
+		_isUsing = true;
+		var entry = _entry;
+		var runsStory = entry.Definition.UseEffects is [RunStoryItemUseEffectDefinition];
+		if (runsStory)
+		{
+			UIRoot.Instance.CloseMainPanel();
+			UIRoot.Instance.SetStoryPresentationActive(true);
+			QueueFree();
+		}
+
 		try
 		{
-			var result = Game.ItemUseService.Use(_entry, characterId);
+			var result = await Game.ItemUseService.UseAsync(entry, characterId);
 			if (!result.Success)
 			{
 				UIRoot.Instance.ShowSuggestion(result.Message);
@@ -101,12 +113,23 @@ public partial class ItemTargetSelectionPanel : JyPanel
 			{
 				UIRoot.Instance.ShowToast(result.Message);
 			}
-			QueueFree();
+			if (!runsStory)
+			{
+				QueueFree();
+			}
 		}
 		catch (Exception exception)
 		{
 			Game.Logger.Error("Using inventory item failed.", exception);
 			UIRoot.Instance.ShowSuggestion(exception.Message);
+		}
+		finally
+		{
+			if (runsStory && GodotObject.IsInstanceValid(UIRoot.Instance))
+			{
+				UIRoot.Instance.SetStoryPresentationActive(false);
+			}
+			_isUsing = false;
 		}
 	}
 

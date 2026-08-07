@@ -36,6 +36,7 @@ public static class ItemUseEffectFormatter
                 $"性别变为{FormatterTextCn.GetGenderNameCn(setGender.Gender)}",
             ReduceMaxResourceRatioItemUseEffectDefinition reduction =>
                 $"{FormatterTextCn.GetStatNameCn(reduction.StatId)}减少 {FormatterTextCn.FormatPercent(reduction.Ratio)}",
+            RunStoryItemUseEffectDefinition => "触发剧情效果",
             _ => throw new NotSupportedException($"Unsupported item use effect type '{useEffect.GetType().Name}'.")
         };
     }
