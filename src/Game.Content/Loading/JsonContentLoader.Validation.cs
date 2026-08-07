@@ -1105,7 +1105,6 @@ public sealed partial class JsonContentLoader
                 case BattleStep battle:
                     Ensure(repository.Battles.ContainsKey(battle.BattleId),
                         $"{ownerName} references missing battle '{battle.BattleId}'.");
-                    Ensure(battle.Outcomes.Count > 0, $"{ownerName} battle '{battle.BattleId}' has no outcomes.");
                     foreach (var (outcome, outcomeSteps) in battle.Outcomes)
                     {
                         ValidateStorySteps(outcomeSteps, repository, $"{ownerName} battle '{battle.BattleId}' outcome '{outcome}'");

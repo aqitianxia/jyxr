@@ -476,7 +476,7 @@ public sealed class StoryServiceTests
     }
 
     [Fact]
-    public async Task RunAsync_BattleWinWithoutWinOutcomeContinuesFollowingSteps()
+    public async Task RunAsync_BattleWinWithoutOutcomeBranchesContinuesFollowingSteps()
     {
         var repository = TestContentFactory.CreateRepository(
             storyScripts:
@@ -489,15 +489,7 @@ public sealed class StoryServiceTests
                             [
                                 new BattleStep(
                                     "battle_win",
-                                    new Dictionary<BattleOutcome, IReadOnlyList<Step>>
-                                    {
-                                        [BattleOutcome.Lose] =
-                                        [
-                                            new CommandStep(
-                                                "custom_cmd",
-                                                [new LiteralExprNode(ExprValue.FromString("lost"))]),
-                                        ],
-                                    }),
+                                    new Dictionary<BattleOutcome, IReadOnlyList<Step>>()),
                                 new CommandStep(
                                     "custom_cmd",
                                     [new LiteralExprNode(ExprValue.FromString("after_battle"))]),
@@ -519,6 +511,7 @@ public sealed class StoryServiceTests
 
         var battleResolved = Assert.Single(events.OfType<BattleResolvedEvent>());
         Assert.Equal(BattleOutcome.Win, battleResolved.Outcome);
+        Assert.Empty(Assert.Single(events.OfType<BattleStartedEvent>()).Battle.AvailableOutcomes);
         var command = Assert.Single(host.CustomCommands);
         Assert.Equal("custom_cmd", command.Name);
         Assert.Equal("after_battle", command.Args[0].AsString("custom_cmd"));
@@ -528,7 +521,7 @@ public sealed class StoryServiceTests
     }
 
     [Fact]
-    public async Task RunAsync_BattleLoseWithoutLoseOutcomeTerminatesSegmentWithoutCompletingIt()
+    public async Task RunAsync_BattleLoseWithoutOutcomeBranchesTerminatesSegmentWithoutCompletingIt()
     {
         var repository = TestContentFactory.CreateRepository(
             storyScripts:
@@ -541,15 +534,7 @@ public sealed class StoryServiceTests
                             [
                                 new BattleStep(
                                     "battle_lose",
-                                    new Dictionary<BattleOutcome, IReadOnlyList<Step>>
-                                    {
-                                        [BattleOutcome.Win] =
-                                        [
-                                            new CommandStep(
-                                                "custom_cmd",
-                                                [new LiteralExprNode(ExprValue.FromString("won"))]),
-                                        ],
-                                    }),
+                                    new Dictionary<BattleOutcome, IReadOnlyList<Step>>()),
                                 new CommandStep(
                                     "custom_cmd",
                                     [new LiteralExprNode(ExprValue.FromString("after_battle"))]),
@@ -571,6 +556,7 @@ public sealed class StoryServiceTests
 
         var battleResolved = Assert.Single(events.OfType<BattleResolvedEvent>());
         Assert.Equal(BattleOutcome.Lose, battleResolved.Outcome);
+        Assert.Empty(Assert.Single(events.OfType<BattleStartedEvent>()).Battle.AvailableOutcomes);
         Assert.DoesNotContain(events, static storyEvent => storyEvent is SegmentCompletedEvent);
         var command = Assert.Single(host.CustomCommands);
         Assert.Equal("gameover", command.Name);

@@ -1006,6 +1006,50 @@ public sealed class ContentLoadingTests
     }
 
     [Fact]
+    public void JsonLoader_LoadsStoryBattleWithoutOutcomeBranches()
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["battles.json"] =
+                """
+                [
+                  {
+                    "id": "training",
+                    "name": "Training",
+                    "mapId": "training_map"
+                  }
+                ]
+                """,
+            ["story/main.story.json"] =
+                """
+                {
+                  "version": 2,
+                  "segments": [
+                    {
+                      "name": "story_intro",
+                      "steps": [
+                        { "kind": "battle", "battleId": "training", "outcomes": {} }
+                      ]
+                    }
+                  ]
+                }
+                """,
+        });
+
+        try
+        {
+            var repository = new JsonContentLoader().LoadFromDirectory(directoryPath);
+            var battle = Assert.IsType<BattleStep>(Assert.Single(repository.GetStorySegment("story_intro").Segment.Steps));
+
+            Assert.Empty(battle.Outcomes);
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
     public void JsonLoader_RejectsMissingStoryJumpTarget()
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)

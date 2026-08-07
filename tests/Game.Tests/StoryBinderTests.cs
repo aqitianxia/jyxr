@@ -142,6 +142,30 @@ public sealed class StoryBinderTests
     }
 
     [Fact]
+    public void StoryScriptJson_ParsesBattleWithoutOutcomeBranches()
+    {
+        const string json = """
+        {
+          "version": 2,
+          "segments": [{
+            "name": "start",
+            "steps": [{
+              "kind": "battle",
+              "battleId": "training",
+              "outcomes": {}
+            }]
+          }]
+        }
+        """;
+
+        var script = StoryScriptJson.Parse(json);
+        var battle = Assert.IsType<BattleStep>(Assert.Single(script.Segments[0].Steps));
+
+        Assert.Equal("training", battle.BattleId);
+        Assert.Empty(battle.Outcomes);
+    }
+
+    [Fact]
     public void StoryScriptJson_RejectsUnknownChoiceStyle()
     {
         const string json = """
