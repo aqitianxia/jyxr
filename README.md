@@ -262,7 +262,7 @@
   - 当前把 `round` / `game_mode` 投影到 `GameState.Adventure`。
 - `GodotStoryRuntimeHost`
   - 负责剧情等待式 UI 和宿主表现命令。
-  - 当前支持对话、选项、音乐、音效、背景、提示、toast 开关、震屏、头像/模型、门派选择、命名、头像选择、roll 点、`map` 场景动作、`shop` 商店面板、出战选择、战斗界面、返回主菜单、重开、下一周目和 game over。
+  - 当前支持对话、选项、音乐、音效、背景、全屏视频、提示、toast 开关、震屏、头像/模型、门派选择、命名、头像选择、roll 点、`map` 场景动作、`shop` 商店面板、出战选择、战斗界面、返回主菜单、重开、下一周目和 game over。
 
 ## Godot 宿主
 
@@ -290,7 +290,7 @@
 - `UIRoot`
   - 持有 HUD、面板层、模态层和 overlay 层。
   - 监听 `SessionEvents` 刷新 HUD。
-  - 提供等待式 `ShowDialogueAsync(...)` 与 `ShowChoicesAsync(...)`。
+  - 提供等待式 `ShowDialogueAsync(...)`、`ShowChoicesAsync(...)` 与 `ShowVideoAsync(...)`。
   - 当前还负责 toast、hint、英雄面板、系统面板、失败界面和存档槽选择面板。
   - 当前还负责背包面板、商店面板、出战选择、战斗界面和装备选择模态面板的挂载。
   - 当前还负责储物箱面板的挂载。

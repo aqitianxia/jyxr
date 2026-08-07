@@ -1,6 +1,7 @@
 using Game.Application;
 using Game.Core.Story;
 using Game.Core.Model;
+using Game.Godot.Assets;
 using Game.Godot.UI;
 using Godot;
 
@@ -140,6 +141,17 @@ public sealed partial class GodotStoryRuntimeHost : IRuntimeHost, ISpecialBattle
 	{
 		GetWorld().SetBackground(backgroundId);
 		return ValueTask.CompletedTask;
+	}
+
+	[StoryCommand("video", "movie")]
+	private async ValueTask ExecuteVideoAsync(string videoId, CancellationToken cancellationToken)
+	{
+		var stream = AssetResolver.LoadVideoResource(videoId)
+			?? throw new InvalidOperationException(
+				$"Video resource '{videoId}' could not be loaded. Expected an Ogg Theora .ogv file.");
+
+		using var bgmSuspension = Game.Audio.SuspendBgm();
+		await UIRoot.Instance.ShowVideoAsync(stream, cancellationToken);
 	}
 
 	[StoryCommand("suggest")]

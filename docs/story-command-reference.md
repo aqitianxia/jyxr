@@ -147,6 +147,7 @@ command arg1 arg2 ...
 | `music` | `trackId...` | 播放单首 BGM 或 BGM 池；至少需要一个参数。 | `music bgm_001 bgm_002` |
 | `effect` | `effectId` | 播放音效。 | `effect hit_01` |
 | `background` | `backgroundId` | 设置世界背景。 | `background changan_night` |
+| `video` / `movie` | `videoId` | 全屏播放剧情视频并等待自然结束或玩家点击跳过；`movie` 是 `video` 的别名。 | `video 视频.开场` |
 | `suggest` | `text` | 显示剧情提示，并等待提示流程结束。 | `suggest "前方似有异动"` |
 | `shake` | `[amplitude=10] [duration=0.5]` | 播放覆盖世界与 UI 的衰减屏幕震动，并等待震动结束。 | `shake 16 0.3` |
 | `fade` | `in/out [duration=0.5]` | 全屏淡入或淡出到黑场，并等待过渡结束。 | `fade out 0.6` |
@@ -161,6 +162,20 @@ command arg1 arg2 ...
 | `intertitle` | `text [position=center] [mode=typewriter] [speed=36]` | 显示水平居中的文字过场并等待点击；位置为 `upper`、`center`、`lower`，模式为 `typewriter`、`instant`。 | `intertitle "数年之后……" center typewriter 24` |
 
 视觉指令的 `duration`、震屏 `amplitude` 不得为负数，`strength` 必须位于 `0` 到 `1`。`duration` 为 `0` 时立即设置最终状态。屏幕形变、预设滤镜和颜色染色会分别保持到被替换、由对应的清除指令清除，或当前剧情表现流程结束。`#RRGGBBAA` 中的 Alpha 会作为 `strength` 之外的额外染色权重。
+
+视频文件必须是 Godot 原生支持的 Ogg Theora `.ogv`，统一放在 `assets/video`，并通过当前 MOD 的 PCK 提供或覆盖。剧情引用资源 id，不直接依赖文件路径；例如在 `resources.json` 中登记：
+
+```json
+{"id":"视频.开场","group":"视频","value":"video/opening.ogv"}
+```
+
+剧情 JSON 可以使用主指令名或别名：
+
+```json
+{"kind":"command","name":"movie","args":["视频.开场"]}
+```
+
+播放时会隐藏当前对白、选项和文字过场，保持视频原始宽高比并在必要时留黑边。视频音轨走 `Bgm` 总线；当前 BGM 会暂停，并在视频自然结束、点击或触摸跳过、取消或异常退出后恢复原暂停状态。视频位于全屏视觉效果层下方，因此 `fade`、`flash`、滤镜和染色仍可覆盖视频。
 
 剧情 JSON 中可以用黑场安全切换背景：
 

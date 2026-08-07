@@ -35,6 +35,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/minigame/lightness_training_screen.tscn" id="23_lightness_training"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minigame/strength_training_screen.tscn" id="24_strength_training"]
 [ext_resource type="Script" uid="uid://564a0r68gkg3" path="res://src/Game.Godot/UI/StoryVisualEffects.cs" id="25_story_effects"]
+[ext_resource type="PackedScene" path="res://scenes/ui/story/story_video_player.tscn" id="26_story_video"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_story_filter"]
 shader = ExtResource("10_story_filter")
@@ -221,4 +222,11 @@ mouse_filter = 2
 color = Color(0, 0, 0, 0)
 
 [node name="StoryIntertitlePanel" parent="VisualEffectsLayer" instance=ExtResource("4_story_intertitle")]
+unique_name_in_owner = true
+
+[node name="VideoLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+layer = 55
+
+[node name="StoryVideoPlayer" parent="VideoLayer" instance=ExtResource("26_story_video")]
 unique_name_in_owner = true

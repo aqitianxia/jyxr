@@ -87,6 +87,7 @@ public partial class UIRoot : Control
 	private HudPanel? _hud;
 	private StoryDialoguePanel _storyDialoguePanel = null!;
 	private StoryIntertitlePanel _storyIntertitlePanel = null!;
+	private StoryVideoPlayer _storyVideoPlayer = null!;
 	private StoryChoicePanel _regularStoryChoicePanel = null!;
 	private StoryChoicePanel _boldStoryChoicePanel = null!;
 	private ToastPanel _toastPanel = null!;
@@ -113,6 +114,7 @@ public partial class UIRoot : Control
 		_hud = GetNodeOrNull<HudPanel>("%Hud");
 		_storyDialoguePanel = GetNode<StoryDialoguePanel>("%StoryDialoguePanel");
 		_storyIntertitlePanel = GetNode<StoryIntertitlePanel>("%StoryIntertitlePanel");
+		_storyVideoPlayer = GetNode<StoryVideoPlayer>("%StoryVideoPlayer");
 		_regularStoryChoicePanel = GetNode<StoryChoicePanel>("%StoryRegularChoicePanel");
 		_boldStoryChoicePanel = GetNode<StoryChoicePanel>("%StoryBoldChoicePanel");
 		_toastPanel = GetNode<ToastPanel>("%ToastPanel");
@@ -209,6 +211,7 @@ public partial class UIRoot : Control
 
 	private void ResetStoryEffects()
 	{
+		_storyVideoPlayer.ResetImmediate();
 		_storyIntertitlePanel.ResetImmediate();
 		VisualEffects.ResetImmediate();
 	}
@@ -502,6 +505,16 @@ public partial class UIRoot : Control
 		_regularStoryChoicePanel.HidePanel();
 		_boldStoryChoicePanel.HidePanel();
 		return _storyIntertitlePanel.ShowAsync(text, position, mode, speed, cancellationToken);
+	}
+
+	public Task ShowVideoAsync(VideoStream stream, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(stream);
+		_storyDialoguePanel.HidePanel();
+		_regularStoryChoicePanel.HidePanel();
+		_boldStoryChoicePanel.HidePanel();
+		_storyIntertitlePanel.ResetImmediate();
+		return _storyVideoPlayer.PlayAsync(stream, cancellationToken);
 	}
 
 	public async Task<int> ShowChoicesAsync(

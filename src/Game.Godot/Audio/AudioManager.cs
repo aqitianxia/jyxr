@@ -16,6 +16,8 @@ public partial class AudioManager : Node
 	private string? _currentBgmResourceId;
 	private string[] _bgmPlaylist = [];
 	private int _lastPlaylistIndex = -1;
+	private int _bgmSuspensionCount;
+	private bool _bgmPausedBeforeSuspension;
 
 	public override void _Ready()
 	{
@@ -69,6 +71,18 @@ public partial class AudioManager : Node
 		_currentBgmResourceId = null;
 		_bgmPlayer.Stop();
 		_bgmPlayer.Stream = null;
+	}
+
+	public IDisposable SuspendBgm()
+	{
+		if (_bgmSuspensionCount == 0)
+		{
+			_bgmPausedBeforeSuspension = _bgmPlayer.StreamPaused;
+		}
+
+		_bgmSuspensionCount += 1;
+		_bgmPlayer.StreamPaused = true;
+		return new BgmSuspension(this);
 	}
 
 	public void PlaySfx(string? resourceId)
@@ -143,7 +157,22 @@ public partial class AudioManager : Node
 		_currentBgmResourceId = resourceId;
 		_bgmPlayer.Stream = stream;
 		_bgmPlayer.Play();
+		_bgmPlayer.StreamPaused = _bgmSuspensionCount > 0;
 		Game.Logger.Info($"Playing BGM: {resourceId}");
+	}
+
+	private void ResumeBgm(BgmSuspension suspension)
+	{
+		if (!suspension.TryDispose())
+		{
+			return;
+		}
+
+		_bgmSuspensionCount -= 1;
+		if (_bgmSuspensionCount == 0)
+		{
+			_bgmPlayer.StreamPaused = _bgmPausedBeforeSuspension;
+		}
 	}
 
 	private void InitializeSfxPlayback()
@@ -156,5 +185,23 @@ public partial class AudioManager : Node
 		_sfxPlayer.Play();
 		_sfxPlayback = _sfxPlayer.GetStreamPlayback() as AudioStreamPlaybackPolyphonic
 			?? throw new InvalidOperationException("SfxPlayer playback is not AudioStreamPlaybackPolyphonic.");
+	}
+
+	private sealed class BgmSuspension(AudioManager owner) : IDisposable
+	{
+		private bool _isDisposed;
+
+		public void Dispose() => owner.ResumeBgm(this);
+
+		public bool TryDispose()
+		{
+			if (_isDisposed)
+			{
+				return false;
+			}
+
+			_isDisposed = true;
+			return true;
+		}
 	}
 }

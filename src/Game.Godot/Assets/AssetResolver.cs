@@ -14,9 +14,11 @@ public static class AssetResolver
 	private const string AnimationDirectoryPath = "res://assets/animation";
 	private const string IconDirectoryPath = "res://assets/art/icon";
 	private const string AudioDirectoryPath = "res://assets/audio";
+	private const string VideoDirectoryPath = "res://assets/video";
 
 	private static readonly string[] TextureExtensions = [".png", ".jpg", ".jpeg", ".webp"];
 	private static readonly string[] AudioExtensions = [".ogg", ".mp3", ".wav", ".flac"];
+	private static readonly string[] VideoExtensions = [".ogv"];
 
 	public static Texture2D? LoadTextureResource(string? resourceId) =>
 		LoadAsset<Texture2D>(ResolveAssetPath(resourceId, ArtDirectoryPath, TextureExtensions, "Texture"), "Texture");
@@ -37,6 +39,9 @@ public static class AssetResolver
 
 	public static AudioStream? LoadAudioResource(string? resourceId) =>
 		LoadAsset<AudioStream>(ResolveAssetPath(resourceId, AudioDirectoryPath, AudioExtensions, "Audio"), "Audio");
+
+	public static VideoStream? LoadVideoResource(string? resourceId) =>
+		LoadAsset<VideoStream>(ResolveVideoAssetPath(resourceId), "Video");
 
 	public static Texture2D? LoadCharacterPortrait(string? portrait) =>
 		LoadTextureResource(portrait);
@@ -165,6 +170,50 @@ public static class AssetResolver
 			: ResolveExistingPath(BuildAssetPath(baseDirectoryPath, relativePath), extensions);
 	}
 
+	private static string? ResolveVideoAssetPath(string? resourceId)
+	{
+		if (string.IsNullOrWhiteSpace(resourceId))
+		{
+			return null;
+		}
+
+		var normalizedResourceId = resourceId.Trim();
+		string? path;
+		if (normalizedResourceId.StartsWith("res://", StringComparison.Ordinal))
+		{
+			path = normalizedResourceId;
+		}
+		else
+		{
+			var resource = TryGetResource(normalizedResourceId, "Video");
+			if (resource is null)
+			{
+				return null;
+			}
+
+			var relativePath = NormalizeResourceValue(resource.Value, normalizedResourceId, "Video");
+			path = relativePath is null ? null : BuildAssetPath(VideoDirectoryPath, relativePath);
+		}
+
+		if (path is null)
+		{
+			return null;
+		}
+
+		if (!Path.HasExtension(path))
+		{
+			return $"{path}{VideoExtensions[0]}";
+		}
+
+		if (!string.Equals(Path.GetExtension(path), VideoExtensions[0], StringComparison.OrdinalIgnoreCase))
+		{
+			Game.Logger.Warning($"Video resource uses unsupported format: {path}. Expected an Ogg Theora .ogv file.");
+			return null;
+		}
+
+		return path;
+	}
+
 	private static ResourceDefinition? TryGetResource(string resourceId, string assetKind)
 	{
 		if (Game.ContentRepository.TryGetResource(resourceId, out var resource))
@@ -201,7 +250,8 @@ public static class AssetResolver
 		}
 
 		if (relativePath.StartsWith("art/", StringComparison.OrdinalIgnoreCase) ||
-			relativePath.StartsWith("audio/", StringComparison.OrdinalIgnoreCase))
+			relativePath.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+			relativePath.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
 		{
 			return $"{AssetsDirectoryPath}/{relativePath}";
 		}

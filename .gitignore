@@ -39,6 +39,7 @@ mono_crash.*.json
 /assets/audio/
 /assets/font/
 /assets/launcher_art/
+/assets/video/
 /launcher/
 /mods/
 /userdata/
