@@ -342,9 +342,9 @@ public sealed class StoryCommandDispatcher
     }
 
     [StoryCommand("join")]
-    private ValueTask ExecuteJoinAsync(string characterId)
+    private ValueTask ExecuteJoinAsync(string characterId, string? definitionId = null)
     {
-        _session.PartyService.Join(characterId);
+        _session.PartyService.Join(characterId, definitionId);
         return ValueTask.CompletedTask;
     }
 
@@ -362,23 +362,23 @@ public sealed class StoryCommandDispatcher
     }
 
     [StoryCommand("follow")]
-    private ValueTask ExecuteFollowAsync(string characterId)
+    private ValueTask ExecuteFollowAsync(string characterId, string? definitionId = null)
     {
-        _session.PartyService.Follow(characterId);
+        _session.PartyService.Follow(characterId, definitionId);
         return ValueTask.CompletedTask;
     }
 
     [StoryCommand("leave")]
-    private ValueTask ExecuteLeaveAsync(string characterIdOrName)
+    private ValueTask ExecuteLeaveAsync(string characterId)
     {
-        _session.PartyService.Leave(characterIdOrName);
+        _session.PartyService.Leave(characterId);
         return ValueTask.CompletedTask;
     }
 
     [StoryCommand("leave_follow")]
-    private ValueTask ExecuteLeaveFollowAsync(string characterIdOrName)
+    private ValueTask ExecuteLeaveFollowAsync(string characterId)
     {
-        _session.PartyService.LeaveFollow(characterIdOrName);
+        _session.PartyService.LeaveFollow(characterId);
         return ValueTask.CompletedTask;
     }
 

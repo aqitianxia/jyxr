@@ -158,6 +158,7 @@ public sealed class SaveGameTests
         Assert.Equal(["char_001", "char_002"], restoredCharacters.Keys.OrderBy(key => key).ToArray());
 
         var restoredFirst = restoredCharacters["char_001"];
+        Assert.Equal("hero_knight", restoredFirst.Definition.Id);
         Assert.Equal("Knight Alpha", restoredFirst.Name);
         Assert.Equal("portrait.knight_alpha", restoredFirst.Portrait);
         Assert.Equal("model.knight_alpha", restoredFirst.Model);

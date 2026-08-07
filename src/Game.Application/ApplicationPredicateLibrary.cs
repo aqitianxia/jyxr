@@ -102,35 +102,29 @@ internal sealed class ApplicationPredicateLibrary
     [GamePredicate("not_in_time")]
     private bool NotInTime(params string[] timeSlots) => !InTime(timeSlots);
 
-    [GamePredicate("key_in_team")]
-    private bool KeyInTeamActive(string characterId) => _session.PartyService.ContainsActiveMemberId(characterId);
-
-    [GamePredicate("key_not_in_team")]
-    private bool KeyNotInTeamActive(string characterId) => !_session.PartyService.ContainsActiveMemberId(characterId);
-
     [GamePredicate("in_team")]
-    private bool NameInTeamActive(string characterName) => _session.PartyService.ContainsActiveMemberName(characterName);
+    private bool InTeamActive(string characterId) => _session.PartyService.ContainsActiveMemberId(characterId);
 
     [GamePredicate("not_in_team")]
-    private bool NameNotInTeamActive(string characterName) => !_session.PartyService.ContainsActiveMemberName(characterName);
+    private bool NotInTeamActive(string characterId) => !_session.PartyService.ContainsActiveMemberId(characterId);
 
     [GamePredicate("character_level_less_than")]
-    private bool CharacterLevelLessThan(string characterIdOrName, int threshold) =>
-        TryFindPartyMember(characterIdOrName, out var character) && character.Level < threshold;
+    private bool CharacterLevelLessThan(string characterId, int threshold) =>
+        TryFindPartyMember(characterId, out var character) && character.Level < threshold;
 
     [GamePredicate("level_greater_than")]
-    private bool CharacterLevelGreaterThan(string characterIdOrName, int threshold) =>
-        TryFindPartyMember(characterIdOrName, out var character) && character.Level >= threshold;
+    private bool CharacterLevelGreaterThan(string characterId, int threshold) =>
+        TryFindPartyMember(characterId, out var character) && character.Level >= threshold;
 
     [GamePredicate("shenfa_greater_than")]
-    private bool ShenfaGreaterThan(string characterIdOrName, int threshold) =>
-        TryFindPartyMember(characterIdOrName, out var character) &&
+    private bool ShenfaGreaterThan(string characterId, int threshold) =>
+        TryFindPartyMember(characterId, out var character) &&
         character.GetBaseStat(StatType.Shenfa) >= threshold;
 
     [GamePredicate("character_skill_less_than", "skill_less_than")]
-    private bool CharacterSkillLessThan(string characterIdOrName, string skillId, int threshold)
+    private bool CharacterSkillLessThan(string characterId, string skillId, int threshold)
     {
-        if (!TryFindPartyMember(characterIdOrName, out var character))
+        if (!TryFindPartyMember(characterId, out var character))
         {
             return false;
         }
@@ -138,32 +132,32 @@ internal sealed class ApplicationPredicateLibrary
         return GetCharacterSkillLevel(character, skillId) < threshold;
     }
 
-    [GamePredicate("character_skill_more_than","skill_more_than")]
-    private bool CharacterSkillMoreThan(string characterIdOrName, string skillId, int threshold)
+    [GamePredicate("character_skill_more_than", "skill_more_than")]
+    private bool CharacterSkillMoreThan(string characterId, string skillId, int threshold)
     {
-        if (!TryFindPartyMember(characterIdOrName, out var character))
+        if (!TryFindPartyMember(characterId, out var character))
         {
-            return 0 >= threshold;
+            return false;
         }
 
         return GetCharacterSkillLevel(character, skillId) >= threshold;
     }
 
     [GamePredicate("jianfa_less_than")]
-    private bool JianfaLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThan(characterIdOrName, StatType.Jianfa, threshold);
+    private bool JianfaLessThan(string characterId, int threshold) =>
+        CharacterStatLessThan(characterId, StatType.Jianfa, threshold);
 
     [GamePredicate("daofa_less_than")]
-    private bool DaofaLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThan(characterIdOrName, StatType.Daofa, threshold);
+    private bool DaofaLessThan(string characterId, int threshold) =>
+        CharacterStatLessThan(characterId, StatType.Daofa, threshold);
 
     [GamePredicate("quanzhang_less_than")]
-    private bool QuanzhangLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThan(characterIdOrName, StatType.Quanzhang, threshold);
+    private bool QuanzhangLessThan(string characterId, int threshold) =>
+        CharacterStatLessThan(characterId, StatType.Quanzhang, threshold);
 
     [GamePredicate("qimen_less_than")]
-    private bool QimenLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThan(characterIdOrName, StatType.Qimen, threshold);
+    private bool QimenLessThan(string characterId, int threshold) =>
+        CharacterStatLessThan(characterId, StatType.Qimen, threshold);
 
     [GamePredicate("exceed_day")]
     private bool ExceedDay(int days) => State.Clock.TotalDays > days;
@@ -241,36 +235,31 @@ internal sealed class ApplicationPredicateLibrary
     private bool RankNoGreaterThan(double threshold) => Adventure.Rank != -1 && Adventure.Rank <= threshold;
 
     [GamePredicate("dingli_greater_than")]
-    private bool DingliGreaterThan(string characterIdOrName, int threshold) =>
-        CharacterStatGreaterThanOrEqual(characterIdOrName, StatType.Dingli, threshold);
+    private bool DingliGreaterThan(string characterId, int threshold) =>
+        CharacterStatGreaterThanOrEqual(characterId, StatType.Dingli, threshold);
 
     [GamePredicate("dingli_less_than")]
-    private bool DingliLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThanStrict(characterIdOrName, StatType.Dingli, threshold);
+    private bool DingliLessThan(string characterId, int threshold) =>
+        CharacterStatLessThanStrict(characterId, StatType.Dingli, threshold);
 
     [GamePredicate("wuxing_greater_than")]
-    private bool WuxingGreaterThan(string characterIdOrName, int threshold) =>
-        CharacterStatGreaterThanOrEqual(characterIdOrName, StatType.Wuxing, threshold);
+    private bool WuxingGreaterThan(string characterId, int threshold) =>
+        CharacterStatGreaterThanOrEqual(characterId, StatType.Wuxing, threshold);
 
     [GamePredicate("wuxing_less_than")]
-    private bool WuxingLessThan(string characterIdOrName, int threshold) =>
-        CharacterStatLessThanStrict(characterIdOrName, StatType.Wuxing, threshold);
+    private bool WuxingLessThan(string characterId, int threshold) =>
+        CharacterStatLessThanStrict(characterId, StatType.Wuxing, threshold);
 
     [GamePredicate("in_newbie_task")]
     // Newbie task state is not modeled yet; keep related map events disabled until it has real state.
     private static bool InNewbieTask() => false;
 
-    private bool TryFindPartyMember(string idOrName, out CharacterInstance character)
+    private bool TryFindPartyMember(string characterId, out CharacterInstance character)
     {
-        foreach (var member in State.Party.Members)
+        if (State.Party.TryGetMember(characterId, out var member))
         {
-            if (string.Equals(member.Id, idOrName, StringComparison.Ordinal) ||
-                string.Equals(member.Name, idOrName, StringComparison.Ordinal) ||
-                string.Equals(member.Definition.Name, idOrName, StringComparison.Ordinal))
-            {
-                character = member;
-                return true;
-            }
+            character = member;
+            return true;
         }
 
         character = null!;
@@ -282,22 +271,22 @@ internal sealed class ApplicationPredicateLibrary
         character.GetInternalSkillLevel(skillId) ??
         0;
 
-    private bool CharacterStatLessThan(string characterIdOrName, StatType statType, int threshold)
+    private bool CharacterStatLessThan(string characterId, StatType statType, int threshold)
     {
-        if (!TryFindPartyMember(characterIdOrName, out var character))
+        if (!TryFindPartyMember(characterId, out var character))
         {
-            return 0 < threshold;
+            return false;
         }
 
         return character.GetBaseStat(statType) < threshold;
     }
 
-    private bool CharacterStatGreaterThanOrEqual(string characterIdOrName, StatType statType, int threshold) =>
-        TryFindPartyMember(characterIdOrName, out var character) &&
+    private bool CharacterStatGreaterThanOrEqual(string characterId, StatType statType, int threshold) =>
+        TryFindPartyMember(characterId, out var character) &&
         character.GetBaseStat(statType) >= threshold;
 
-    private bool CharacterStatLessThanStrict(string characterIdOrName, StatType statType, int threshold) =>
-        TryFindPartyMember(characterIdOrName, out var character) &&
+    private bool CharacterStatLessThanStrict(string characterId, StatType statType, int threshold) =>
+        TryFindPartyMember(characterId, out var character) &&
         character.GetBaseStat(statType) < threshold;
 
     private static bool TryParseTimeSlot(string value, out TimeSlot timeSlot)

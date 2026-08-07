@@ -24,8 +24,6 @@ internal sealed class MapConditionInvocationParser
             "time_slot" => CreateMultiStringInvocation("time_slot", condition.Value),
             "in_time" => CreateMultiStringInvocation("in_time", condition.Value),
             "not_in_time" => CreateMultiStringInvocation("not_in_time", condition.Value),
-            "key_in_team" => CreateInvocation("key_in_team", ExprValue.FromString(condition.Value)),
-            "key_not_in_team" => CreateInvocation("key_not_in_team", ExprValue.FromString(condition.Value)),
             "in_team" => CreateInvocation("in_team", ExprValue.FromString(condition.Value)),
             "not_in_team" => CreateInvocation("not_in_team", ExprValue.FromString(condition.Value)),
             "have_item" => CreateItemInvocation("have_item", condition.Value),

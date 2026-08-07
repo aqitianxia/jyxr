@@ -40,7 +40,7 @@ public sealed class NewGameStateFactory
         var initialCharacterFactory = CreateInitialCharacterFactory(round);
         foreach (var characterId in initialPartyCharacterIds)
         {
-            party.AddMember(initialCharacterFactory.Create(characterId, equipmentInstanceFactory));
+            party.AddMember(initialCharacterFactory.Create(characterId, characterId, equipmentInstanceFactory));
         }
 
         var adventure = new AdventureState();

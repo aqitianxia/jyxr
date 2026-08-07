@@ -32,9 +32,12 @@ public sealed class PartyService
         _session.Events.Publish(new PartyChangedEvent());
     }
 
-    public void Join(string characterId)
+    public void Join(string characterId, string? definitionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
+        var resolvedDefinitionId = definitionId ?? characterId;
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedDefinitionId);
+        _session.ContentRepository.GetCharacter(resolvedDefinitionId);
 
         if (State.Party.ContainsMember(characterId))
         {
@@ -47,13 +50,16 @@ public sealed class PartyService
             return;
         }
 
-        State.Party.AddMember(CreateInitialCharacter(characterId));
+        State.Party.AddMember(CreateInitialCharacter(characterId, resolvedDefinitionId));
         _session.Events.Publish(new PartyChangedEvent());
     }
 
-    public void Follow(string characterId)
+    public void Follow(string characterId, string? definitionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
+        var resolvedDefinitionId = definitionId ?? characterId;
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedDefinitionId);
+        _session.ContentRepository.GetCharacter(resolvedDefinitionId);
 
         if (State.Party.ContainsFollower(characterId))
         {
@@ -66,14 +72,14 @@ public sealed class PartyService
             return;
         }
 
-        State.Party.AddFollower(CreateInitialCharacter(characterId));
+        State.Party.AddFollower(CreateInitialCharacter(characterId, resolvedDefinitionId));
     }
 
-    public void Leave(string characterIdOrName)
+    public void Leave(string characterId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(characterIdOrName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
 
-        if (!TryFindPartyMember(characterIdOrName, out var character))
+        if (!State.Party.TryGetMember(characterId, out var character))
         {
             return;
         }
@@ -82,11 +88,11 @@ public sealed class PartyService
         _session.Events.Publish(new PartyChangedEvent());
     }
 
-    public void LeaveFollow(string characterIdOrName)
+    public void LeaveFollow(string characterId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(characterIdOrName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
 
-        if (!TryFindFollower(characterIdOrName, out var character))
+        if (!State.Party.TryGetFollower(characterId, out var character))
         {
             return;
         }
@@ -121,7 +127,7 @@ public sealed class PartyService
         var created = false;
         if (!State.Party.TryGetCharacter(characterId, out var character) || character is null)
         {
-            character = CreateInitialCharacter(characterId);
+            character = CreateInitialCharacter(characterId, characterId);
             State.Party.AddReserve(character);
             created = true;
         }
@@ -146,29 +152,6 @@ public sealed class PartyService
         return State.Party.ContainsMember(characterId) || State.Party.ContainsFollower(characterId);
     }
 
-    public bool ContainsActiveMemberName(string characterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(characterName);
-
-        return EnumerateActiveMembers().Any(character =>
-            string.Equals(character.Name, characterName, StringComparison.Ordinal) ||
-            string.Equals(character.Definition.Name, characterName, StringComparison.Ordinal));
-    }
-
-    public bool TryFindActiveMember(string idOrName, out CharacterInstance character)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(idOrName);
-
-        return TryFindIn(EnumerateActiveMembers(), idOrName, out character);
-    }
-
-    public bool TryFindRosterMember(string idOrName, out CharacterInstance character)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(idOrName);
-
-        return TryFindIn(State.Party.GetAllCharacters(), idOrName, out character);
-    }
-
     public bool TryFindAllMember(string id, out CharacterInstance character)
     {
         if (State.Party.TryGetCharacter(id, out var found))
@@ -181,9 +164,9 @@ public sealed class PartyService
         return false;
     }
 
-    private CharacterInstance CreateInitialCharacter(string characterId)
+    private CharacterInstance CreateInitialCharacter(string characterId, string definitionId)
     {
-        return _initialCharacterFactory.Create(characterId, State.EquipmentInstanceFactory);
+        return _initialCharacterFactory.Create(characterId, definitionId, State.EquipmentInstanceFactory);
     }
 
     private void MoveToReserves(CharacterInstance character)
@@ -191,33 +174,4 @@ public sealed class PartyService
         _session.InventoryService.UnequipAllToInventory(character);
         State.Party.MoveToReserves(character.Id);
     }
-
-    private bool TryFindPartyMember(string idOrName, out CharacterInstance character) =>
-        TryFindIn(State.Party.Members, idOrName, out character);
-
-    private bool TryFindFollower(string idOrName, out CharacterInstance character) =>
-        TryFindIn(State.Party.Followers, idOrName, out character);
-
-    private static bool TryFindIn(
-        IEnumerable<CharacterInstance> candidates,
-        string idOrName,
-        out CharacterInstance character)
-    {
-        foreach (var candidate in candidates)
-        {
-            if (Matches(candidate, idOrName))
-            {
-                character = candidate;
-                return true;
-            }
-        }
-
-        character = null!;
-        return false;
-    }
-
-    private static bool Matches(CharacterInstance character, string idOrName) =>
-        string.Equals(character.Id, idOrName, StringComparison.Ordinal) ||
-        string.Equals(character.Name, idOrName, StringComparison.Ordinal) ||
-        string.Equals(character.Definition.Name, idOrName, StringComparison.Ordinal);
 }

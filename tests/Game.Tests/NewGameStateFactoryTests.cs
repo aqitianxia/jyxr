@@ -89,8 +89,68 @@ public sealed class NewGameStateFactoryTests
 
         var ally = Assert.Single(session.State.Party.Members);
         Assert.Equal("ally", ally.Id);
+        Assert.Equal("ally", ally.Definition.Id);
         Assert.Equal(7, Assert.Single(ally.ExternalSkills).Level);
         Assert.Equal(9, Assert.Single(ally.InternalSkills).Level);
+    }
+
+    [Fact]
+    public void PartyServiceJoin_CreatesInstanceFromExplicitDefinition()
+    {
+        var definition = TestContentFactory.CreateCharacterDefinition("chengying.low");
+        var repository = TestContentFactory.CreateRepository(characters: [definition]);
+        var session = new GameSession(new GameState(), repository);
+
+        session.PartyService.Join("chengying", definition.Id);
+
+        var character = Assert.Single(session.State.Party.Members);
+        Assert.Equal("chengying", character.Id);
+        Assert.Same(definition, character.Definition);
+    }
+
+    [Fact]
+    public void PartyServiceFollow_CreatesInstanceFromExplicitDefinition()
+    {
+        var definition = TestContentFactory.CreateCharacterDefinition("chengying.high");
+        var repository = TestContentFactory.CreateRepository(characters: [definition]);
+        var session = new GameSession(new GameState(), repository);
+
+        session.PartyService.Follow("chengying", definition.Id);
+
+        var character = Assert.Single(session.State.Party.Followers);
+        Assert.Equal("chengying", character.Id);
+        Assert.Same(definition, character.Definition);
+    }
+
+    [Fact]
+    public void PartyServiceJoin_ReusesExistingInstanceWithoutChangingDefinition()
+    {
+        var lowDefinition = TestContentFactory.CreateCharacterDefinition("chengying.low");
+        var highDefinition = TestContentFactory.CreateCharacterDefinition("chengying.high");
+        var repository = TestContentFactory.CreateRepository(characters: [lowDefinition, highDefinition]);
+        var session = new GameSession(new GameState(), repository);
+        session.PartyService.Join("chengying", lowDefinition.Id);
+        var original = session.State.Party.GetMember("chengying");
+        original.GrantExperience(123);
+        session.PartyService.Leave("chengying");
+
+        session.PartyService.Join("chengying", highDefinition.Id);
+
+        var rejoined = session.State.Party.GetMember("chengying");
+        Assert.Same(original, rejoined);
+        Assert.Same(lowDefinition, rejoined.Definition);
+        Assert.Equal(123, rejoined.Experience);
+    }
+
+    [Fact]
+    public void PartyServiceJoin_ValidatesExplicitDefinitionForExistingInstance()
+    {
+        var definition = TestContentFactory.CreateCharacterDefinition("chengying.low");
+        var repository = TestContentFactory.CreateRepository(characters: [definition]);
+        var session = new GameSession(new GameState(), repository);
+        session.PartyService.Join("chengying", definition.Id);
+
+        Assert.Throws<KeyNotFoundException>(() => session.PartyService.Join("chengying", "missing"));
     }
 
     [Fact]

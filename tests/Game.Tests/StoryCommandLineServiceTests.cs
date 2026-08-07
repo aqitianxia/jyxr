@@ -91,6 +91,20 @@ public sealed class StoryCommandLineServiceTests
 		Assert.Equal(9, hero.GetInternalSkillLevel(internalSkill.Id));
 	}
 
+	[Fact]
+	public async Task ExecuteAsync_JoinAcceptsExplicitDefinitionId()
+	{
+		var definition = TestContentFactory.CreateCharacterDefinition("chengying.low");
+		var repository = TestContentFactory.CreateRepository(characters: [definition]);
+		var session = new GameSession(new GameState(), repository, new RecordingRuntimeHost());
+
+		await session.StoryService.CommandLine.ExecuteAsync("join chengying chengying.low");
+
+		var character = Assert.Single(session.State.Party.Members);
+		Assert.Equal("chengying", character.Id);
+		Assert.Same(definition, character.Definition);
+	}
+
 	private static StoryCommandLineService CreateService(out GameSession session)
 	{
 		var repository = TestContentFactory.CreateRepository(

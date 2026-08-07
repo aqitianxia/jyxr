@@ -113,10 +113,10 @@ command arg1 arg2 ...
 
 | 指令 | 参数 | 效果 | 示例 |
 | --- | --- | --- | --- |
-| `join` | `characterId` | 角色加入当前队伍；已有实例会从其他池移动。 | `join 阿青` |
-| `follow` | `characterId` | 角色加入随队池。 | `follow 女主` |
-| `leave` | `characterIdOrName` | 当前队伍角色离队并进入后备池。 | `leave 阿青` |
-| `leave_follow` | `characterIdOrName` | 随队角色离队并进入后备池。 | `leave_follow 女主` |
+| `join` | `characterId [definitionId]` | 角色加入当前队伍；定义 id 默认等于角色实例 id，已有实例只从其他池移动。 | `join 程英 程英.初级` |
+| `follow` | `characterId [definitionId]` | 角色加入随队池；定义 id 默认等于角色实例 id，已有实例只从其他池移动。 | `follow 女主` |
+| `leave` | `characterId` | 当前队伍角色离队并进入后备池。 | `leave 阿青` |
+| `leave_follow` | `characterId` | 随队角色离队并进入后备池。 | `leave_follow 女主` |
 | `leave_all` | 无 | 当前队伍成员全部离队并进入后备池。 | `leave_all` |
 | `head` | `portraitId` | 设置主角头像。 | `head hero_01` |
 | `animation` | `characterId modelId` | 设置角色战斗模型 id。 | `animation 主角 male_sword` |

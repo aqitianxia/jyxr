@@ -21,12 +21,16 @@ public sealed class InitialCharacterFactory
         _skillMaxLevelPolicy = skillMaxLevelPolicy ?? new SkillMaxLevelPolicy(_config);
     }
 
-    public CharacterInstance Create(string characterId, EquipmentInstanceFactory equipmentInstanceFactory)
+    public CharacterInstance Create(
+        string characterId,
+        string definitionId,
+        EquipmentInstanceFactory equipmentInstanceFactory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(characterId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
         ArgumentNullException.ThrowIfNull(equipmentInstanceFactory);
 
-        var definition = _contentRepository.GetCharacter(characterId);
+        var definition = _contentRepository.GetCharacter(definitionId);
         var character = CharacterMapper.CreateInitial(characterId, definition, equipmentInstanceFactory, _config);
         if (_config.MaximizeNewPartyCharacterSkills)
         {

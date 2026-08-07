@@ -9,6 +9,28 @@ namespace Game.Tests;
 public sealed class StoryPredicateTests
 {
     [Fact]
+    public async Task TeamPredicates_UseCharacterInstanceId()
+    {
+        var state = new GameState();
+        var definition = TestContentFactory.CreateCharacterDefinition("chengying.low");
+        state.Party.AddMember(TestContentFactory.CreateCharacterInstance(
+            "chengying",
+            definition,
+            state.EquipmentInstanceFactory));
+        var session = new GameSession(state, TestContentFactory.CreateRepository(characters: [definition]));
+        var evaluator = new StoryConditionEvaluator(session, new ThrowingRuntimeHost());
+
+        Assert.True(await evaluator.EvaluatePredicateAsync(
+            "in_team",
+            [ExprValue.FromString("chengying")],
+            default));
+        Assert.True(await evaluator.EvaluatePredicateAsync(
+            "not_in_team",
+            [ExprValue.FromString(definition.Id)],
+            default));
+    }
+
+    [Fact]
     public async Task CharacterAttributePredicates_UseLegacyCharacterThresholdArguments()
     {
         var state = new GameState();
