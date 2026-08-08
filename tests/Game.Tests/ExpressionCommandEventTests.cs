@@ -26,6 +26,21 @@ public sealed class ExpressionCommandEventTests
     }
 
     [Fact]
+    public async Task SetRound_RecordsOnlyHigherReachedRound()
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        var profileChanges = 0;
+        using var subscription = session.Events.Subscribe<ProfileChangedEvent>(_ => profileChanges++);
+
+        await session.StoryService.CommandLine.ExecuteAsync("set_round 4");
+        await session.StoryService.CommandLine.ExecuteAsync("set_round 2");
+
+        Assert.Equal(2, session.State.Adventure.Round);
+        Assert.Equal(4, session.Profile.HighestRound);
+        Assert.Equal(1, profileChanges);
+    }
+
+    [Fact]
     public async Task VariableCommandsPublishStoryStateEvents()
     {
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());

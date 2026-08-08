@@ -81,6 +81,32 @@ public sealed class ProfileService
         _logger.Info($"Added {count} kill(s) to game profile.");
     }
 
+    public void AddSaves(int count = 1)
+    {
+        Profile.AddSaves(count);
+        _session.Events.Publish(new ProfileChangedEvent());
+        _logger.Info($"Added {count} save(s) to game profile.");
+    }
+
+    public void RecordCompletion(int completedRound)
+    {
+        Profile.RecordCompletion(completedRound);
+        _session.Events.Publish(new ProfileChangedEvent());
+        _logger.Info(
+            $"Recorded completion for round {completedRound}. Total completions: {Profile.CompletionCount}.");
+    }
+
+    public void RecordRoundReached(int round)
+    {
+        if (!Profile.RecordRoundReached(round))
+        {
+            return;
+        }
+
+        _session.Events.Publish(new ProfileChangedEvent());
+        _logger.Info($"Recorded highest reached round: {round}.");
+    }
+
     public void AdvanceZhenlongqijuLevel()
     {
         Profile.AdvanceZhenlongqijuLevel();

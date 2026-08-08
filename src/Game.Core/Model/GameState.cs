@@ -2,6 +2,8 @@ namespace Game.Core.Model;
 
 public sealed class GameState
 {
+    public long PlayTimeSeconds { get; private set; }
+
     public AdventureState Adventure { get; private set; } = new();
 
     public Party Party { get; private set; } = new();
@@ -31,6 +33,18 @@ public sealed class GameState
     public SpecialBattleState SpecialBattle { get; private set; } = new();
 
     public MiniGameState MiniGame { get; private set; } = new();
+
+    public void SetPlayTimeSeconds(long seconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seconds);
+        PlayTimeSeconds = seconds;
+    }
+
+    public void AddPlayTimeSeconds(long seconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seconds);
+        PlayTimeSeconds = checked(PlayTimeSeconds + seconds);
+    }
 
     public void SetAdventure(AdventureState adventure) => Adventure = adventure;
 

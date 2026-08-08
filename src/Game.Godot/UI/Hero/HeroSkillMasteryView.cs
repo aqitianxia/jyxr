@@ -16,7 +16,7 @@ internal sealed class HeroSkillMasteryView
 	private readonly JyButton _neigongButton;
 	private readonly CheckBox _previewHardMaxCheckBox;
 
-	private MasterySkillFilter _filter = MasterySkillFilter.All;
+	private MasterySkillFilter _filter = MasterySkillFilter.Internal;
 
 	public HeroSkillMasteryView(
 		GridContainer gridContainer,

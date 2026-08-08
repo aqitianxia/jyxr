@@ -21,7 +21,8 @@ public sealed record SaveGame(
     JournalRecord? Journal = null,
     ShopStateRecord? ShopState = null,
     SpecialBattleStateRecord? SpecialBattleState = null,
-    MiniGameStateRecord? MiniGameState = null)
+    MiniGameStateRecord? MiniGameState = null,
+    long PlayTimeSeconds = 0)
 {
     public const int MinSupportedVersion = 21;
     public const int CurrentVersion = 24;
@@ -41,7 +42,8 @@ public sealed record SaveGame(
         JournalState? journal = null,
         ShopState? shopState = null,
         SpecialBattleState? specialBattleState = null,
-        MiniGameState? miniGameState = null)
+        MiniGameState? miniGameState = null,
+        long playTimeSeconds = 0)
     {
         ArgumentNullException.ThrowIfNull(adventure);
         ArgumentNullException.ThrowIfNull(party);
@@ -53,6 +55,7 @@ public sealed record SaveGame(
         ArgumentNullException.ThrowIfNull(location);
         ArgumentNullException.ThrowIfNull(mapEventProgress);
         ArgumentNullException.ThrowIfNull(worldTriggerState);
+        ArgumentOutOfRangeException.ThrowIfNegative(playTimeSeconds);
 
         return new SaveGame(
             CurrentVersion,
@@ -71,7 +74,8 @@ public sealed record SaveGame(
             (journal ?? new JournalState()).ToRecord(),
             (shopState ?? new ShopState()).ToRecord(),
             (specialBattleState ?? new SpecialBattleState()).ToRecord(),
-            (miniGameState ?? new MiniGameState()).ToRecord());
+            (miniGameState ?? new MiniGameState()).ToRecord(),
+            playTimeSeconds);
     }
 
     public AdventureState RestoreAdventureState() =>

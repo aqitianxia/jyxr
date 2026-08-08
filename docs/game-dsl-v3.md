@@ -163,7 +163,7 @@ change_silver(-500)
 | `set_no_regret(enabled)` | 设置无悔模式。 | — |
 | `set_sect(id)` | 设置门派。 | `menpai` |
 | `change_morality(delta)` | 调整道德。 | `daode` |
-| `change_favorability(character_id, delta)` | 调整指定关系目标好感。 | — |
+| `change_favorability(character_id, delta)` | 调整指定关系目标好感。 | `haogan` |
 | `set_rank(rank)` | 设置江湖排名值。 | — |
 
 ```text
@@ -309,10 +309,10 @@ fade('in', 0.6)
 | `set_portrait(character_id, portrait_id)` | 设置指定角色头像。 | `head` |
 | `set_model(character_id, model_id)` | 设置角色战斗模型。 | `animation` |
 | `main_menu()` | 返回主菜单。 | `mainmenu` |
-| `restart()` | 重新开始游戏。 | — |
-| `next_round()` | 进入下一周目。 | `nextzhoumu` |
+| `restart()` | 记录当前周目通关并重新开始游戏。 | — |
+| `next_round()` | 记录当前周目通关并进入下一周目。 | `nextzhoumu` |
 | `game_over()` | 记录死亡并显示失败界面。 | `gameover` |
-| `game_complete()` | 显示通关界面。 | `gamefin` |
+| `game_complete()` | 记录当前周目通关并显示通关界面。 | `gamefin` |
 
 ```text
 select_portrait('主角')

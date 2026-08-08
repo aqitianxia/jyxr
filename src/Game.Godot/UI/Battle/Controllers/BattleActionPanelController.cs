@@ -31,6 +31,7 @@ internal sealed class BattleActionPanelController(
 	Func<BattleState?> getState,
 	Func<BattleEngine?> getEngine,
 	Action<BattleUiIntent> dispatch,
+	Action requestSurrender,
 	BattleActionPanelView view,
 	BattleActionPanelScenes scenes)
 {
@@ -43,7 +44,7 @@ internal sealed class BattleActionPanelController(
 		view.ItemButton.Pressed += () => dispatch(new BattleUiIntent.OpenItems());
 		view.RestButton.Pressed += () => dispatch(new BattleUiIntent.Rest());
 		view.EndButton.Pressed += () => dispatch(new BattleUiIntent.EndAction());
-		view.SurrenderButton.Pressed += () => dispatch(new BattleUiIntent.Surrender());
+		view.SurrenderButton.Pressed += requestSurrender;
 	}
 
 	public void Render(BattleInteractionState interaction, bool refreshList = true)

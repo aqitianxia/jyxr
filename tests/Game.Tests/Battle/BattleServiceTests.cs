@@ -33,6 +33,39 @@ public sealed class BattleServiceTests
     }
 
     [Fact]
+    public void RecordDefeatedEnemies_CountsOnlyDefeatedNonPlayerUnitsAndPublishesOnce()
+    {
+        var session = CreateSession(CreateKillStatsBattle());
+        var publishedEvents = new List<object>();
+        session.Events.SubscribeAll(publishedEvents.Add);
+        var state = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("kill_stats", []));
+        var player = Assert.Single(state.Units.Where(unit => unit.Team == 1));
+        var enemies = state.Units.Where(unit => unit.Team == 2).ToArray();
+        player.TakeDamage(player.Hp);
+        enemies[0].TakeDamage(enemies[0].Hp);
+        enemies[1].TakeDamage(enemies[1].Hp);
+
+        session.BattleService.RecordDefeatedEnemies(state);
+
+        Assert.Equal(2, session.Profile.KillCount);
+        Assert.Single(publishedEvents.OfType<ProfileChangedEvent>());
+    }
+
+    [Fact]
+    public void RecordDefeatedEnemies_DoesNotChangeProfileWhenNoEnemyIsDefeated()
+    {
+        var session = CreateSession(CreateFixedPlayerBattle());
+        var publishedEvents = new List<object>();
+        session.Events.SubscribeAll(publishedEvents.Add);
+        var state = session.BattleService.BuildBattleState(new OrdinaryBattleRequest("fixed_player", []));
+
+        session.BattleService.RecordDefeatedEnemies(state);
+
+        Assert.Equal(0, session.Profile.KillCount);
+        Assert.Empty(publishedEvents.OfType<ProfileChangedEvent>());
+    }
+
+    [Fact]
     public void BuildBattleState_ZhenlongqijuUsesCrazyBattleDifficulty()
     {
         var session = CreateSession(
@@ -278,6 +311,21 @@ public sealed class BattleServiceTests
             Participants =
             [
                 CreateParticipant(team: 2, x: 2, y: 1, characterId: "enemy"),
+            ],
+        };
+
+    private static BattleDefinition CreateKillStatsBattle() =>
+        new()
+        {
+            Id = "kill_stats",
+            Name = "kill_stats",
+            MapId = "test",
+            Participants =
+            [
+                CreateParticipant(team: 1, x: 1, y: 1, characterId: "shadow"),
+                CreateParticipant(team: 2, x: 2, y: 1, characterId: "enemy"),
+                CreateParticipant(team: 2, x: 3, y: 1, characterId: "enemy"),
+                CreateParticipant(team: 2, x: 4, y: 1, characterId: "enemy"),
             ],
         };
 

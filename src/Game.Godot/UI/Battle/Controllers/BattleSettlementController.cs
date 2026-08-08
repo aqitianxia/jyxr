@@ -36,6 +36,7 @@ internal sealed class BattleSettlementController(
             if (state is not null && request is not null)
             {
                 GameRoot.BattleService.ApplyPlayerBattleCarryover(state);
+                GameRoot.BattleService.RecordDefeatedEnemies(state);
                 if (isWin)
                 {
                     settlement = GameRoot.BattleService.PreviewVictorySettlement(state, request);

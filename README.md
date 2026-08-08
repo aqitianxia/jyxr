@@ -88,7 +88,8 @@
   - `Members` 是当前队伍；`Followers` 是随队但不在当前编队的角色；`Reserves` 保存入过队或跟随过但当前离队的角色。
 - `GameProfile`
   - 全局档案状态，不属于单个 `SaveGame` 槽位。
-  - 当前保存已解锁称号、累计死亡数、累计击杀数和跨存档共享元宝。
+  - 当前保存已解锁称号、累计死亡数、累计击杀数、累计存档次数、累计通关次数、最高到达周目和跨存档共享元宝。
+  - 累计存档次数记录成功落盘的手动存档与快速存档；累计击杀数在战斗结算时统计已死亡的非玩家阵营单位。
 - `GameSession`
   - 普通应用态对象，不是单例类。
   - 持有当前 `GameState`、`GameProfile`、`GameConfig`、`IContentRepository`、应用服务和 `SessionEvents`。

@@ -32,11 +32,12 @@ internal sealed class LargeMapTransform
 
 	public float MarkerScale => BaseScale.Y * Zoom;
 
-	public void Reset(Vector2 viewportSize)
+	public void Reset(Vector2 viewportSize, float zoom = 1f, Vector2? centerDesignPosition = null)
 	{
 		ViewportSize = viewportSize;
-		Zoom = _minimumZoom;
-		Translation = Vector2.Zero;
+		Zoom = Mathf.Clamp(zoom, _minimumZoom, _maximumZoom);
+		var center = centerDesignPosition ?? _designSize * 0.5f;
+		Translation = viewportSize * 0.5f - center * SurfaceScale;
 		ClampTranslation();
 	}
 

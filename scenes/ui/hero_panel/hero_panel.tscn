@@ -22,6 +22,17 @@ RichTextLabel/constants/line_separation = 10
 RichTextLabel/font_sizes/mono_font_size = 40
 RichTextLabel/font_sizes/normal_font_size = 40
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_adventure_surface"]
+content_margin_left = 40.0
+content_margin_top = 22.0
+content_margin_right = 40.0
+content_margin_bottom = 22.0
+bg_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [node name="HeroPanel" unique_id=1789677815 instance=ExtResource("1_panel")]
 script = ExtResource("4_script")
 SkillBoxScene = ExtResource("11_skill_box")
@@ -110,7 +121,7 @@ layout_mode = 0
 offset_left = 217.0
 offset_top = 264.0
 offset_right = 1691.0
-offset_bottom = 924.0
+offset_bottom = 913.0
 theme = SubResource("Theme_dr12l")
 current_tab = 0
 tabs_visible = false
@@ -119,27 +130,63 @@ tabs_visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="AdventurePageSubtitle" type="RichTextLabel" parent="ContentRoot/HeroTabContainer/AdventureTab" index="0" unique_id=58969025]
+[node name="ScrollContainer" type="ScrollContainer" parent="ContentRoot/HeroTabContainer/AdventureTab" index="0" unique_id=1310414327]
+layout_mode = 0
+offset_left = 31.0
+offset_top = 23.0
+offset_right = 1441.0
+offset_bottom = 638.0
+
+[node name="AdventureContentCenter" type="CenterContainer" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer" index="0" unique_id=609164632]
+custom_minimum_size = Vector2(1400, 0)
+layout_mode = 2
+
+[node name="AdventureSurface" type="PanelContainer" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter" index="0" unique_id=1118265700]
+custom_minimum_size = Vector2(1240, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_adventure_surface")
+
+[node name="AdventureContent" type="VBoxContainer" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter/AdventureSurface" index="0" unique_id=422930551]
+custom_minimum_size = Vector2(1160, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AdventurePageSubtitle" type="RichTextLabel" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter/AdventureSurface/AdventureContent" index="0" unique_id=58969025]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -688.0
-offset_top = -329.0
-offset_right = -248.0
-offset_bottom = 19.0
-grow_horizontal = 2
-grow_vertical = 2
+custom_minimum_size = Vector2(1160, 0)
+layout_mode = 2
 bbcode_enabled = true
-text = "门派：[color=red]无门派[/color]
-道德：[color=red]0[/color]
-女主角好感：[color=red]0[/color]
-难度：[color=red]简单[/color]
-周目：[color=red]1[/color]
-血内上限：[color=red]10000[/color]"
+text = "[center][font_size=34][color=#f0ebe3]本周目历练[/color][/font_size]
+[table=5][cell expand=1 padding=18,12,18,12][center][font_size=32][color=#e8e2d9]门派[/color][/font_size]
+[font_size=38][color=#fbf8f1]无门派[/color][/font_size][/center][/cell][cell expand=1 padding=18,12,18,12][center][font_size=32][color=#e8e2d9]道德[/color][/font_size]
+[font_size=38][color=#fbf8f1]0[/color][/font_size][/center][/cell][cell expand=1 padding=18,12,18,12][center][font_size=32][color=#e8e2d9]难度[/color][/font_size]
+[font_size=38][color=#d86b62]简单[/color][/font_size][/center][/cell][cell expand=1 padding=18,12,18,12][center][font_size=32][color=#e8e2d9]周目[/color][/font_size]
+[font_size=38][color=#fbf8f1]1[/color][/font_size][/center][/cell][cell expand=1 padding=18,12,18,12][center][font_size=32][color=#e8e2d9]血内上限[/color][/font_size]
+[font_size=38][color=#fbf8f1]10000[/color][/font_size][/center][/cell][/table]
+[font_size=32][color=#f0ebe3]人物好感[/color][/font_size]
+[table=4][cell expand=1 padding=18,8,18,8][center][font_size=32][color=#f0ebe3]李文秀[/color]  [color=#fbf8f1]70[/color][/font_size][/center][/cell][/table][/center]"
+fit_content = true
+
+[node name="StatsSeparatorCenter" type="CenterContainer" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter/AdventureSurface/AdventureContent" index="1" unique_id=1908052599]
+layout_mode = 2
+
+[node name="StatsSeparator" type="HSeparator" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter/AdventureSurface/AdventureContent/StatsSeparatorCenter" index="0" unique_id=1480007084]
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 2
+
+[node name="ProfileStatsLabel" type="RichTextLabel" parent="ContentRoot/HeroTabContainer/AdventureTab/ScrollContainer/AdventureContentCenter/AdventureSurface/AdventureContent" index="2" unique_id=2025009835]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1160, 250)
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=34][color=#f0ebe3]生涯留痕[/color][/font_size]
+[table=3][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]死亡次数[/color][/font_size]
+[font_size=40][color=#d86b62]0[/color][/font_size][/center][/cell][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]存档次数[/color][/font_size]
+[font_size=40][color=#fbf8f1]0[/color][/font_size][/center][/cell][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]击杀数量[/color][/font_size]
+[font_size=40][color=#fbf8f1]0[/color][/font_size][/center][/cell][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]通关次数[/color][/font_size]
+[font_size=40][color=#fbf8f1]0[/color][/font_size][/center][/cell][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]最高周目[/color][/font_size]
+[font_size=40][color=#fbf8f1]0[/color][/font_size][/center][/cell][cell expand=1 padding=30,14,30,14][center][font_size=32][color=#e8e2d9]总游玩时间[/color][/font_size]
+[font_size=40][color=#fbf8f1]0分钟[/color][/font_size][/center][/cell][/table][/center]"
 fit_content = true
 
 [node name="AchievementTab" type="Control" parent="ContentRoot/HeroTabContainer" index="2" unique_id=728918971]
@@ -344,3 +391,8 @@ columns = 6
 [node name="CloseButton" parent="." index="3" unique_id=962603895]
 PressOffset = Vector2(2, 2)
 PressColor = Color(0.8, 0.8, 0.8, 1)
+
+[node name="ProfileStatsRefreshTimer" type="Timer" parent="." index="4" unique_id=718804356]
+unique_name_in_owner = true
+wait_time = 60.0
+autostart = true

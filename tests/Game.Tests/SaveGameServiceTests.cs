@@ -11,6 +11,24 @@ namespace Game.Tests;
 public sealed class SaveGameServiceTests
 {
     [Fact]
+    public void LoadSave_RecordsOnlyHigherReachedRound()
+    {
+        var sourceState = new GameState();
+        sourceState.Adventure.SetRound(4);
+        var sourceSession = new GameSession(sourceState, TestContentFactory.CreateRepository());
+        var saveGame = sourceSession.SaveGameService.CreateSave();
+        var targetSession = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        var profileChanges = 0;
+        targetSession.Events.Subscribe<ProfileChangedEvent>(_ => profileChanges++);
+
+        targetSession.SaveGameService.LoadSave(saveGame);
+        targetSession.SaveGameService.LoadSave(saveGame);
+
+        Assert.Equal(4, targetSession.Profile.HighestRound);
+        Assert.Equal(1, profileChanges);
+    }
+
+    [Fact]
     public void SaveGameService_RoundTripsPartyAndCharacters()
     {
         var basicAttack = TestContentFactory.CreateExternalSkill("basic_attack");
@@ -49,6 +67,7 @@ public sealed class SaveGameServiceTests
         state.Story.MarkCompleted("新手村_南贤开场");
         state.Story.SetLastStory("新手村_南贤开场");
         state.Journal.Append(ClockState.Restore(new ClockRecord(1, 2, 3, TimeSlot.Chou)), "拜访南贤");
+        state.SetPlayTimeSeconds(3723);
         var session = new GameSession(state, repository);
         var service = session.SaveGameService;
 
@@ -69,9 +88,27 @@ public sealed class SaveGameServiceTests
         Assert.True(session.State.MapEventProgress.IsCompleted("world|village|0"));
         Assert.True(session.State.Story.IsStoryCompleted("新手村_南贤开场"));
         Assert.Equal("新手村_南贤开场", session.State.Story.LastStoryId);
+        Assert.Equal(3723, session.State.PlayTimeSeconds);
         Assert.True(session.State.Story.TryGetVariable("tutorial_finished", out var tutorialFinished));
         Assert.True(tutorialFinished.Boolean);
         var journalEntry = Assert.Single(session.State.Journal.Entries);
         Assert.Equal("拜访南贤", journalEntry.Text);
+    }
+
+    [Fact]
+    public void LoadSave_RestoresSavePlayTimeWithoutRollingBackProfilePlayTime()
+    {
+        var repository = TestContentFactory.CreateRepository();
+        var sourceState = new GameState();
+        sourceState.SetPlayTimeSeconds(120);
+        var save = new GameSession(sourceState, repository).SaveGameService.CreateSave();
+        var profile = new GameProfile();
+        profile.SetTotalPlayTimeSeconds(900);
+        var target = new GameSession(new GameState(), repository, initialProfile: profile);
+
+        target.SaveGameService.LoadSave(save);
+
+        Assert.Equal(120, target.State.PlayTimeSeconds);
+        Assert.Equal(900, target.Profile.TotalPlayTimeSeconds);
     }
 }

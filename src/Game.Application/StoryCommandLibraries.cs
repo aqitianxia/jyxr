@@ -68,6 +68,7 @@ internal sealed class AdventureStoryCommands
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(round);
         _session.State.Adventure.SetRound(round);
+        _session.ProfileService.RecordRoundReached(round);
         _session.Events.Publish(new AdventureStateChangedEvent());
     }
 
@@ -105,7 +106,7 @@ internal sealed class AdventureStoryCommands
         _session.Events.Publish(new AdventureStateChangedEvent());
     }
 
-    [StoryCommand("change_favorability")]
+    [StoryCommand("change_favorability", "haogan")]
     public void ChangeFavorability(string characterId, int delta)
     {
         _session.State.Adventure.ChangeFavorability(characterId, delta);

@@ -19,11 +19,13 @@ public partial class World : Control
 	public Control? CurrentScene { get; private set; }
 
 	public AutoSaveCoordinator AutoSave { get; private set; } = null!;
+	public PlayTimeCoordinator PlayTime { get; private set; } = null!;
 
 	public override void _Ready()
 	{
 		_background = GetNode<TextureRect>("%Background");
 		AutoSave = GetNode<AutoSaveCoordinator>("%AutoSaveCoordinator");
+		PlayTime = GetNode<PlayTimeCoordinator>("%PlayTimeCoordinator");
 		Instance = this;
 	}
 

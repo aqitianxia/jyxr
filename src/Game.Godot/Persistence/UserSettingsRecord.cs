@@ -14,9 +14,10 @@ public sealed record UserSettingsRecord(
 	bool DialogueTypewriterEnabled,
 	bool ShowBattleBoard,
 	bool LargeMapMovementAnimationEnabled,
-	ScreenAspectMode ScreenAspectMode)
+	ScreenAspectMode ScreenAspectMode,
+	float LargeMapZoom)
 {
-	public const int CurrentVersion = 6;
+	public const int CurrentVersion = 7;
 
 	public static UserSettingsRecord Default { get; } = new(
 		CurrentVersion,
@@ -30,5 +31,6 @@ public sealed record UserSettingsRecord(
 		DialogueTypewriterEnabled: true,
 		ShowBattleBoard: true,
 		LargeMapMovementAnimationEnabled: true,
-		ScreenAspectMode: ScreenAspectMode.Unlimited);
+		ScreenAspectMode: ScreenAspectMode.Unlimited,
+		LargeMapZoom: 0f);
 }

@@ -20,6 +20,7 @@ public sealed class SaveGameService
 
 	public SaveGame CreateSave()
 	{
+		_session.PlayTimeService.Checkpoint();
 		var saveGame = SaveGame.Create(
 			State.Adventure,
 			State.Party,
@@ -35,13 +36,17 @@ public sealed class SaveGameService
 			State.Journal,
 			State.Shop,
 			State.SpecialBattle,
-			State.MiniGame);
+			State.MiniGame,
+			State.PlayTimeSeconds);
 		_logger.Info($"Created save game with {saveGame.Characters.Count} character(s).");
 		return saveGame;
 	}
 
 	public void LoadSave(SaveGame saveGame)
 	{
+		ArgumentNullException.ThrowIfNull(saveGame);
+		_session.PlayTimeService.Stop();
+
 		var adventure = saveGame.RestoreAdventureState();
 		var characters = saveGame.RestoreCharacters(ContentRepository, _session.Config);
 		var party = saveGame.RestoreParty(characters);
@@ -74,7 +79,10 @@ public sealed class SaveGameService
 		state.SetJournal(journal);
 		state.SetSpecialBattle(specialBattle);
 		state.SetMiniGame(miniGame);
+		state.SetPlayTimeSeconds(saveGame.PlayTimeSeconds);
 		_session.ReplaceState(state);
+		_session.PlayTimeService.ResetInterval();
+		_session.ProfileService.RecordRoundReached(adventure.Round);
 		_session.Events.Publish(new SaveLoadedEvent());
 		_logger.Info($"Loaded save game with {characters.Count} character(s).");
 	}
