@@ -206,9 +206,9 @@ internal sealed class CharacterGrowthStoryCommands
     public void SetGrowth(string characterId, string growthId) =>
         _session.CharacterService.SetGrowTemplate(characterId, growthId);
 
-    [StoryCommand("scale_progress")]
-    public void ScaleProgress(string characterId, double ratio) =>
-        _session.CharacterService.ScaleProgress(characterId, ratio);
+    [StoryCommand("scale_stats")]
+    public void ScaleStats(string characterId, double ratio) =>
+        _session.CharacterService.ScaleStats(characterId, ratio);
 
     [StoryCommand("grant_points", "grant_point", "get_point")]
     public void GrantPoints(string characterId, int points)

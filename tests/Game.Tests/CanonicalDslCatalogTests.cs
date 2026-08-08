@@ -30,7 +30,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("world_triggers")]
     [InlineData("change_stat")]
     [InlineData("set_growth")]
-    [InlineData("scale_progress")]
+    [InlineData("scale_stats")]
     [InlineData("grant_points")]
     [InlineData("grant_exp")]
     [InlineData("level_up")]

@@ -200,7 +200,7 @@ world_triggers(false)
 | --- | --- | --- |
 | `change_stat(character_id, stat, delta)` | 调整角色基础属性。 | — |
 | `set_growth(character_id, growth_id)` | 设置成长模板。 | `growtemplate` |
-| `scale_progress(character_id, ratio)` | 按 `0..1` 比例缩放进度属性。 | — |
+| `scale_stats(character_id, ratio)` | 按 `0..1` 比例缩放基础最大生命、最大内力、十维属性和未分配属性点。 | — |
 | `grant_points(character_id, points)` | 增加正数自由属性点。 | `grant_point`、`get_point` |
 | `grant_exp(character_id, experience)` | 增加正数经验并结算升级。 | `get_exp` |
 | `level_up(character_id, levels=1)` | 直接提升正数等级。 | `levelup` |

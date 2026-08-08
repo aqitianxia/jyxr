@@ -103,11 +103,11 @@ public sealed class CharacterService
         PublishToastAndCharacterChanged(character, $"{character.Name} {statName} {value:+0;-0;0}");
     }
 
-    public void ScaleProgress(string characterId, double ratio)
+    public void ScaleStats(string characterId, double ratio)
     {
         if (ratio is < 0 or > 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(ratio), "Progress scale must be between 0 and 1.");
+            throw new ArgumentOutOfRangeException(nameof(ratio), "Stat scale must be between 0 and 1.");
         }
 
         var character = GetPartyMember(characterId);
@@ -131,7 +131,7 @@ public sealed class CharacterService
         {
             character.SetUnspentStatPoints(targetPoints);
         }
-        PublishToastAndCharacterChanged(character, $"{character.Name} 成长进度调整为 {ratio:P0}");
+        PublishToastAndCharacterChanged(character, $"{character.Name} 基础属性调整为 {ratio:P0}");
     }
 
     public void AllocateStat(string characterId, StatType statType, int points = 1)
