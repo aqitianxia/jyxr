@@ -161,18 +161,35 @@ internal sealed class StoryStateCommands
     public void RemoveVariable(string name)
     {
         if (!_session.State.Story.RemoveVariable(name))
-            throw new InvalidOperationException($"Story variable '{name}' does not exist.");
+        {
+            _session.DiagnosticLogger.Warning($"Command 'remove_var' ignored missing story variable '{name}'.");
+            return;
+        }
+
         _session.Events.Publish(new StoryStateChangedEvent());
     }
 
     [StoryCommand("clear_flag")]
-    public void ClearFlag(string name) => RemoveVariable(name);
+    public void ClearFlag(string name)
+    {
+        if (!_session.State.Story.RemoveVariable(name))
+        {
+            _session.DiagnosticLogger.Warning($"Command 'clear_flag' ignored missing story flag '{name}'.");
+            return;
+        }
+
+        _session.Events.Publish(new StoryStateChangedEvent());
+    }
 
     [StoryCommand("set_time_key")]
-    public void SetTimeKey(string key, int days, string storyId)
+    public void SetTimeKey(string key, int days, string storyId = "")
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(days);
-        _session.ContentRepository.GetStorySegment(storyId);
+        if (!string.IsNullOrWhiteSpace(storyId))
+        {
+            _session.ContentRepository.GetStorySegment(storyId);
+        }
+
         _session.State.Story.SetTimeKey(key, _session.State.Clock, days, storyId);
         _session.Events.Publish(new StoryStateChangedEvent());
     }
@@ -181,7 +198,11 @@ internal sealed class StoryStateCommands
     public void ClearTimeKey(string key)
     {
         if (!_session.State.Story.RemoveTimeKey(key))
-            throw new InvalidOperationException("Story time key does not exist.");
+        {
+            _session.DiagnosticLogger.Warning($"Command 'clear_time_key' ignored missing story time key '{key}'.");
+            return;
+        }
+
         _session.Events.Publish(new StoryStateChangedEvent());
     }
 
@@ -243,11 +264,34 @@ internal sealed class CharacterGrowthStoryCommands
     public void UpgradeSkill(string characterId, string skillId, int levels = 1) =>
         _session.CharacterService.UpgradeSkillLevel(characterId, skillId, levels);
 
-    [StoryCommand("raise_skill_cap","maxlevel")]
-    public void RaiseSkillCap(string skillId, int levels)
+    [StoryCommand("maxlevel", "max_skill_level")]
+    public void MaxSkillLevel(string skillId, int levels = 1, string onceKey = "")
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(levels);
-        _session.ProfileService.AddSkillMaxLevelBonus(skillId, levels);
+        var skillName = ResolveSkillName(skillId);
+        var bonus = checked(levels + _session.SkillMaxLevelPolicy.GetMaxLevelCommandRoundBonus());
+        if (!_session.ProfileService.TryAddSkillMaxLevelBonusOnce(skillId, bonus, onceKey))
+        {
+            return;
+        }
+
+        _session.Events.Publish(new ProfileChangedEvent());
+        _session.Events.Publish(new ToastRequestedEvent($"武学精通【{skillName}】+ {bonus}"));
+    }
+
+    private string ResolveSkillName(string skillId)
+    {
+        if (_session.ContentRepository.TryGetExternalSkill(skillId, out var externalSkill))
+        {
+            return externalSkill.Name;
+        }
+
+        if (_session.ContentRepository.TryGetInternalSkill(skillId, out var internalSkill))
+        {
+            return internalSkill.Name;
+        }
+
+        throw new InvalidOperationException($"Command 'maxlevel' references unknown skill '{skillId}'.");
     }
 }
 
@@ -326,10 +370,16 @@ internal sealed class PartyLearningStoryCommands
     public void RemoveTalent(string characterId, string talentId) =>
         _session.CharacterService.RemoveTalent(characterId, talentId);
 
-    [StoryCommand("unlock_achievement")]
+    [StoryCommand("unlock_achievement", "nick")]
     public void UnlockAchievement(string achievementId)
     {
-        _session.ContentRepository.GetResource("nick." + achievementId);
+        var resource = _session.ContentRepository.GetResource("nick." + achievementId);
+        if (!string.Equals(resource.Group, "nick", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Command 'unlock_achievement' requires a resource in group 'nick', but 'nick.{achievementId}' belongs to '{resource.Group ?? "<none>"}'.");
+        }
+
         _session.ProfileService.UnlockAchievement(achievementId);
     }
 

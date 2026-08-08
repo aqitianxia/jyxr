@@ -37,7 +37,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("upgrade_external")]
     [InlineData("upgrade_internal")]
     [InlineData("upgrade_skill")]
-    [InlineData("raise_skill_cap")]
+    [InlineData("maxlevel")]
     [InlineData("join")]
     [InlineData("join_random")]
     [InlineData("follow")]
@@ -84,6 +84,8 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("get_point", "grant_points")]
     [InlineData("get_exp", "grant_exp")]
     [InlineData("levelup", "level_up")]
+    [InlineData("max_skill_level", "maxlevel")]
+    [InlineData("nick", "unlock_achievement")]
     [InlineData("leave_follow", "leave_follower")]
     [InlineData("game", "minigame")]
     [InlineData("xilian", "refine")]
@@ -95,6 +97,45 @@ public sealed class CanonicalDslCatalogTests
         Assert.Equal(canonical, descriptor.Name);
     }
 
+    [Fact]
+    public void MaxLevelDescriptorPreservesDefaultsAndOnceKey()
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(session.StoryService.CommandDispatcher.Registry.TryGetDescriptor("maxlevel", out var descriptor));
+
+        Assert.Collection(
+            descriptor.Parameters,
+            parameter =>
+            {
+                Assert.Equal("skillId", parameter.Name);
+                Assert.False(parameter.IsOptional);
+                Assert.Equal(ExpressionValueKind.String, parameter.Kind);
+            },
+            parameter =>
+            {
+                Assert.Equal("levels", parameter.Name);
+                Assert.True(parameter.IsOptional);
+                Assert.Equal(1, parameter.DefaultValue.AsInt32("test"));
+            },
+            parameter =>
+            {
+                Assert.Equal("onceKey", parameter.Name);
+                Assert.True(parameter.IsOptional);
+                Assert.Equal(string.Empty, parameter.DefaultValue.AsString("test"));
+            });
+    }
+
+    [Fact]
+    public void SetTimeKeyDescriptorMakesTargetStoryOptional()
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(session.StoryService.CommandDispatcher.Registry.TryGetDescriptor("set_time_key", out var descriptor));
+
+        var storyId = Assert.Single(descriptor.Parameters, parameter => parameter.Name == "storyId");
+        Assert.True(storyId.IsOptional);
+        Assert.Equal(string.Empty, storyId.DefaultValue.AsString("test"));
+    }
+
     [Theory]
     [InlineData("item_count")]
     [InlineData("favorability")]
@@ -104,7 +145,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("story_completed")]
     [InlineData("last_story_is")]
     [InlineData("has_time_key")]
-    [InlineData("active_party_contains")]
+    [InlineData("in_team")]
     [InlineData("has_var")]
     [InlineData("has_flag")]
     [InlineData("contains")]
@@ -118,7 +159,7 @@ public sealed class CanonicalDslCatalogTests
     [Theory]
     [InlineData("should_finish", "story_completed")]
     [InlineData("follow_story", "last_story_is")]
-    [InlineData("in_team", "active_party_contains")]
+    [InlineData("active_party_contains", "in_team")]
     [InlineData("haogan", "favorability")]
     public void ApprovedQueryAliasSharesCanonicalDescriptor(string alias, string canonical)
     {

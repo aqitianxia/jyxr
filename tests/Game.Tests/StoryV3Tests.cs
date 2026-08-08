@@ -83,11 +83,124 @@ public sealed class StoryV3Tests
             await session.StoryService.CommandDispatcher.ExecuteCommandAsync("set_var", [ExpressionValue.FromString("silver"), ExpressionValue.FromNumber(1)]));
     }
 
+    [Fact]
+    public void ReplaceState_RejectsReservedVariablesWithoutReplacingTheCurrentState()
+    {
+        var original = new GameState();
+        var session = new GameSession(original, TestContentFactory.CreateRepository());
+        var invalid = new GameState();
+        invalid.Story.SetVariable("silver", ExpressionValue.FromNumber(1));
+
+        Assert.Throws<InvalidOperationException>(() => session.ReplaceState(invalid));
+        Assert.Same(original, session.State);
+    }
+
+    [Fact]
+    public async Task Service_ResolvesJumpAndCallTargetsAcrossStoryFiles()
+    {
+        var first = StoryScriptJson.Parse("""
+        {"version":3,"segments":[{"name":"start","steps":[
+          {"kind":"call","target":"shared"},
+          {"kind":"jump","target":"finish"}
+        ]}]}
+        """, "first.story.json");
+        var second = StoryScriptJson.Parse("""
+        {"version":3,"segments":[
+          {"name":"shared","steps":[{"kind":"dialogue","speaker":"主角","text":"共享片段"},{"kind":"return"}]},
+          {"name":"finish","steps":[{"kind":"dialogue","speaker":"主角","text":"结束"}]}
+        ]}
+        """, "second.story.json");
+        var host = new RecordingHost();
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(storyScripts: [first, second]), host);
+
+        await session.StoryService.ExecuteAsync("start");
+
+        Assert.Equal(["共享片段", "结束"], host.DialogueTexts);
+        Assert.True(session.State.Story.IsStoryCompleted("shared"));
+        Assert.True(session.State.Story.IsStoryCompleted("finish"));
+    }
+
+    [Fact]
+    public async Task Runtime_CallReturnsThroughNestedBranchAndChoicePreservesSourceIndex()
+    {
+        var script = StoryScriptJson.Parse("""
+        {"version":3,"segments":[
+          {"name":"start","steps":[
+            {"kind":"call","target":"sub"},
+            {"kind":"choice","prompt":{"speaker":"主角","text":"选择"},"groups":[
+              {"when":"false","options":[{"text":"隐藏","steps":[]}]},
+              {"options":[{"text":"可见","steps":[{"kind":"dialogue","speaker":"主角","text":"选择完成"}]}]}
+            ]}
+          ]},
+          {"name":"sub","steps":[
+            {"kind":"branch","cases":[{"when":"true","steps":[{"kind":"return"}]}]},
+            {"kind":"dialogue","speaker":"主角","text":"不应执行"}
+          ]}
+        ]}
+        """);
+        var host = new RecordingHost { SelectedOptionIndex = 1 };
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(storyScripts: [script]), host);
+
+        await session.StoryService.ExecuteAsync("start");
+
+        Assert.Equal(["选择完成"], host.DialogueTexts);
+        Assert.Equal([1], host.OfferedOptionIndices);
+    }
+
+    [Fact]
+    public async Task Runtime_RejectsChoiceWithoutAnyVisibleOption()
+    {
+        var script = StoryScriptJson.Parse("""
+        {"version":3,"segments":[{"name":"start","steps":[
+          {"kind":"choice","prompt":{"speaker":"主角","text":"无路可走"},"groups":[
+            {"when":"false","options":[{"text":"隐藏","steps":[]}]}
+          ]}
+        ]}]}
+        """);
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(storyScripts: [script]));
+
+        var exception = await Assert.ThrowsAsync<StoryRuntimeException>(() =>
+            session.StoryService.ExecuteAsync("start"));
+        Assert.Contains("no available options", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(BattleOutcome.Win, false, true)]
+    [InlineData(BattleOutcome.Lose, true, false)]
+    public async Task Runtime_HandlesBattleOutcomesWithoutExplicitBranches(
+        BattleOutcome outcome,
+        bool expectedGameOver,
+        bool expectedContinuation)
+    {
+        var script = StoryScriptJson.Parse("""
+        {"version":3,"segments":[{"name":"start","steps":[
+          {"kind":"battle","battleId":"test","outcomes":{}},
+          {"kind":"dialogue","speaker":"主角","text":"继续"}
+        ]}]}
+        """);
+        var host = new RecordingHost { BattleOutcome = outcome };
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(storyScripts: [script]), host);
+
+        await session.StoryService.ExecuteAsync("start");
+
+        Assert.Equal(expectedGameOver, host.GameOverInvoked);
+        Assert.Equal(expectedContinuation, host.DialogueTexts.Contains("继续"));
+    }
+
     private sealed class RecordingHost : IRuntimeHost
     {
         public List<string> DialogueTexts { get; } = [];
+        public List<int> OfferedOptionIndices { get; } = [];
+        public int SelectedOptionIndex { get; init; }
+        public BattleOutcome BattleOutcome { get; init; } = BattleOutcome.Win;
+        public bool GameOverInvoked { get; private set; }
         public ValueTask DialogueAsync(DialogueContext dialogue, CancellationToken cancellationToken) { DialogueTexts.Add(dialogue.Text); return ValueTask.CompletedTask; }
-        public ValueTask<int> ChooseOptionAsync(ChoiceContext choice, CancellationToken cancellationToken) => ValueTask.FromResult(choice.Options[0].Index);
-        public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) => ValueTask.FromResult(BattleOutcome.Win);
+        public ValueTask<int> ChooseOptionAsync(ChoiceContext choice, CancellationToken cancellationToken)
+        {
+            OfferedOptionIndices.AddRange(choice.Options.Select(static option => option.Index));
+            return ValueTask.FromResult(SelectedOptionIndex);
+        }
+        public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) => ValueTask.FromResult(BattleOutcome);
+        public ValueTask GameOverAsync(CancellationToken cancellationToken) { GameOverInvoked = true; return ValueTask.CompletedTask; }
     }
 }

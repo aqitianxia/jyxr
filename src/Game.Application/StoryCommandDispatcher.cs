@@ -43,11 +43,20 @@ public sealed class StoryCommandDispatcher
         CancellationToken cancellationToken = default) =>
         Registry.InvokeAsync(name, args, cancellationToken);
 
-    public ValueTask<StoryCommandResult> ExecuteCallAsync(
+    public async ValueTask<StoryCommandResult> ExecuteCallAsync(
         ParsedCall call,
-        CancellationToken cancellationToken = default) =>
-        Registry.InvokeAsync(
-            call.Root.Name,
-            _evaluator.EvaluateArguments(call.Root, _expressions.Create(_context)),
-            cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await Registry.InvokeAsync(
+                call.Root.Name,
+                _evaluator.EvaluateArguments(call, _expressions.Create(_context)),
+                cancellationToken);
+        }
+        catch (ExpressionException exception)
+        {
+            throw ExpressionException.WithLocation(exception, call.SourceName, call.Root.Span);
+        }
+    }
 }

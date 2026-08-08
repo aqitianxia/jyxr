@@ -12,9 +12,11 @@ public static class GameExpressionSymbols
         "current_map", "current_time_slot", "friend_count",
     };
 
-    public static void ValidateDynamicVariables(GameSession session, StoryExecutionContext context)
+    public static void ValidateDynamicVariables(GameState state, StoryExecutionContext context)
     {
-        foreach (var name in session.State.Story.Variables.Keys)
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(context);
+        foreach (var name in state.Story.Variables.Keys)
         {
             if (BuiltInVariables.Contains(name) || context.Variables.ContainsKey(name))
             {
@@ -90,7 +92,7 @@ public sealed class GameExpressionEnvironment
     public ExpressionEnvironment Create(StoryExecutionContext? context = null)
     {
         context ??= StoryExecutionContext.Empty;
-        GameExpressionSymbols.ValidateDynamicVariables(_session, context);
+        GameExpressionSymbols.ValidateDynamicVariables(_session.State, context);
         return new ExpressionEnvironment(new GameExpressionVariableResolver(_session, context), _functions);
     }
 }
@@ -103,7 +105,12 @@ internal sealed class InventoryQueryFunctions
     [ExpressionFunction("item_count")]
     public int ItemCount(string id)
     {
-        var item = _session.ContentRepository.GetItem(id);
+        if (!_session.ContentRepository.TryGetItem(id, out var item))
+        {
+            _session.DiagnosticLogger.Warning($"Function 'item_count' treated unknown item '{id}' as zero.");
+            return 0;
+        }
+
         return _session.State.Inventory.Entries
             .OfType<StackInventoryEntry>()
             .Where(entry => string.Equals(entry.Definition.Id, item.Id, StringComparison.Ordinal))
@@ -154,7 +161,7 @@ internal sealed class PartyCharacterQueryFunctions
     private readonly GameSession _session;
     public PartyCharacterQueryFunctions(GameSession session) => _session = session;
 
-    [ExpressionFunction("active_party_contains", "in_team")]
+    [ExpressionFunction("in_team", "active_party_contains")]
     public bool ActivePartyContains(string characterId) =>
         _session.PartyService.ContainsActiveMemberId(characterId);
 

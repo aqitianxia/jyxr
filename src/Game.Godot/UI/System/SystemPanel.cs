@@ -261,9 +261,9 @@ public partial class SystemPanel : Control
 
 		try
 		{
-			var invocation = await Game.StoryService.CommandLine.ExecuteAsync(commandLine);
+			await Game.StoryService.CommandLine.ExecuteAsync(commandLine);
 			ApplyNoRegretRestrictions();
-			AppendConsoleLine("控制台", $"已执行剧本指令：{FormatInvocation(invocation)}");
+			AppendConsoleLine("控制台", $"已执行剧本指令：{commandLine}");
 		}
 		catch (Exception exception)
 		{
@@ -360,21 +360,4 @@ public partial class SystemPanel : Control
 		&& _consoleOutput is not null
 		&& GodotObject.IsInstanceValid(_consoleOutput);
 
-	private static string FormatInvocation(StoryCommandInvocation invocation)
-	{
-		if (invocation.Arguments.Count == 0)
-		{
-			return invocation.Name;
-		}
-
-		return $"{invocation.Name} {string.Join(" ", invocation.Arguments.Select(FormatArgument))}";
-	}
-
-	private static string FormatArgument(ExpressionValue value) =>
-		value.Kind switch
-		{
-			ExpressionValueKind.String => $"\"{value.AsString("console")}\"",
-			ExpressionValueKind.List => $"[{string.Join(", ", value.AsList("console").Select(FormatArgument))}]",
-			_ => value.ToString(),
-		};
 }

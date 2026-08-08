@@ -153,8 +153,19 @@ internal sealed partial class StoryRuntimeSession(
                 yield break;
             case CommandStep command:
             {
-                var args = _expressionEvaluator.EvaluateArguments(command.Call.Root, host.ExpressionEnvironment);
-                var result = await host.Commands.InvokeAsync(command.Call.Root.Name, args, ct);
+                var args = _expressionEvaluator.EvaluateArguments(command.Call, host.ExpressionEnvironment);
+                StoryCommandResult result;
+                try
+                {
+                    result = await host.Commands.InvokeAsync(command.Call.Root.Name, args, ct);
+                }
+                catch (ExpressionException exception)
+                {
+                    throw ExpressionException.WithLocation(
+                        exception,
+                        command.Call.SourceName,
+                        command.Call.Root.Span);
+                }
                 yield return StepResult.FromEvent(new CommandExecutedEvent(command.Call.Root.Name, args));
                 if (result.JumpTarget is not null)
                 {

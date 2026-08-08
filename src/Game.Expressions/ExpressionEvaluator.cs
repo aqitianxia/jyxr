@@ -26,7 +26,7 @@ public sealed class ExpressionEvaluator
     public ExpressionValue Evaluate(ParsedExpression expression, ExpressionEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(expression);
-        return Evaluate(expression.Root, environment);
+        return EvaluateCore(expression.Root, environment, expression.SourceName);
     }
 
     public ExpressionValue Evaluate(ExpressionSyntax expression, ExpressionEnvironment environment)
@@ -34,22 +34,64 @@ public sealed class ExpressionEvaluator
         ArgumentNullException.ThrowIfNull(expression);
         ArgumentNullException.ThrowIfNull(environment);
 
-        return expression switch
+        return EvaluateCore(expression, environment, sourceName: null);
+    }
+
+    public bool EvaluateBoolean(
+        ParsedExpression expression,
+        ExpressionEnvironment environment,
+        string context = "Expression")
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+        try
         {
-            LiteralExpressionSyntax literal => literal.Value,
-            IdentifierExpressionSyntax identifier => ResolveVariable(identifier, environment),
-            ListExpressionSyntax list => EvaluateList(list, environment),
-            CallExpressionSyntax call => EvaluateCall(call, environment),
-            UnaryExpressionSyntax unary => EvaluateUnary(unary, environment),
-            BinaryExpressionSyntax binary => EvaluateBinary(binary, environment),
-            _ => throw new ExpressionEvaluationException($"Unsupported expression node '{expression.GetType().Name}'."),
-        };
+            return Evaluate(expression, environment).AsBoolean(context);
+        }
+        catch (ExpressionException exception)
+        {
+            throw ExpressionException.WithLocation(
+                exception,
+                expression.SourceName,
+                expression.Root.Span);
+        }
+    }
+
+    public IReadOnlyList<ExpressionValue> EvaluateArguments(
+        ParsedCall call,
+        ExpressionEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(call);
+        return call.Root.Arguments.Select(argument => EvaluateCore(argument, environment, call.SourceName)).ToArray();
     }
 
     public IReadOnlyList<ExpressionValue> EvaluateArguments(
         CallExpressionSyntax call,
         ExpressionEnvironment environment) =>
-        call.Arguments.Select(argument => Evaluate(argument, environment)).ToArray();
+        call.Arguments.Select(argument => EvaluateCore(argument, environment, sourceName: null)).ToArray();
+
+    private ExpressionValue EvaluateCore(
+        ExpressionSyntax expression,
+        ExpressionEnvironment environment,
+        string? sourceName)
+    {
+        try
+        {
+            return expression switch
+            {
+                LiteralExpressionSyntax literal => literal.Value,
+                IdentifierExpressionSyntax identifier => ResolveVariable(identifier, environment),
+                ListExpressionSyntax list => EvaluateList(list, environment, sourceName),
+                CallExpressionSyntax call => EvaluateCall(call, environment, sourceName),
+                UnaryExpressionSyntax unary => EvaluateUnary(unary, environment, sourceName),
+                BinaryExpressionSyntax binary => EvaluateBinary(binary, environment, sourceName),
+                _ => throw new ExpressionEvaluationException($"Unsupported expression node '{expression.GetType().Name}'."),
+            };
+        }
+        catch (ExpressionException exception) when (sourceName is not null && exception.SourceName is null)
+        {
+            throw ExpressionException.WithLocation(exception, sourceName, expression.Span);
+        }
+    }
 
     private ExpressionValue ResolveVariable(IdentifierExpressionSyntax identifier, ExpressionEnvironment environment)
     {
@@ -61,15 +103,27 @@ public sealed class ExpressionEvaluator
         return value;
     }
 
-    private ExpressionValue EvaluateList(ListExpressionSyntax list, ExpressionEnvironment environment) =>
-        ExpressionValue.FromList(list.Items.Select(item => Evaluate(item, environment)).ToArray());
-
-    private ExpressionValue EvaluateCall(CallExpressionSyntax call, ExpressionEnvironment environment) =>
-        environment.Functions.Invoke(call.Name, EvaluateArguments(call, environment));
-
-    private ExpressionValue EvaluateUnary(UnaryExpressionSyntax unary, ExpressionEnvironment environment)
+    private ExpressionValue EvaluateList(ListExpressionSyntax list, ExpressionEnvironment environment, string? sourceName)
     {
-        var value = Evaluate(unary.Operand, environment);
+        try
+        {
+            return ExpressionValue.FromList(
+                list.Items.Select(item => EvaluateCore(item, environment, sourceName)).ToArray());
+        }
+        catch (ArgumentException exception)
+        {
+            throw new ExpressionEvaluationException(exception.Message);
+        }
+    }
+
+    private ExpressionValue EvaluateCall(CallExpressionSyntax call, ExpressionEnvironment environment, string? sourceName) =>
+        environment.Functions.Invoke(
+            call.Name,
+            call.Arguments.Select(argument => EvaluateCore(argument, environment, sourceName)).ToArray());
+
+    private ExpressionValue EvaluateUnary(UnaryExpressionSyntax unary, ExpressionEnvironment environment, string? sourceName)
+    {
+        var value = EvaluateCore(unary.Operand, environment, sourceName);
         return unary.Operator switch
         {
             UnaryOperator.Not => ExpressionValue.FromBoolean(!value.AsBoolean("Unary '!'")),
@@ -79,22 +133,22 @@ public sealed class ExpressionEvaluator
         };
     }
 
-    private ExpressionValue EvaluateBinary(BinaryExpressionSyntax binary, ExpressionEnvironment environment)
+    private ExpressionValue EvaluateBinary(BinaryExpressionSyntax binary, ExpressionEnvironment environment, string? sourceName)
     {
         if (binary.Operator == BinaryOperator.And)
         {
-            var left = Evaluate(binary.Left, environment).AsBoolean("Operator '&&'");
-            return ExpressionValue.FromBoolean(left && Evaluate(binary.Right, environment).AsBoolean("Operator '&&'"));
+            var left = EvaluateCore(binary.Left, environment, sourceName).AsBoolean("Operator '&&'");
+            return ExpressionValue.FromBoolean(left && EvaluateCore(binary.Right, environment, sourceName).AsBoolean("Operator '&&'"));
         }
 
         if (binary.Operator == BinaryOperator.Or)
         {
-            var left = Evaluate(binary.Left, environment).AsBoolean("Operator '||'");
-            return ExpressionValue.FromBoolean(left || Evaluate(binary.Right, environment).AsBoolean("Operator '||'"));
+            var left = EvaluateCore(binary.Left, environment, sourceName).AsBoolean("Operator '||'");
+            return ExpressionValue.FromBoolean(left || EvaluateCore(binary.Right, environment, sourceName).AsBoolean("Operator '||'"));
         }
 
-        var leftValue = Evaluate(binary.Left, environment);
-        var rightValue = Evaluate(binary.Right, environment);
+        var leftValue = EvaluateCore(binary.Left, environment, sourceName);
+        var rightValue = EvaluateCore(binary.Right, environment, sourceName);
         return binary.Operator switch
         {
             BinaryOperator.Multiply => CheckedNumber(leftValue.AsNumber("Operator '*'") * rightValue.AsNumber("Operator '*'"), "Operator '*'") ,
@@ -192,12 +246,36 @@ public sealed class ExpressionCallExecutor
         ParsedCall call,
         ExpressionEnvironment environment,
         ExpressionCallRegistry<TResult> registry) =>
-        registry.Invoke(call.Root.Name, _evaluator.EvaluateArguments(call.Root, environment));
+        ExecuteLocated(call, () => registry.Invoke(call.Root.Name, _evaluator.EvaluateArguments(call, environment)));
 
-    public ValueTask<TResult> ExecuteAsync<TResult>(
+    public async ValueTask<TResult> ExecuteAsync<TResult>(
         ParsedCall call,
         ExpressionEnvironment environment,
         AsyncExpressionCallRegistry<TResult> registry,
-        CancellationToken cancellationToken = default) =>
-        registry.InvokeAsync(call.Root.Name, _evaluator.EvaluateArguments(call.Root, environment), cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await registry.InvokeAsync(
+                call.Root.Name,
+                _evaluator.EvaluateArguments(call, environment),
+                cancellationToken);
+        }
+        catch (ExpressionException exception)
+        {
+            throw ExpressionException.WithLocation(exception, call.SourceName, call.Root.Span);
+        }
+    }
+
+    private static TResult ExecuteLocated<TResult>(ParsedCall call, Func<TResult> execute)
+    {
+        try
+        {
+            return execute();
+        }
+        catch (ExpressionException exception)
+        {
+            throw ExpressionException.WithLocation(exception, call.SourceName, call.Root.Span);
+        }
+    }
 }

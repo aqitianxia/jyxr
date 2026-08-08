@@ -15,7 +15,14 @@ public sealed class ExpressionParser
 
     public ParsedExpression ParseExpression(string source, string sourceName = "expression")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        ArgumentNullException.ThrowIfNull(source);
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            throw new ExpressionParseException(
+                sourceName,
+                new SourceSpan(0, source.Length, 1, 1),
+                "Expression cannot be empty.");
+        }
         var context = new ParseContext(new Scanner(source), useNewLines: true);
         if (!Grammar.TryParse(context, out var root, out var error))
         {
@@ -57,9 +64,12 @@ public sealed class ExpressionParser
             .Then<ExpressionSyntax>((context, start, end, result) =>
             {
                 var name = result.Item1.Span.ToString();
+                var expressionEnd = end >= start
+                    ? end
+                    : context.Scanner.Cursor.Position.Offset;
                 return result.Item2.HasValue
-                    ? new CallExpressionSyntax(name, result.Item2.Value, Span(context, start, end))
-                    : new IdentifierExpressionSyntax(name, Span(context, start, end));
+                    ? new CallExpressionSyntax(name, result.Item2.Value, Span(context, start, expressionEnd))
+                    : new IdentifierExpressionSyntax(name, Span(context, start, expressionEnd));
             });
 
         var boolean = OneOf(

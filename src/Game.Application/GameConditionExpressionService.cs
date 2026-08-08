@@ -9,5 +9,5 @@ internal sealed class GameConditionExpressionService
         _environment = new GameExpressionEnvironment(session);
 
     public bool Evaluate(ParsedExpression? expression) =>
-        expression is null || _evaluator.Evaluate(expression, _environment.Create()).AsBoolean("condition");
+        expression is null || _evaluator.EvaluateBoolean(expression, _environment.Create(), "condition");
 }

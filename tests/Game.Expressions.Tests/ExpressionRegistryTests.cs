@@ -110,6 +110,9 @@ public sealed class ExpressionRegistryTests
 
         var wrongElement = analyzer.Analyze(parser.ParseExpression("'one' in [1, 2]").Root, functions);
         Assert.Contains(wrongElement, diagnostic => diagnostic.Message.Contains("requires Number", StringComparison.Ordinal));
+
+        var listEquality = analyzer.Analyze(parser.ParseExpression("[1] == [1]").Root, functions);
+        Assert.Contains(listEquality, diagnostic => diagnostic.Message.Contains("not defined for List", StringComparison.Ordinal));
     }
 
     [AttributeUsage(AttributeTargets.Method)]

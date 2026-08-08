@@ -94,7 +94,7 @@ current_time_slot !in ['子', '丑']
 
 | 调用 | 返回 | 说明 |
 | --- | --- | --- |
-| `item_count(item_id)` | Number | 背包中的物品数量。 |
+| `item_count(item_id)` | Number | 背包中的物品数量；未知物品 id 记录 Warning 并返回 `0`。 |
 | `favorability(character_id='女主')` | Number | 指定关系目标的好感；别名 `haogan`。 |
 | `character_level(character_id)` | Number | 活动队伍角色等级。 |
 | `character_stat(character_id, stat)` | Number | 活动队伍角色基础属性。 |
@@ -102,13 +102,13 @@ current_time_slot !in ['子', '丑']
 | `story_completed(story_id)` | Boolean | 剧情是否完成；别名 `should_finish`。 |
 | `last_story_is(story_id)` | Boolean | 最近完成的剧情是否匹配；别名 `follow_story`。 |
 | `has_time_key(key)` | Boolean | 是否存在剧情限时 key。 |
-| `in_team(character_id)` | Boolean | 是否在活动队伍；底层 canonical 名称为 `active_party_contains`。 |
+| `in_team(character_id)` | Boolean | 是否在活动队伍；别名 `active_party_contains`。 |
 | `has_var(name)` | Boolean | 动态剧情变量是否存在。 |
 | `has_flag(name)` | Boolean | 不存在时为 `false`；存在但不是 Boolean 时报错。 |
 | `contains(list, value)` | Boolean | 严格类型的列表成员判断。 |
 | `chance(probability)` | Boolean | 按 `0..1` 概率随机判断。 |
 
-角色等级、属性和技能查询要求目标在活动队伍中。主角可以直接查询；查询其他角色时考虑先用短路保护：
+活动队伍包含正式队员（Members）和跟随队友（Followers）。角色等级、属性和技能查询要求目标位于其中之一；主角可以直接查询，查询其他角色时考虑先用短路保护：
 
 ```text
 skill_level('主角', '野球拳') >= 10
@@ -129,7 +129,7 @@ clear_flag('met_heroine')
 remove_var('quest_stage')
 ```
 
-`set_flag(name)` 等价于写入 Boolean `true`；`clear_flag(name)` 等价于删除变量。`change_var` 只修改已存在的 Number。`remove_var` 和 `clear_flag` 删除不存在的名称会报错。
+`set_flag(name)` 等价于写入 Boolean `true`；`clear_flag(name)` 等价于删除变量。`change_var` 只修改已存在的 Number。`remove_var` 和 `clear_flag` 清除不存在的名称时记录 Warning 并正常返回。
 
 ## 指令参考
 
@@ -181,11 +181,11 @@ change_favorability('女主', 5)
 | `journal(text)` | 写入带当前时间快照的江湖日志。 | `log` |
 | `set_var(name, value)` | 创建变量或写入同类型值。 | — |
 | `change_var(name, delta)` | 调整已存在的 Number。 | — |
-| `remove_var(name)` | 删除已存在变量。 | — |
+| `remove_var(name)` | 删除变量；不存在时记录 Warning 并正常返回。 | — |
 | `set_flag(name)` | 写入 Boolean flag。 | — |
-| `clear_flag(name)` | 删除已存在 flag。 | — |
-| `set_time_key(key, days, story_id)` | 创建限时剧情 key。 | — |
-| `clear_time_key(key)` | 删除限时剧情 key。 | — |
+| `clear_flag(name)` | 删除 flag；不存在时记录 Warning 并正常返回。 | — |
+| `set_time_key(key, days, story_id='')` | 创建限时剧情 key；省略 story id 时到期仅移除 key。 | — |
+| `clear_time_key(key)` | 删除限时剧情 key；不存在时记录 Warning 并正常返回。 | — |
 | `world_triggers(enabled)` | 开启或阻塞世界触发。 | — |
 
 ```text
@@ -207,7 +207,7 @@ world_triggers(false)
 | `upgrade_external(character_id, skill_id, levels=1)` | 明确升级外功。 | — |
 | `upgrade_internal(character_id, skill_id, levels=1)` | 明确升级内功。 | — |
 | `upgrade_skill(character_id, skill_id, levels=1)` | 按外功、内功顺序自动分类升级。 | — |
-| `maxlevel(skill_id, levels)` | 增加武学等级上限。 | `raise_skill_cap`(规范名) |
+| `maxlevel(skill_id, levels=1, once_key='')` | 增加武学等级上限；同一非空 once key 只生效一次。实际增量会叠加周目加成。once key如果为空，DSL编译时候会自动生成。 | `max_skill_level` |
 
 属性名支持中文显示名或 code：`拳掌/quanzhang`、`剑法/jianfa`、`刀法/daofa`、`奇门/qimen`、`臂力/bili`、`身法/shenfa`、`悟性/wuxing`、`福缘/fuyuan`、`根骨/gengu`、`定力/dingli`、`武学点/wuxue`、`气血上限/max_hp/maxhp`、`内力上限/max_mp/maxmp`、`攻击力/attack`、`防御力/defence`、`闪避率/evasion`、`命中率/accuracy`、`暴击率/crit_chance`、`暴击伤害/crit_mult`、`抗暴率/anti_crit_chance`、`吸血/lifesteal`、`抗异常/anti_debuff`、`集气速度/speed`、`移动力/movement`。
 
@@ -215,7 +215,7 @@ world_triggers(false)
 change_stat('主角', '拳掌', 10)
 grant_exp('主角', 500)
 upgrade_external('主角', '野球拳', 2)
-maxlevel('野球拳', 5)
+maxlevel('野球拳', 5, 'reward.野球拳.mastery')
 ```
 
 ### 队伍、学习与称号
@@ -233,7 +233,7 @@ maxlevel('野球拳', 5)
 | `learn_external/internal(character_id, skill_id, level=1)` | 明确学习外功或内功。 | — |
 | `learn_special/talent(character_id, target_id)` | 明确学习特技或天赋。 | — |
 | `remove_external/internal/special/talent(character_id, target_id)` | 明确分类移除。 | — |
-| `unlock_achievement(id)` | 解锁全局称号。 | — |
+| `unlock_achievement(id)` | 解锁 `nick` 资源组中的全局称号。 | `nick` |
 
 `learn/remove` 按外功、内功、特技、天赋顺序命中第一个同 ID Definition。外功、内功使用 level；特技、天赋忽略 level 的具体数值。需要无歧义时使用显式分类指令。
 
@@ -363,8 +363,8 @@ run_battle 测试战斗
 
 别名与 canonical 方法共享签名和校验，不做参数重排、数值换算或旧语义适配。
 
-- 查询：`should_finish → story_completed`、`follow_story → last_story_is`、`in_team → active_party_contains`、`haogan → favorability`。
-- 业务：`item → change_item`、`cost_item → remove_item`、`item_random → add_random_item`、`get_money → change_silver`、`yuanbao → change_yuanbao`、`cost_day → advance_days`、`set_game_mode → set_difficulty`、`log → journal`、`daode → change_morality`、`menpai → set_sect`、`growtemplate → set_growth`、`grant_point/get_point → grant_points`、`get_exp → grant_exp`、`levelup → level_up`、`leave_follow → leave_follower`、`game → minigame`、`xilian → refine`、`zhenlongqiju → zhenlong`。
+- 查询：`should_finish → story_completed`、`follow_story → last_story_is`、`active_party_contains → in_team`、`haogan → favorability`。
+- 业务：`item → change_item`、`cost_item → remove_item`、`item_random → add_random_item`、`get_money → change_silver`、`yuanbao → change_yuanbao`、`cost_day → advance_days`、`set_game_mode → set_difficulty`、`log → journal`、`daode → change_morality`、`menpai → set_sect`、`growtemplate → set_growth`、`grant_point/get_point → grant_points`、`get_exp → grant_exp`、`levelup → level_up`、`max_skill_level → maxlevel`、`leave_follow → leave_follower`、`nick → unlock_achievement`、`game → minigame`、`xilian → refine`、`zhenlongqiju → zhenlong`。
 - 宿主：`set_map/tutorial → map`、`xiangzi → chest`、`effect → sound`、`movie → video`、`select_menpai → select_sect`、`select_head → select_portrait`、`head → set_portrait`、`animation → set_model`、`mainmenu → main_menu`、`nextzhoumu → next_round`、`gameover → game_over`、`gamefin → game_complete`。
 
 不支持以下旧语义：
@@ -383,6 +383,7 @@ not story_completed('剧情ID')
 silver >= 500
 current_time_slot in ['辰', '巳']
 in_team('郭襄') and character_level('郭襄') >= 10
+rank != -1 and rank <= 10
 change_silver(-100)
 join_random(['程英', '郭襄'])
 set_portrait('主角', 'hero_01')

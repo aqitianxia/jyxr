@@ -16,6 +16,19 @@ public sealed class StoryCommandLineServiceTests
     }
 
     [Fact]
+    public void Parse_PreservesQuotedScalarStringsAndParenthesesInThinArguments()
+    {
+        var service = CreateService(out _);
+
+        var invocation = service.Parse("set_var 'true' '123'");
+        Assert.Equal("true", invocation.Arguments[0].AsString("test"));
+        Assert.Equal("123", invocation.Arguments[1].AsString("test"));
+
+        var parentheses = service.Parse("journal 丹药(大)");
+        Assert.Equal("丹药(大)", parentheses.Arguments[0].AsString("test"));
+    }
+
+    [Fact]
     public async Task ExecuteAsync_SupportsThinAndFullDsl()
     {
         var service = CreateService(out var session);

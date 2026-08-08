@@ -17,8 +17,10 @@ internal sealed partial class StoryRuntimeSession
             var isAvailable = true;
             if (group.When is not null)
             {
-                var result = _expressionEvaluator.Evaluate(group.When, host.ExpressionEnvironment);
-                isAvailable = result.AsBoolean("choice group condition");
+                isAvailable = _expressionEvaluator.EvaluateBoolean(
+                    group.When,
+                    host.ExpressionEnvironment,
+                    "choice group condition");
             }
 
             foreach (var option in group.Options)
@@ -112,8 +114,10 @@ internal sealed partial class StoryRuntimeSession
     {
         foreach (var branchCase in branch.Cases)
         {
-            var result = _expressionEvaluator.Evaluate(branchCase.When, host.ExpressionEnvironment);
-            if (!result.AsBoolean("branch condition"))
+            if (!_expressionEvaluator.EvaluateBoolean(
+                branchCase.When,
+                host.ExpressionEnvironment,
+                "branch condition"))
             {
                 continue;
             }

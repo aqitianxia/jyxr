@@ -34,12 +34,13 @@ public sealed class GameSession
         Config = config ?? new GameConfig();
         Settings = settings ?? new GameSettings();
         ContentRepository = contentRepository;
+        DiagnosticLogger = logger ?? NullDiagnosticLogger.Instance;
         RandomService = randomService ?? SharedRandomService.Instance;
-        GameExpressionSymbols.ValidateDynamicVariables(this, StoryExecutionContext.Empty);
+        GameExpressionSymbols.ValidateDynamicVariables(initialState, StoryExecutionContext.Empty);
         SkillMaxLevelPolicy = new SkillMaxLevelPolicy(this);
         CharacterResourceLimitPolicy = new CharacterResourceLimitPolicy(this);
-        SaveGameService = new SaveGameService(this, logger);
-        ProfileService = new ProfileService(this, logger);
+        SaveGameService = new SaveGameService(this, DiagnosticLogger);
+        ProfileService = new ProfileService(this, DiagnosticLogger);
         SessionFlowService = new SessionFlowService(this);
         PartyService = new PartyService(this);
         InventoryService = new InventoryService(this);
@@ -65,6 +66,7 @@ public sealed class GameSession
     public GameSettings Settings { get; }
     public IContentRepository ContentRepository { get; }
     public IRandomService RandomService { get; }
+    internal IDiagnosticLogger DiagnosticLogger { get; }
     public SkillMaxLevelPolicy SkillMaxLevelPolicy { get; }
     public CharacterResourceLimitPolicy CharacterResourceLimitPolicy { get; }
     public SaveGameService SaveGameService { get; }
@@ -89,8 +91,8 @@ public sealed class GameSession
     public void ReplaceState(GameState state)
     {
         ArgumentNullException.ThrowIfNull(state);
+        GameExpressionSymbols.ValidateDynamicVariables(state, StoryExecutionContext.Empty);
         State = state;
-        GameExpressionSymbols.ValidateDynamicVariables(this, StoryExecutionContext.Empty);
     }
 
     public void ReplaceProfile(GameProfile profile) => Profile = profile;

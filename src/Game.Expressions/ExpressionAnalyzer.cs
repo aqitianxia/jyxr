@@ -187,6 +187,10 @@ public sealed class ExpressionAnalyzer
                 {
                     diagnostics.Add(Error(binary, $"Equality requires matching types, got {leftKind} and {rightKind}."));
                 }
+                else if (left.Kind == ExpressionValueKind.List || right.Kind == ExpressionValueKind.List)
+                {
+                    diagnostics.Add(Error(binary, "Equality is not defined for List values."));
+                }
 
                 return new ExpressionStaticType(ExpressionValueKind.Boolean);
             case BinaryOperator.LessThan:

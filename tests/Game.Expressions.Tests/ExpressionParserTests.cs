@@ -88,6 +88,16 @@ public sealed class ExpressionParserTests
     }
 
     [Fact]
+    public void ParseExpression_RejectsWhitespaceWithSourceLocation()
+    {
+        var exception = Assert.Throws<ExpressionParseException>(() => _parser.ParseExpression(" \r\n ", "empty-condition"));
+
+        Assert.Equal("empty-condition", exception.SourceName);
+        Assert.Equal(new SourceSpan(0, 4, 1, 1), exception.Span);
+        Assert.Contains("empty-condition(1,1)", exception.Message);
+    }
+
+    [Fact]
     public void ParseExpression_PreservesNodeSourceSpansAfterLeadingWhitespace()
     {
         var root = Assert.IsType<UnaryExpressionSyntax>(_parser.ParseExpression(" \n  !false").Root);

@@ -14,7 +14,7 @@ public sealed class StoryCommandLineService
     public StoryCommandInvocation Parse(string line)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(line);
-        if (line.Contains('('))
+        if (IsFullDslCall(line))
         {
             var call = _parser.ParseCall(line, "debug console");
             if (call.Root.Arguments.Any(argument => argument is not LiteralExpressionSyntax))
@@ -26,13 +26,13 @@ public sealed class StoryCommandLineService
 
         var tokens = Tokenize(line);
         if (tokens.Count == 0) throw new InvalidOperationException("请输入有效指令。");
-        return new StoryCommandInvocation(tokens[0], tokens.Skip(1).Select(ParseToken).ToArray());
+        return new StoryCommandInvocation(tokens[0].Text, tokens.Skip(1).Select(ParseToken).ToArray());
     }
 
     public async ValueTask<StoryCommandInvocation> ExecuteAsync(string line, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(line);
-        if (line.Contains('('))
+        if (IsFullDslCall(line))
         {
             var call = _parser.ParseCall(line, "debug console");
             await _dispatcher.ExecuteCallAsync(call, cancellationToken);
@@ -44,39 +44,55 @@ public sealed class StoryCommandLineService
         return invocation;
     }
 
-    private static IReadOnlyList<string> Tokenize(string line)
+    private static bool IsFullDslCall(string line)
     {
-        var tokens = new List<string>();
+        var index = 0;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) index++;
+        if (index >= line.Length || line[index] != '_' && (line[index] < 'a' || line[index] > 'z')) return false;
+        index++;
+        while (index < line.Length && (line[index] == '_' || line[index] is >= 'a' and <= 'z' || char.IsDigit(line[index]))) index++;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) index++;
+        return index < line.Length && line[index] == '(';
+    }
+
+    private static IReadOnlyList<ConsoleToken> Tokenize(string line)
+    {
+        var tokens = new List<ConsoleToken>();
         var current = new StringBuilder();
         char quote = '\0';
+        var wasQuoted = false;
         foreach (var ch in line)
         {
             if (ch is '\'' or '"')
             {
-                if (quote == '\0') { quote = ch; continue; }
+                if (quote == '\0') { quote = ch; wasQuoted = true; continue; }
                 if (quote == ch) { quote = '\0'; continue; }
             }
-            if (char.IsWhiteSpace(ch) && quote == '\0') { Flush(tokens, current); continue; }
+            if (char.IsWhiteSpace(ch) && quote == '\0') { Flush(tokens, current, ref wasQuoted); continue; }
             current.Append(ch);
         }
         if (quote != '\0') throw new InvalidOperationException("命令行引号未闭合。");
-        Flush(tokens, current);
+        Flush(tokens, current, ref wasQuoted);
         return tokens;
     }
 
-    private static void Flush(List<string> tokens, StringBuilder current)
+    private static void Flush(List<ConsoleToken> tokens, StringBuilder current, ref bool wasQuoted)
     {
-        if (current.Length == 0) return;
-        tokens.Add(current.ToString());
+        if (current.Length == 0 && !wasQuoted) return;
+        tokens.Add(new ConsoleToken(current.ToString(), wasQuoted));
         current.Clear();
+        wasQuoted = false;
     }
 
-    private static ExpressionValue ParseToken(string token)
+    private static ExpressionValue ParseToken(ConsoleToken token)
     {
-        if (bool.TryParse(token, out var boolean)) return ExpressionValue.FromBoolean(boolean);
-        if (double.TryParse(token, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)) return ExpressionValue.FromNumber(number);
-        return ExpressionValue.FromString(token);
+        if (token.WasQuoted) return ExpressionValue.FromString(token.Text);
+        if (bool.TryParse(token.Text, out var boolean)) return ExpressionValue.FromBoolean(boolean);
+        if (double.TryParse(token.Text, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)) return ExpressionValue.FromNumber(number);
+        return ExpressionValue.FromString(token.Text);
     }
+
+    private readonly record struct ConsoleToken(string Text, bool WasQuoted);
 }
 
 public sealed record StoryCommandInvocation(string Name, IReadOnlyList<ExpressionValue> Arguments);
