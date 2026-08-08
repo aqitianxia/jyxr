@@ -118,6 +118,9 @@
   - 已解锁称号
   - 累计死亡数
   - 累计击杀数
+  - 累计存档次数
+  - 累计通关次数
+  - 最高到达周目
   - 跨存档共享元宝
 - `SaveGame` 是单个存档槽数据。
 - `SaveGame` 不保存 `GameProfile`；全局档案单独持久化为 `GameProfileRecord`。

@@ -10,9 +10,13 @@ public sealed record GameProfileRecord(
     int ZhenlongqijuLevel = 0,
     int Yuanbao = 0,
     IReadOnlyDictionary<string, int>? SkillMaxLevelBonuses = null,
-    IReadOnlyList<string>? ConsumedSkillMaxLevelKeys = null)
+    IReadOnlyList<string>? ConsumedSkillMaxLevelKeys = null,
+    int CompletionCount = 0,
+    int HighestRound = 0,
+    int SaveCount = 0,
+    long TotalPlayTimeSeconds = 0)
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public static GameProfileRecord Create(GameProfile profile)
     {
@@ -30,16 +34,22 @@ public sealed record GameProfileRecord(
                 .ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal),
             profile.ConsumedSkillMaxLevelKeys
                 .OrderBy(static key => key, StringComparer.Ordinal)
-                .ToList());
+                .ToList(),
+            profile.CompletionCount,
+            profile.HighestRound,
+            profile.SaveCount,
+            profile.TotalPlayTimeSeconds);
     }
 
     public GameProfile Restore()
     {
         var profile = new GameProfile();
         profile.SetUnlockedAchievementIds(UnlockedAchievementIds);
-        profile.SetLifetimeStats(DeathCount, KillCount);
+        profile.SetLifetimeStats(DeathCount, KillCount, SaveCount);
+        profile.SetCompletionStats(CompletionCount, HighestRound);
         profile.SetZhenlongqijuLevel(ZhenlongqijuLevel);
         profile.SetYuanbao(Yuanbao);
+        profile.SetTotalPlayTimeSeconds(TotalPlayTimeSeconds);
         profile.SetSkillMaxLevelBonuses(SkillMaxLevelBonuses ?? new Dictionary<string, int>(StringComparer.Ordinal));
         profile.SetConsumedSkillMaxLevelKeys(ConsumedSkillMaxLevelKeys ?? []);
         return profile;

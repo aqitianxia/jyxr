@@ -27,12 +27,18 @@ public sealed partial class GodotStoryRuntimeHost
 	}
 
 	[StoryCommand("restart")]
-	private async ValueTask ExecuteRestartAsync(CancellationToken cancellationToken) =>
+	private async ValueTask ExecuteRestartAsync(CancellationToken cancellationToken)
+	{
+		Game.ProfileService.RecordCompletion(Game.State.Adventure.Round);
 		await GameFlow.StartNewGameAsync(cancellationToken);
+	}
 
 	[StoryCommand("next_round", "nextzhoumu")]
-	private ValueTask ExecuteNextZhoumuAsync(CancellationToken cancellationToken) =>
-		new(GameFlow.StartNextRoundAsync(cancellationToken));
+	private ValueTask ExecuteNextZhoumuAsync(CancellationToken cancellationToken)
+	{
+		Game.ProfileService.RecordCompletion(Game.State.Adventure.Round);
+		return new ValueTask(GameFlow.StartNextRoundAsync(cancellationToken));
+	}
 
 	[StoryCommand("game_over", "gameover")]
 	private ValueTask ExecuteGameOverAsync()
@@ -44,7 +50,8 @@ public sealed partial class GodotStoryRuntimeHost
 	[StoryCommand("game_complete", "gamefin")]
 	private ValueTask ExecuteGameFinAsync()
 	{
-		UIRoot.Instance.ShowGameFinScreen();
+		Game.ProfileService.RecordCompletion(Game.State.Adventure.Round);
+		GameFlow.GameComplete();
 		return ValueTask.CompletedTask;
 	}
 }

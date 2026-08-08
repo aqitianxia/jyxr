@@ -11,8 +11,9 @@ public sealed class GameSession
         IDiagnosticLogger? logger = null,
         GameProfile? initialProfile = null,
         GameConfig? config = null,
-        IRandomService? randomService = null)
-        : this(initialState, contentRepository, NullRuntimeHost.Instance, logger, initialProfile, config, randomService: randomService)
+        IRandomService? randomService = null,
+        TimeProvider? timeProvider = null)
+        : this(initialState, contentRepository, NullRuntimeHost.Instance, logger, initialProfile, config, randomService: randomService, timeProvider: timeProvider)
     {
     }
 
@@ -24,7 +25,8 @@ public sealed class GameSession
         GameProfile? initialProfile = null,
         GameConfig? config = null,
         GameSettings? settings = null,
-        IRandomService? randomService = null)
+        IRandomService? randomService = null,
+        TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(contentRepository);
@@ -39,6 +41,7 @@ public sealed class GameSession
         GameExpressionSymbols.ValidateDynamicVariables(initialState, StoryExecutionContext.Empty);
         SkillMaxLevelPolicy = new SkillMaxLevelPolicy(this);
         CharacterResourceLimitPolicy = new CharacterResourceLimitPolicy(this);
+        PlayTimeService = new PlayTimeService(this, timeProvider);
         SaveGameService = new SaveGameService(this, DiagnosticLogger);
         ProfileService = new ProfileService(this, DiagnosticLogger);
         SessionFlowService = new SessionFlowService(this);
@@ -69,6 +72,7 @@ public sealed class GameSession
     internal IDiagnosticLogger DiagnosticLogger { get; }
     public SkillMaxLevelPolicy SkillMaxLevelPolicy { get; }
     public CharacterResourceLimitPolicy CharacterResourceLimitPolicy { get; }
+    public PlayTimeService PlayTimeService { get; }
     public SaveGameService SaveGameService { get; }
     public ProfileService ProfileService { get; }
     public SessionFlowService SessionFlowService { get; }

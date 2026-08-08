@@ -62,6 +62,31 @@ public sealed class SaveGameTests
     }
 
     [Fact]
+    public void SaveGame_CurrentVersionWithoutPlayTimeRestoresZero()
+    {
+        var saveGame = SaveGame.Create(
+            new AdventureState(),
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            new MapEventProgressState(),
+            new WorldTriggerState(),
+            playTimeSeconds: 42);
+        var json = JsonSerializer.Serialize(saveGame, GameJson.Default)
+            .Replace(",\"PlayTimeSeconds\":42", string.Empty, StringComparison.Ordinal);
+
+        var restored = JsonSerializer.Deserialize<SaveGame>(json, GameJson.Default);
+
+        Assert.NotNull(restored);
+        Assert.Equal(24, SaveGame.CurrentVersion);
+        Assert.Equal(0, restored!.PlayTimeSeconds);
+    }
+
+    [Fact]
     public void SaveGame_RoundTripsCharactersAndParties()
     {
         var slashForm = new FormSkillDefinition(

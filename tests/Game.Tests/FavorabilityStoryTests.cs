@@ -26,6 +26,16 @@ public sealed class FavorabilityStoryTests
     }
 
     [Fact]
+    public async Task HaoganCommandAlias_ChangesTargetedFavorability()
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+
+        await session.StoryService.CommandLine.ExecuteAsync("haogan '李文秀' 5");
+
+        Assert.Equal(55, session.State.Adventure.GetFavorability("李文秀"));
+    }
+
+    [Fact]
     public void FavorabilityFunction_ReturnsTargetedFavorability()
     {
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());

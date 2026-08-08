@@ -47,6 +47,7 @@ public partial class BattleScreen : Control
 	private BattleSkillPresentationController _skillPresentationController = null!;
 	private BattleBoardController _boardController = null!;
 	private BattleActionPanelController _actionPanelController = null!;
+	private BattleSurrenderCoordinator _surrenderCoordinator = null!;
 
 	private TextureRect _background = null!;
 	private Label _titleLabel = null!;
@@ -111,12 +112,17 @@ public partial class BattleScreen : Control
 			PlayerTeam,
 			() => _state,
 			() => _flowContext?.GetReachablePositions() ?? new Dictionary<GridPosition, int>());
+		_surrenderCoordinator = new BattleSurrenderCoordinator(
+			() => _flow,
+			() => _flowContext,
+			exception => _flowFailure.TrySetException(exception));
 		_actionPanelController = new BattleActionPanelController(
 			_presenter,
 			PlayerTeam,
 			() => _state,
 			() => _flowContext?.Engine,
 			DispatchIntent,
+			_surrenderCoordinator.Request,
 			new BattleActionPanelView(
 				_selectedSkillBox,
 				_moveButton,
@@ -181,6 +187,7 @@ public partial class BattleScreen : Control
 
 	public override void _ExitTree()
 	{
+		_surrenderCoordinator.Cancel();
 		_settingsController.RestoreTimeScale();
 		base._ExitTree();
 		_settlementController.Cancel();
@@ -295,6 +302,7 @@ public partial class BattleScreen : Control
 
 	internal Task ShowBattleEndedAsync(bool isWin)
 	{
+		_surrenderCoordinator.Cancel();
 		_settingsController.Save();
 		return _settlementController.CompleteAsync(isWin, _state, _battleRequest);
 	}

@@ -206,7 +206,8 @@ public partial class SystemPanel : Control
 		_typewriterDialogCheckBox.ButtonPressed,
 		_showBattleBoardCheckBox.ButtonPressed,
 		_largeMapMovementAnimationCheckBox.ButtonPressed,
-		ReadSelectedScreenAspect());
+		ReadSelectedScreenAspect(),
+		_settings.LargeMapZoom);
 
 	private void UpdateBattleSpeedMultiplierLabel(int multiplier)
 	{

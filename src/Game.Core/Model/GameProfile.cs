@@ -14,9 +14,17 @@ public sealed class GameProfile
 
     public int KillCount { get; private set; }
 
+    public int SaveCount { get; private set; }
+
+    public int CompletionCount { get; private set; }
+
+    public int HighestRound { get; private set; }
+
     public int ZhenlongqijuLevel { get; private set; }
 
     public int Yuanbao { get; private set; }
+
+    public long TotalPlayTimeSeconds { get; private set; }
 
     public bool IsAchievementUnlocked(string achievementId)
     {
@@ -66,13 +74,38 @@ public sealed class GameProfile
     public void AddDeaths(int count = 1)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
-        DeathCount += count;
+        DeathCount = checked(DeathCount + count);
     }
 
     public void AddKills(int count = 1)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
-        KillCount += count;
+        KillCount = checked(KillCount + count);
+    }
+
+    public void AddSaves(int count = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        SaveCount = checked(SaveCount + count);
+    }
+
+    public void RecordCompletion(int completedRound)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(completedRound, 1);
+        CompletionCount = checked(CompletionCount + 1);
+        RecordRoundReached(completedRound);
+    }
+
+    public bool RecordRoundReached(int round)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(round, 1);
+        if (round <= HighestRound)
+        {
+            return false;
+        }
+
+        HighestRound = round;
+        return true;
     }
 
     public void SetZhenlongqijuLevel(int level)
@@ -124,6 +157,18 @@ public sealed class GameProfile
         Yuanbao = amount;
     }
 
+    public void SetTotalPlayTimeSeconds(long seconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seconds);
+        TotalPlayTimeSeconds = seconds;
+    }
+
+    public void AddPlayTimeSeconds(long seconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seconds);
+        TotalPlayTimeSeconds = checked(TotalPlayTimeSeconds + seconds);
+    }
+
     public void SetUnlockedAchievementIds(IEnumerable<string> achievementIds)
     {
         ArgumentNullException.ThrowIfNull(achievementIds);
@@ -164,12 +209,23 @@ public sealed class GameProfile
         }
     }
 
-    public void SetLifetimeStats(int deathCount, int killCount)
+    public void SetLifetimeStats(int deathCount, int killCount, int saveCount)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(deathCount);
         ArgumentOutOfRangeException.ThrowIfNegative(killCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(saveCount);
 
         DeathCount = deathCount;
         KillCount = killCount;
+        SaveCount = saveCount;
+    }
+
+    public void SetCompletionStats(int completionCount, int highestRound)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(completionCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(highestRound);
+
+        CompletionCount = completionCount;
+        HighestRound = highestRound;
     }
 }

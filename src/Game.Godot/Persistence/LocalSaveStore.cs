@@ -69,7 +69,15 @@ public sealed class LocalSaveStore
 			throw new InvalidOperationException("无悔周目只允许自动存档。");
 		}
 
-		return SaveCurrentSession(ResolveSavePath(saveId), GetLogName(saveId));
+		var absolutePath = SaveCurrentSession(ResolveSavePath(saveId), GetLogName(saveId));
+		if (saveId.Kind is LocalSaveKind.Quick or LocalSaveKind.Manual)
+		{
+			Game.ProfileService.AddSaves();
+		}
+
+		new LocalProfileStore().SaveCurrentProfile();
+
+		return absolutePath;
 	}
 
 	private static bool CanWriteCurrentSession(LocalSaveId saveId) =>
@@ -164,6 +172,7 @@ public sealed class LocalSaveStore
 			CurrentMapId: saveGame.Location.CurrentMapId,
 			SavedAtUtc: envelope.SavedAtUtc,
 			NoRegret: saveGame.Adventure.NoRegret,
+			PlayTimeSeconds: saveGame.PlayTimeSeconds,
 			ModWarningImpact: modComparison.WarningImpact,
 			ModDifferences: modComparison.Differences);
 	}
@@ -273,6 +282,7 @@ public sealed record LocalSaveSummary(
 	string? CurrentMapId = null,
 	DateTimeOffset? SavedAtUtc = null,
 	bool NoRegret = false,
+	long PlayTimeSeconds = 0,
 	SaveImpact ModWarningImpact = SaveImpact.None,
 	IReadOnlyList<ModLoadoutDifference>? ModDifferences = null,
 	LocalSaveReadFailureReason FailureReason = LocalSaveReadFailureReason.None)

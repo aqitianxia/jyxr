@@ -7,6 +7,21 @@ namespace Game.Tests;
 public sealed class SessionFlowServiceTests
 {
     [Fact]
+    public void StartNewGame_RecordsFirstRoundAsReached()
+    {
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var session = new GameSession(
+            new GameState(),
+            TestContentFactory.CreateRepository(characters: [heroDefinition]),
+            config: new GameConfig { InitialPartyCharacterIds = ["hero"] });
+
+        session.SessionFlowService.StartNewGame();
+
+        Assert.Equal(1, session.Profile.HighestRound);
+        Assert.Equal(0, session.Profile.CompletionCount);
+    }
+
+    [Fact]
     public void StartNextRound_ResetsNoRegret()
     {
         var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
@@ -46,6 +61,8 @@ public sealed class SessionFlowServiceTests
 
         Assert.Equal(3, session.State.Adventure.Round);
         Assert.Equal(100, session.State.Currency.Silver);
+        Assert.Equal(3, session.Profile.HighestRound);
+        Assert.Equal(0, session.Profile.CompletionCount);
     }
 
     [Fact]
@@ -70,5 +87,27 @@ public sealed class SessionFlowServiceTests
         Assert.True(session.State.Story.TryGetVariable("last_trial_count", out var value));
         Assert.Equal(ExpressionValueKind.Number, value.Kind);
         Assert.Equal(3, value.AsInt32("last_trial_count"));
+    }
+
+    [Fact]
+    public void StartNextRound_CarriesPlayTimeWhileStartNewGameResetsIt()
+    {
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = new GameState();
+        state.SetPlayTimeSeconds(456);
+        var profile = new GameProfile();
+        profile.SetTotalPlayTimeSeconds(1234);
+        var session = new GameSession(
+            state,
+            TestContentFactory.CreateRepository(characters: [heroDefinition]),
+            initialProfile: profile,
+            config: new GameConfig { InitialPartyCharacterIds = ["hero"] });
+
+        session.SessionFlowService.StartNextRound();
+        Assert.Equal(456, session.State.PlayTimeSeconds);
+
+        session.SessionFlowService.StartNewGame();
+        Assert.Equal(0, session.State.PlayTimeSeconds);
+        Assert.Equal(1234, session.Profile.TotalPlayTimeSeconds);
     }
 }

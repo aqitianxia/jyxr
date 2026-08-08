@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Game.Application;
 using Game.Core.Definitions;
+using Game.Presentation.Hero;
 using Godot;
 
 namespace Game.Godot.UI;
@@ -18,6 +19,8 @@ public partial class HeroPanel : JyPanel
 	private JyButton _achievementTabButton = null!;
 	private JyButton _masteryTabButton = null!;
 	private RichTextLabel _adventurePageSubtitle = null!;
+	private RichTextLabel _profileStatsLabel = null!;
+	private global::Godot.Timer _profileStatsRefreshTimer = null!;
 	private CheckBox _previewCheckBox = null!;
 	private Label _completionLabel = null!;
 	private RichTextLabel _achievementLabel = null!;
@@ -34,6 +37,8 @@ public partial class HeroPanel : JyPanel
 		_achievementTabButton = GetNode<JyButton>("%AchievementTabButton");
 		_masteryTabButton = GetNode<JyButton>("%MasteryTabButton");
 		_adventurePageSubtitle = GetNode<RichTextLabel>("%AdventurePageSubtitle");
+		_profileStatsLabel = GetNode<RichTextLabel>("%ProfileStatsLabel");
+		_profileStatsRefreshTimer = GetNode<global::Godot.Timer>("%ProfileStatsRefreshTimer");
 		_previewCheckBox = GetNode<CheckBox>("%PreviewCheckBox");
 		_completionLabel = GetNode<Label>("%CompletionLabel");
 		_achievementLabel = GetNode<RichTextLabel>("%AchievementLabel");
@@ -43,13 +48,16 @@ public partial class HeroPanel : JyPanel
 		_achievementTabButton.Pressed += () => ShowTab(1);
 		_masteryTabButton.Pressed += () => ShowTab(2);
 		_previewCheckBox.Toggled += OnPreviewToggled;
+		_profileStatsRefreshTimer.Timeout += OnProfileStatsRefreshTimeout;
 		_subscriptions.Add(Game.Session.Events.Subscribe<ProfileChangedEvent>(OnProfileChanged));
 		_subscriptions.Add(Game.Session.Events.Subscribe<ProfileLoadedEvent>(OnProfileLoaded));
 		_subscriptions.Add(Game.Session.Events.Subscribe<AchievementUnlockedEvent>(OnAchievementUnlocked));
 		_subscriptions.Add(Game.Session.Events.Subscribe<AdventureStateChangedEvent>(OnAdventureStateChanged));
 		_subscriptions.Add(Game.Session.Events.Subscribe<SaveLoadedEvent>(OnSaveLoaded));
 
+		Game.PlayTimeService.Checkpoint();
 		RenderAdventure();
+		RenderProfileStats();
 		RenderAchievements();
 		ShowTab(0);
 	}
@@ -75,9 +83,17 @@ public partial class HeroPanel : JyPanel
 		_heroTabContainer.CurrentTab = index;
 	}
 
-	private void OnProfileChanged(ProfileChangedEvent _) => RenderAchievements();
+	private void OnProfileChanged(ProfileChangedEvent _)
+	{
+		RenderProfileStats();
+		RenderAchievements();
+	}
 
-	private void OnProfileLoaded(ProfileLoadedEvent _) => RenderAchievements();
+	private void OnProfileLoaded(ProfileLoadedEvent _)
+	{
+		RenderProfileStats();
+		RenderAchievements();
+	}
 
 	private void OnAchievementUnlocked(AchievementUnlockedEvent _) => RenderAchievements();
 
@@ -86,24 +102,102 @@ public partial class HeroPanel : JyPanel
 	private void OnSaveLoaded(SaveLoadedEvent _)
 	{
 		RenderAdventure();
+		RenderProfileStats();
 		RenderAchievements();
+	}
+
+	private void OnProfileStatsRefreshTimeout()
+	{
+		Game.PlayTimeService.Checkpoint();
+		RenderProfileStats();
 	}
 
 	private void RenderAdventure()
 	{
 		var adventure = Game.State.Adventure;
-		var sectName = ResolveSectName();
-		var maxHpMp = Game.CharacterResourceLimitPolicy.GetMaxHpMp();
 		var noRegretTag = adventure.NoRegret
-			? "[color=magenta]【无悔】[/color]"
+			? " [color=#c58aa7]【无悔】[/color]"
 			: string.Empty;
-		_adventurePageSubtitle.Text =
-			$"门派：[color=red]{sectName}[/color]\n" +
-			$"道德：[color=red]{adventure.Morality}[/color]\n" +
-			$"女主角好感：[color=red]{adventure.Favorability}[/color]\n" +
-			$"难度：[color=red]{GameDifficultyFormatter.FormatNameCn(adventure.Difficulty)}[/color]{noRegretTag}\n" +
-			$"周目：[color=red]{adventure.Round}[/color]\n" +
-			$"血内上限：[color=red]{maxHpMp}[/color]";
+		var builder = new StringBuilder(
+			"[center][font_size=34][color=#f0ebe3]本周目历练[/color][/font_size]\n[table=5]");
+		AppendAdventureStat(builder, "门派", ResolveSectName(), "#fbf8f1");
+		AppendAdventureStat(builder, "道德", adventure.Morality.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendAdventureStat(
+			builder,
+			"难度",
+			GameDifficultyFormatter.FormatNameCn(adventure.Difficulty) + noRegretTag,
+			"#d86b62");
+		AppendAdventureStat(builder, "周目", adventure.Round.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendAdventureStat(
+			builder,
+			"血内上限",
+			Game.CharacterResourceLimitPolicy.GetMaxHpMp().ToString(CultureInfo.InvariantCulture),
+			"#fbf8f1");
+		builder.Append("[/table]\n[font_size=32][color=#f0ebe3]人物好感[/color][/font_size]\n");
+		AppendFavorabilityGrid(builder);
+		builder.Append("[/center]");
+		_adventurePageSubtitle.Text = builder.ToString();
+	}
+
+	private void RenderProfileStats()
+	{
+		var profile = Game.Profile;
+		var builder = new StringBuilder(
+			"[center][font_size=34][color=#f0ebe3]生涯留痕[/color][/font_size]\n[table=3]");
+		AppendProfileStat(builder, "死亡次数", profile.DeathCount.ToString(CultureInfo.InvariantCulture), "#d86b62");
+		AppendProfileStat(builder, "存档次数", profile.SaveCount.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendProfileStat(builder, "击杀数量", profile.KillCount.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendProfileStat(builder, "通关次数", profile.CompletionCount.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendProfileStat(builder, "最高周目", profile.HighestRound.ToString(CultureInfo.InvariantCulture), "#fbf8f1");
+		AppendProfileStat(builder, "总游玩时间", PlayTimeFormatter.FormatHoursAndMinutes(profile.TotalPlayTimeSeconds), "#fbf8f1");
+		builder.Append("[/table][/center]");
+		_profileStatsLabel.Text = builder.ToString();
+	}
+
+	private static void AppendAdventureStat(StringBuilder builder, string title, string value, string valueColor)
+	{
+		builder.Append("[cell expand=1 shrink=false padding=18,12,18,12][center][font_size=32][color=#e8e2d9]");
+		builder.Append(title);
+		builder.Append("[/color][/font_size]\n[font_size=38][color=");
+		builder.Append(valueColor);
+		builder.Append(']');
+		builder.Append(value);
+		builder.Append("[/color][/font_size][/center][/cell]");
+	}
+
+	private static void AppendProfileStat(StringBuilder builder, string title, string value, string valueColor)
+	{
+		builder.Append("[cell expand=1 shrink=false padding=30,14,30,14][center][font_size=32][color=#e8e2d9]");
+		builder.Append(title);
+		builder.Append("[/color][/font_size]\n[font_size=40][color=");
+		builder.Append(valueColor);
+		builder.Append(']');
+		builder.Append(value);
+		builder.Append("[/color][/font_size][/center][/cell]");
+	}
+
+	private static void AppendFavorabilityGrid(StringBuilder builder)
+	{
+		var favorabilityViews = HeroFavorabilityPresenter.Build(
+			Game.State.Adventure,
+			Game.State.Party,
+			Game.ContentRepository);
+		if (favorabilityViews.Count == 0)
+		{
+			builder.Append("[font_size=32][color=#bbb5ab]暂无[/color][/font_size]");
+			return;
+		}
+
+		builder.Append("[table=4]");
+		foreach (var favorability in favorabilityViews)
+		{
+			builder.Append("[cell expand=1 shrink=false padding=18,8,18,8][center][font_size=32][color=#f0ebe3]");
+			builder.Append(favorability.DisplayName);
+			builder.Append("[/color]  [color=#fbf8f1]");
+			builder.Append(favorability.Value);
+			builder.Append("[/color][/font_size][/center][/cell]");
+		}
+		builder.Append("[/table]");
 	}
 
 	private void RenderAchievements()

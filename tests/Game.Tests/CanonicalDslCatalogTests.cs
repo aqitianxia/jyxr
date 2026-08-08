@@ -78,6 +78,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("set_game_mode", "set_difficulty")]
     [InlineData("log", "journal")]
     [InlineData("daode", "change_morality")]
+    [InlineData("haogan", "change_favorability")]
     [InlineData("menpai", "set_sect")]
     [InlineData("growtemplate", "set_growth")]
     [InlineData("grant_point", "grant_points")]

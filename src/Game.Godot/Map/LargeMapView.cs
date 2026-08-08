@@ -2,6 +2,7 @@ using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Godot.Assets;
+using Game.Godot.Persistence;
 using Godot;
 
 namespace Game.Godot.Map;
@@ -16,6 +17,7 @@ public partial class LargeMapView : Control
 	private const float DesignOffsetY = -52f;
 	private const float MinimumZoom = 1f;
 	private const float MaximumZoom = 3f;
+	private const float MobileDefaultZoom = 1.5f;
 	private const float MouseWheelZoomStep = 1.15f;
 	private const float DragThreshold = 10f;
 	private const float PinMovePixelsPerSecond = 900f;
@@ -25,6 +27,7 @@ public partial class LargeMapView : Control
 
 	private readonly Dictionary<int, Vector2> _touches = new();
 	private readonly LargeMapTransform _transform = new(CanvasSize, MinimumZoom, MaximumZoom);
+	private readonly LocalUserSettingsStore _settingsStore = new();
 	private Control _mapSurface = null!;
 	private TextureRect _background = null!;
 	private ColorRect _timeDim = null!;
@@ -113,7 +116,6 @@ public partial class LargeMapView : Control
 		}
 
 		ResetInputState();
-		ResetView();
 		SetBackground(result.Map.Picture);
 		SetHeroPortrait();
 		ClearChildren(_locations);
@@ -134,10 +136,11 @@ public partial class LargeMapView : Control
 			_locations.AddChild(marker);
 		}
 
-		_heroDesignPosition = result.HeroPosition is { } heroPosition
+		Vector2? heroDesignPosition = result.HeroPosition is { } heroPosition
 			? ProjectToDesign(heroPosition)
-			: Vector2.Zero;
-		ApplyVisualTransform();
+			: null;
+		_heroDesignPosition = heroDesignPosition ?? Vector2.Zero;
+		ResetView(heroDesignPosition);
 	}
 
 	public void SetTimeDim(float alpha)
@@ -235,9 +238,13 @@ public partial class LargeMapView : Control
 		ApplyVisualTransform();
 	}
 
-	private void ResetView()
+	private void ResetView(Vector2? centerDesignPosition = null)
 	{
-		_transform.Reset(Size);
+		var settings = _settingsStore.LoadOrDefault();
+		var initialZoom = settings.LargeMapZoom > 0f
+			? settings.LargeMapZoom
+			: Game.IsMobilePlatform ? MobileDefaultZoom : MinimumZoom;
+		_transform.Reset(Size, initialZoom, centerDesignPosition);
 		ApplyVisualTransform();
 	}
 
@@ -281,6 +288,24 @@ public partial class LargeMapView : Control
 		ApplyVisualTransform();
 	}
 
+	private void SaveZoom()
+	{
+		try
+		{
+			var settings = _settingsStore.LoadOrDefault();
+			if (Mathf.IsEqualApprox(settings.LargeMapZoom, _transform.Zoom))
+			{
+				return;
+			}
+
+			_settingsStore.Save(settings with { LargeMapZoom = _transform.Zoom });
+		}
+		catch (Exception exception)
+		{
+			Game.Logger.Error("Failed to save large-map zoom.", exception);
+		}
+	}
+
 	private bool HandleMouseButton(InputEventMouseButton mouseButton)
 	{
 		var position = mouseButton.Position;
@@ -300,6 +325,7 @@ public partial class LargeMapView : Control
 				? MouseWheelZoomStep
 				: 1f / MouseWheelZoomStep;
 			ApplyGesture(position, position, factor);
+			SaveZoom();
 			return true;
 		}
 
@@ -413,7 +439,12 @@ public partial class LargeMapView : Control
 			_touchPressedMarker is not null &&
 			_touchPressedMarker == releasedMarker;
 
+		var wasPinching = _touchState == TouchGestureState.Pinching;
 		_touches.Remove(touch.Index);
+		if (wasPinching)
+		{
+			SaveZoom();
+		}
 		if (shouldActivate)
 		{
 			ActivateMarker(_touchPressedMarker!);

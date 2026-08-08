@@ -25,11 +25,17 @@ public sealed class SessionFlowService
     private IContentRepository ContentRepository => _session.ContentRepository;
     private GameState State => _session.State;
 
-    public void StartNewGame() =>
+    public void StartNewGame()
+    {
+        _session.PlayTimeService.Stop();
         ReplaceState(_newGameStateFactory.Create(Config.InitialPartyCharacterIds));
+        _session.PlayTimeService.ResetInterval();
+        _session.ProfileService.RecordRoundReached(State.Adventure.Round);
+    }
 
     public void StartNextRound()
     {
+        _session.PlayTimeService.Checkpoint();
         var nextRound = checked(State.Adventure.Round + 1);
         var lastTrialCount = State.SpecialBattle.TrialCompletedCharacterIds.Count;
         var carriedChest = State.Chest.Clone(ContentRepository);
@@ -38,9 +44,11 @@ public sealed class SessionFlowService
             nextRound,
             carriedChest);
         nextState.Currency.AddSilver(NextRoundInitialSilver);
+        nextState.SetPlayTimeSeconds(State.PlayTimeSeconds);
         nextState.Story.SetVariable("last_trial_count", ExpressionValue.FromNumber(lastTrialCount));
 
         ReplaceState(nextState);
+        _session.ProfileService.RecordRoundReached(nextRound);
     }
 
     private void ReplaceState(GameState state)

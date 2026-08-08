@@ -4,6 +4,7 @@ namespace Game.Application;
 
 public sealed class BattleService
 {
+    private readonly GameSession _session;
     private readonly BattleStateFactory _stateFactory;
     private readonly BattleSettlementService _settlementService;
     private readonly BattleCarryoverService _carryoverService;
@@ -11,6 +12,7 @@ public sealed class BattleService
     public BattleService(GameSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
+        _session = session;
         var zhenlongqijuFactory = new ZhenlongqijuBattleFactory(session);
         var characterFactory = new ProceduralBattleCharacterFactory(session);
         _stateFactory = new BattleStateFactory(session, characterFactory, zhenlongqijuFactory);
@@ -33,6 +35,19 @@ public sealed class BattleService
 
     public void ApplyPlayerBattleCarryover(BattleState state) =>
         _carryoverService.ApplyPlayerBattleCarryover(state);
+
+    public void RecordDefeatedEnemies(BattleState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+
+        var defeatedEnemyCount = state.Units.Count(unit =>
+            unit.Team != _session.Config.BattlePlayerTeam &&
+            !unit.IsAlive);
+        if (defeatedEnemyCount > 0)
+        {
+            _session.ProfileService.AddKills(defeatedEnemyCount);
+        }
+    }
 
     public void RestorePartyBattleResources() =>
         _carryoverService.RestorePartyBattleResources();

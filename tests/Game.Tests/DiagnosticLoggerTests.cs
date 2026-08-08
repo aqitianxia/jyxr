@@ -44,6 +44,11 @@ public sealed class DiagnosticLoggerTests
             entry =>
             {
                 Assert.Equal(DiagnosticLogLevel.Info, entry.Level);
+                Assert.Contains("Recorded highest reached round", entry.Message, StringComparison.Ordinal);
+            },
+            entry =>
+            {
+                Assert.Equal(DiagnosticLogLevel.Info, entry.Level);
                 Assert.Contains("Loaded save game", entry.Message, StringComparison.Ordinal);
             });
     }

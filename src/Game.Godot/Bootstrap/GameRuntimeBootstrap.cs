@@ -96,6 +96,7 @@ public static class GameRuntimeBootstrap
 		UIRoot.Instance.BindSessionEvents(session);
 		World.Instance.GetNode<TimedStoryCoordinator>("%TimedStoryCoordinator").Bind(session);
 		World.Instance.AutoSave.Bind(session);
+		World.Instance.PlayTime.Bind(session);
 	}
 
 	private static void EnsureRuntimeNodes(SceneTree sceneTree)

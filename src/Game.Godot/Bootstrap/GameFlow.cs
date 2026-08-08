@@ -15,12 +15,14 @@ public static class GameFlow
 	public static async Task StartNewGameAsync(CancellationToken cancellationToken = default)
 	{
 		Game.SessionFlowService.StartNewGame();
+		World.Instance.PlayTime.StartGameplay();
 		await StartOpeningStoryAsync(cancellationToken);
 	}
 
 	public static async Task StartNextRoundAsync(CancellationToken cancellationToken = default)
 	{
 		Game.SessionFlowService.StartNextRound();
+		World.Instance.PlayTime.StartGameplay();
 		await StartOpeningStoryAsync(cancellationToken);
 	}
 
@@ -29,6 +31,7 @@ public static class GameFlow
 		ArgumentNullException.ThrowIfNull(saveGame);
 
 		Game.SaveGameService.LoadSave(saveGame);
+		World.Instance.PlayTime.StartGameplay();
 		UIRoot.Instance.ResetPresentationAfterLoad();
 
 		if (string.IsNullOrWhiteSpace(Game.State.Location.CurrentMapId))
@@ -47,6 +50,7 @@ public static class GameFlow
 
 	public static void ReturnToMainMenu()
 	{
+		World.Instance.PlayTime.StopGameplay();
 		UIRoot.Instance.ClosePanel();
 		UIRoot.Instance.SetHudSuppressed(true);
 		UIRoot.Instance.SetStoryPresentationActive(false);
@@ -66,8 +70,15 @@ public static class GameFlow
 
 	public static void GameOver()
 	{
+		World.Instance.PlayTime.StopGameplay();
 		Game.ProfileService.AddDeaths();
 		UIRoot.Instance.ShowGameOverScreen();
+	}
+
+	public static void GameComplete()
+	{
+		World.Instance.PlayTime.StopGameplay();
+		UIRoot.Instance.ShowGameFinScreen();
 	}
 
 	private static async Task StartOpeningStoryAsync(CancellationToken cancellationToken)
