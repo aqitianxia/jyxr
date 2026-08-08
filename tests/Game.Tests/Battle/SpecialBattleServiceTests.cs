@@ -273,18 +273,18 @@ public sealed class SpecialBattleServiceTests
         public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) =>
             ValueTask.FromResult(BattleOutcome.Win);
 
-        public ValueTask<ExprValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
-            ValueTask.FromException<ExprValue>(new InvalidOperationException($"Unknown variable '{name}'."));
+        public ValueTask<ExpressionValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
+            ValueTask.FromException<ExpressionValue>(new InvalidOperationException($"Unknown variable '{name}'."));
 
         public ValueTask<bool> EvaluatePredicateAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<bool>(new InvalidOperationException($"Unknown predicate '{name}'."));
 
         public ValueTask<StoryCommandResult> ExecuteCommandAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(StoryCommandResult.None);
 

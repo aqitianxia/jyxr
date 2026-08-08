@@ -17,7 +17,7 @@ internal sealed partial class StoryRuntimeSession
             var isAvailable = true;
             if (group.When is not null)
             {
-                var result = await ExpressionEvaluator.EvaluateAsync(group.When, host, ct);
+                var result = _expressionEvaluator.Evaluate(group.When, host.ExpressionEnvironment);
                 isAvailable = result.AsBoolean("choice group condition");
             }
 
@@ -84,10 +84,8 @@ internal sealed partial class StoryRuntimeSession
 
             if (selectedOutcome == BattleOutcome.Lose)
             {
-                var args = Array.Empty<ExprValue>();
-                await host.ExecuteCommandAsync(GameOverCommand, args, ct);
+                await host.GameOverAsync(ct);
                 yield return StepResult.FromEvent(new BattleResolvedEvent(context, selectedOutcome));
-                yield return StepResult.FromEvent(new CommandExecutedEvent(GameOverCommand, args));
                 yield return StepResult.Terminate();
                 yield break;
             }
@@ -114,7 +112,7 @@ internal sealed partial class StoryRuntimeSession
     {
         foreach (var branchCase in branch.Cases)
         {
-            var result = await ExpressionEvaluator.EvaluateAsync(branchCase.When, host, ct);
+            var result = _expressionEvaluator.Evaluate(branchCase.When, host.ExpressionEnvironment);
             if (!result.AsBoolean("branch condition"))
             {
                 continue;

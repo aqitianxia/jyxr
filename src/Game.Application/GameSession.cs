@@ -10,8 +10,9 @@ public sealed class GameSession
         IContentRepository contentRepository,
         IDiagnosticLogger? logger = null,
         GameProfile? initialProfile = null,
-        GameConfig? config = null)
-        : this(initialState, contentRepository, NullRuntimeHost.Instance, logger, initialProfile, config)
+        GameConfig? config = null,
+        IRandomService? randomService = null)
+        : this(initialState, contentRepository, NullRuntimeHost.Instance, logger, initialProfile, config, randomService: randomService)
     {
     }
 
@@ -22,7 +23,8 @@ public sealed class GameSession
         IDiagnosticLogger? logger = null,
         GameProfile? initialProfile = null,
         GameConfig? config = null,
-        GameSettings? settings = null)
+        GameSettings? settings = null,
+        IRandomService? randomService = null)
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(contentRepository);
@@ -32,6 +34,8 @@ public sealed class GameSession
         Config = config ?? new GameConfig();
         Settings = settings ?? new GameSettings();
         ContentRepository = contentRepository;
+        RandomService = randomService ?? SharedRandomService.Instance;
+        GameExpressionSymbols.ValidateDynamicVariables(this, StoryExecutionContext.Empty);
         SkillMaxLevelPolicy = new SkillMaxLevelPolicy(this);
         CharacterResourceLimitPolicy = new CharacterResourceLimitPolicy(this);
         SaveGameService = new SaveGameService(this, logger);
@@ -60,6 +64,7 @@ public sealed class GameSession
     public GameConfig Config { get; }
     public GameSettings Settings { get; }
     public IContentRepository ContentRepository { get; }
+    public IRandomService RandomService { get; }
     public SkillMaxLevelPolicy SkillMaxLevelPolicy { get; }
     public CharacterResourceLimitPolicy CharacterResourceLimitPolicy { get; }
     public SaveGameService SaveGameService { get; }
@@ -81,7 +86,19 @@ public sealed class GameSession
     public StoryTimeKeyExpirationService StoryTimeKeyExpirationService { get; }
     public StoryService StoryService { get; }
 
-    public void ReplaceState(GameState state) => State = state;
+    public void ReplaceState(GameState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        State = state;
+        GameExpressionSymbols.ValidateDynamicVariables(this, StoryExecutionContext.Empty);
+    }
 
     public void ReplaceProfile(GameProfile profile) => Profile = profile;
+
+    private sealed class SharedRandomService : IRandomService
+    {
+        public static SharedRandomService Instance { get; } = new();
+        public double NextDouble() => Random.Shared.NextDouble();
+        public int Next(int minInclusive, int maxExclusive) => Random.Shared.Next(minInclusive, maxExclusive);
+    }
 }

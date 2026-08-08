@@ -17,7 +17,7 @@ follow <characterId> [definitionId]
 
 省略 `definitionId` 时默认与 `characterId` 相同。实例已存在于当前队伍、跟随池或后备池时，指令只移动并复用原实例，不更换其 Definition，也不丢失成长状态。
 
-迁移前，应汇总 `game-config.json` 初始队伍、`join`、`follow`、`random_join` 及 MOD 自定义入队入口。如果多个 Definition 表达同一个可持续成长的剧情人物，只是初始阶段或强度不同，应为它们选择同一个稳定 `characterId`，并仅在首次加入命令中区分模板。
+迁移前，应汇总 `game-config.json` 初始队伍、`join`、`follow`、`join_random` 及 MOD 自定义入队入口。如果多个 Definition 表达同一个可持续成长的剧情人物，只是初始阶段或强度不同，应为它们选择同一个稳定 `characterId`，并仅在首次加入命令中区分模板。
 
 例如：
 
@@ -45,8 +45,19 @@ join 程英 程英.高级
 
 如果两个同名 Definition 确实表示需要同时存在、分别成长或分别参与条件判断的角色实例，则继续使用不同的 `characterId`，例如 `袁承志` 与 `儿时袁承志`。不要仅因为显示名相同就合并实例身份。
 
-`random_join` 仍只接受一组单值 ID，候选项的实例 ID 与 Definition ID 必须相同；需要分离两者的角色应使用明确的 `join` 或 `follow`。
+随机加入写法为 `join_random(['程英', '郭襄'])`，不再注册 `random_join`。候选项的实例 ID 与 Definition ID 必须相同；需要分离两者的角色应使用明确的 `join` 或 `follow`。空列表和任意未知候选都会在消耗随机数前报错。
 
 `definitionId` 只在首次创建时生效。若业务需要把已有角色从一个模板升级或转换为另一个模板，应建立独立的“角色转化/重建”用例，不能让 `join` 隐式完成。低级程英升级为高级模板只是这一通用规则的一个例子。
 
 对话和选项的说话人属于展示解析；同一人物的不同模板共用显示身份时，也应优先写稳定 `characterId`。
+
+## 2. 学习与移除指令
+
+万能指令不再接受分类前置参数，当前签名为：
+
+```text
+learn(character_id, target_id, level=1)
+remove(character_id, target_id)
+```
+
+它们按外功、内功、特技、天赋顺序匹配第一个 Definition。外功和内功使用 level；特技和天赋忽略 level 的具体数值。需要固定分类时使用 `learn_external/internal/special/talent` 及对应 `remove_*`。旧写法 `learn('external', '主角', '野球拳')` 和 `remove('external', '主角', '野球拳')` 不兼容。

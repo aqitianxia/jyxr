@@ -93,3 +93,24 @@ public enum TimeSlot
     Xu = 10,
     Hai = 11,
 }
+
+public static class TimeSlotNames
+{
+    public static string ToChineseBranch(this TimeSlot timeSlot) =>
+        timeSlot switch
+        {
+            TimeSlot.Zi => "子",
+            TimeSlot.Chou => "丑",
+            TimeSlot.Yin => "寅",
+            TimeSlot.Mao => "卯",
+            TimeSlot.Chen => "辰",
+            TimeSlot.Si => "巳",
+            TimeSlot.Wu => "午",
+            TimeSlot.Wei => "未",
+            TimeSlot.Shen => "申",
+            TimeSlot.You => "酉",
+            TimeSlot.Xu => "戌",
+            TimeSlot.Hai => "亥",
+            _ => throw new ArgumentOutOfRangeException(nameof(timeSlot), timeSlot, null),
+        };
+}

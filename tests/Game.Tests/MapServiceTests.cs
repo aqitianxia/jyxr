@@ -2,6 +2,7 @@ using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Core.Model.Character;
+using Game.Expressions;
 
 namespace Game.Tests;
 
@@ -41,17 +42,8 @@ public sealed class MapServiceTests
         var worldTrigger = new WorldTriggerDefinition
         {
             Id = "story_global",
-            Type = "story",
-            TargetId = "story_global",
-            Probability = 100,
-            Conditions =
-            [
-                new MapEventConditionDefinition
-                {
-                    Type = "friendCount",
-                    Value = "4",
-                },
-            ],
+            Action = Call("story('story_global')"),
+            When = Expr("friend_count >= 4"),
         };
         var repository = TestContentFactory.CreateRepository(maps: [worldMap], worldTriggers: [worldTrigger]);
 
@@ -65,8 +57,8 @@ public sealed class MapServiceTests
         var result = session.MapService.EnterMap("world");
 
         Assert.NotNull(result.PendingInteraction);
-        Assert.Equal(MapService.MapInteractionOutcome.StoryRequested, result.PendingInteraction!.Outcome);
-        Assert.Equal("story_global", result.PendingInteraction.TargetId);
+        Assert.Equal("story", result.PendingInteraction!.Command!.Root.Name);
+        Assert.Equal("story_global", CallArgument(result.PendingInteraction.Command));
         Assert.True(state.WorldTriggers.IsCompleted("story_global"));
     }
 
@@ -80,17 +72,8 @@ public sealed class MapServiceTests
         var worldTrigger = new WorldTriggerDefinition
         {
             Id = "story_global",
-            Type = "story",
-            TargetId = "story_global",
-            Probability = 100,
-            Conditions =
-            [
-                new MapEventConditionDefinition
-                {
-                    Type = "friendCount",
-                    Value = "4",
-                },
-            ],
+            Action = Call("story('story_global')"),
+            When = Expr("friend_count >= 4"),
         };
         var repository = TestContentFactory.CreateRepository(maps: [worldMap], worldTriggers: [worldTrigger]);
 
@@ -107,14 +90,12 @@ public sealed class MapServiceTests
     }
 
     [Fact]
-    public void InteractWithLocation_LargeMap_StoryOnceEventAppliesDistanceCostWithoutMarkingMapEventCompleted()
+    public void InteractWithLocation_LargeMap_OnceEventCompletesOnlyAfterSuccessfulDispatch()
     {
         var villageEvent = new MapEventDefinition
         {
-            Type = "story",
-            TargetId = "story_intro",
+            Action = Call("story('story_intro')"),
             RepeatMode = RepeatMode.Once,
-            Probability = 100,
             Description = "村口奇遇",
         };
         var worldMap = CreateMap(
@@ -132,16 +113,17 @@ public sealed class MapServiceTests
             .Single();
         var result = session.MapService.InteractWithLocation(location);
 
-        Assert.Equal(MapService.MapInteractionOutcome.StoryRequested, result.Outcome);
+        Assert.Equal("story", result.Command!.Root.Name);
         Assert.Equal(6, result.ConsumedTimeSlots);
         Assert.Equal(TimeSlot.Xu, state.Clock.TimeSlot);
         Assert.Equal(new MapPosition(30, 40), state.Location.GetLargeMapPosition("world"));
         Assert.False(state.MapEventProgress.IsCompleted(WorldVillageEventKey));
-        Assert.Null(result.EnterResult);
+        session.MapService.CompleteInteraction(result);
+        Assert.True(state.MapEventProgress.IsCompleted(WorldVillageEventKey));
     }
 
     [Fact]
-    public void EnterMap_StoryOnceEvent_WhenTargetStoryCompleted_DoesNotTrigger()
+    public void EnterMap_StoryCompletionDoesNotReplaceMapEventIdentity()
     {
         var worldMap = CreateMap(
             "world",
@@ -153,10 +135,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_intro",
+                        Action = Call("story('story_intro')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                     },
                 ]));
         var repository = TestContentFactory.CreateRepository(maps: [worldMap]);
@@ -167,11 +147,11 @@ public sealed class MapServiceTests
 
         var enterResult = session.MapService.EnterMap("world");
 
-        Assert.Null(enterResult.Locations.Single().Event);
+        Assert.NotNull(enterResult.Locations.Single().Event);
     }
 
     [Fact]
-    public void EnterMap_StoryOnceEvent_WhenOnlyMapEventProgressCompleted_StillTriggers()
+    public void EnterMap_OnceEvent_WhenMapEventProgressCompleted_DoesNotTrigger()
     {
         var worldMap = CreateMap(
             "world",
@@ -183,10 +163,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_intro",
+                        Action = Call("story('story_intro')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                     },
                 ]));
         var repository = TestContentFactory.CreateRepository(maps: [worldMap]);
@@ -197,8 +175,7 @@ public sealed class MapServiceTests
 
         var location = session.MapService.EnterMap("world").Locations.Single();
 
-        Assert.NotNull(location.Event);
-        Assert.Equal("story_intro", location.Event!.TargetId);
+        Assert.Null(location.Event);
     }
 
     [Fact]
@@ -214,10 +191,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "map",
-                        TargetId = "inn",
+                        Action = Call("map('inn')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                     },
                 ]));
         var innMap = CreateMap(
@@ -232,13 +207,44 @@ public sealed class MapServiceTests
         var location = session.MapService.EnterMap("world").Locations.Single();
         var result = session.MapService.InteractWithLocation(location);
 
-        Assert.Equal(MapService.MapInteractionOutcome.MapChanged, result.Outcome);
+        Assert.Equal("map", result.Command!.Root.Name);
+        Assert.Equal("world", state.Location.CurrentMapId);
+        Assert.False(state.MapEventProgress.IsCompleted(WorldVillageEventKey));
+        session.MapService.CompleteInteraction(result);
         Assert.True(state.MapEventProgress.IsCompleted(WorldVillageEventKey));
         Assert.Null(session.MapService.EnterMap("world").Locations.Single().Event);
     }
 
     [Fact]
-    public void InteractWithLocation_MapEvent_ChangesMapAndIncludesMoveAndInteractionCost()
+    public async Task InteractWithLocation_BusinessCommand_UsesStoryCommandRegistry()
+    {
+        var map = CreateMap(
+            "inn",
+            MapKind.Small,
+            CreateLocation(
+                "keeper",
+                events:
+                [
+                    new MapEventDefinition
+                    {
+                        Action = Call("change_silver(25)"),
+                        RepeatMode = RepeatMode.Once,
+                    },
+                ]));
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(maps: [map]));
+
+        var location = session.MapService.EnterMap("inn").Locations.Single();
+        var interaction = session.MapService.InteractWithLocation(location);
+
+        await session.StoryService.CommandDispatcher.ExecuteCallAsync(interaction.Command!);
+        session.MapService.CompleteInteraction(interaction);
+
+        Assert.Equal(25, session.State.Currency.Silver);
+        Assert.Null(session.MapService.EnterMap("inn").Locations.SingleOrDefault().Event);
+    }
+
+    [Fact]
+    public void InteractWithLocation_MapCommandIncludesMoveAndInteractionCostWithoutExecutingCommand()
     {
         var worldMap = CreateMap(
             "world",
@@ -250,9 +256,7 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "map",
-                        TargetId = "inn",
-                        Probability = 100,
+                        Action = Call("map('inn')"),
                     },
                 ]));
         var innMap = CreateMap(
@@ -270,13 +274,11 @@ public sealed class MapServiceTests
             .Single();
         var result = session.MapService.InteractWithLocation(location);
 
-        Assert.Equal(MapService.MapInteractionOutcome.MapChanged, result.Outcome);
-        Assert.Equal("inn", state.Location.CurrentMapId);
+        Assert.Equal("map", result.Command!.Root.Name);
+        Assert.Equal("inn", CallArgument(result.Command));
+        Assert.Equal("world", state.Location.CurrentMapId);
         Assert.Equal(6, result.ConsumedTimeSlots);
         Assert.Equal(TimeSlot.Xu, state.Clock.TimeSlot);
-        Assert.NotNull(result.EnterResult);
-        Assert.Equal("inn", result.EnterResult!.Map.Id);
-        Assert.Equal(MapKind.Small, result.EnterResult.Map.Kind);
     }
 
     [Fact]
@@ -291,10 +293,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_keeper",
+                        Action = Call("story('story_keeper')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                         Description = "掌柜似有话说",
                     },
                 ]),
@@ -327,9 +327,7 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_keeper",
-                        Probability = 100,
+                        Action = Call("story('story_keeper')"),
                     },
                 ]));
         var repository = TestContentFactory.CreateRepository(maps: [map]);
@@ -340,7 +338,7 @@ public sealed class MapServiceTests
         var location = session.MapService.EnterMap("inn").Locations.Single();
         var result = session.MapService.InteractWithLocation(location);
 
-        Assert.Equal(MapService.MapInteractionOutcome.StoryRequested, result.Outcome);
+        Assert.Equal("story", result.Command!.Root.Name);
         Assert.Equal(1, result.ConsumedTimeSlots);
         Assert.Equal(TimeSlot.Si, state.Clock.TimeSlot);
     }
@@ -357,17 +355,13 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "shop",
-                        TargetId = "shop_old",
+                        Action = Call("shop('shop_old')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                         Description = "旧事件",
                     },
                     new MapEventDefinition
                     {
-                        Type = "shop",
-                        TargetId = "shop_new",
-                        Probability = 100,
+                        Action = Call("shop('shop_new')"),
                         Description = "新事件",
                     },
                 ]));
@@ -382,9 +376,8 @@ public sealed class MapServiceTests
 
         Assert.NotNull(enterResult.Locations[0].Event);
         Assert.Equal("新事件", enterResult.Locations[0].Event!.Description);
-        Assert.Equal(MapService.MapInteractionOutcome.ShopRequested, interactionResult.Outcome);
-        Assert.Equal("shop_new", interactionResult.TargetId);
-        Assert.Null(interactionResult.EnterResult);
+        Assert.Equal("shop", interactionResult.Command!.Root.Name);
+        Assert.Equal("shop_new", CallArgument(interactionResult.Command));
     }
 
     [Fact]
@@ -399,10 +392,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_without_key",
-                        Probability = 100,
-                        Conditions = [CreateCondition("not_has_time_key", "quest_cooldown")],
+                        Action = Call("story('story_without_key')"),
+                        When = Expr("!has_time_key('quest_cooldown')"),
                     },
                 ]));
         var hasKeyMap = CreateMap(
@@ -414,10 +405,8 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "story_with_key",
-                        Probability = 100,
-                        Conditions = [CreateCondition("has_time_key", "quest_cooldown")],
+                        Action = Call("story('story_with_key')"),
+                        When = Expr("has_time_key('quest_cooldown')"),
                     },
                 ]));
         var repository = TestContentFactory.CreateRepository(maps: [conditionedMap, hasKeyMap]);
@@ -425,7 +414,7 @@ public sealed class MapServiceTests
         var withoutTimeKey = new GameSession(new GameState(), repository);
         var visibleLocations = withoutTimeKey.MapService.EnterMap("inn").Locations;
         Assert.Single(visibleLocations);
-        Assert.Equal("story_without_key", visibleLocations[0].Event!.TargetId);
+        Assert.Equal("story_without_key", ActionId(visibleLocations[0].Event!));
 
         var stateWithTimeKey = new GameState();
         stateWithTimeKey.Story.SetTimeKey("quest_cooldown", stateWithTimeKey.Clock, 30);
@@ -434,11 +423,11 @@ public sealed class MapServiceTests
 
         var hasKeyLocations = withTimeKey.MapService.EnterMap("inn_with_key").Locations;
         Assert.Single(hasKeyLocations);
-        Assert.Equal("story_with_key", hasKeyLocations[0].Event!.TargetId);
+        Assert.Equal("story_with_key", ActionId(hasKeyLocations[0].Event!));
     }
 
     [Fact]
-    public void EnterMap_LegacyDuplicatedStoryEvents_UseStoryCompletionForOnceAndConditions()
+    public void EnterMap_DuplicatedStoryActions_UseMapProgressForOnceAndStoryStateForWhen()
     {
         var map = CreateMap(
             "world",
@@ -450,22 +439,15 @@ public sealed class MapServiceTests
                 [
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "tlbb.dy_阿朱阿碧",
+                        Action = Call("story('tlbb.dy_阿朱阿碧')"),
                         RepeatMode = RepeatMode.Once,
-                        Probability = 100,
                         Description = "无条件入口",
                     },
                     new MapEventDefinition
                     {
-                        Type = "story",
-                        TargetId = "tlbb.dy_阿朱阿碧",
-                        Probability = 100,
+                        Action = Call("story('tlbb.dy_阿朱阿碧')"),
                         Description = "结束前入口",
-                        Conditions =
-                        [
-                            CreateCondition("should_not_finish", "tlbb.dy_阿朱阿碧事件结束"),
-                        ],
+                        When = Expr("!story_completed('tlbb.dy_阿朱阿碧事件结束')"),
                     },
                 ]));
         var repository = TestContentFactory.CreateRepository(maps: [map]);
@@ -482,6 +464,7 @@ public sealed class MapServiceTests
         Assert.Equal("结束前入口", entryCompletedLocation.Event!.Description);
 
         var finishedState = new GameState();
+        finishedState.MapEventProgress.MarkCompleted("world|taihu|0");
         finishedState.Story.MarkCompleted("tlbb.dy_阿朱阿碧");
         finishedState.Story.MarkCompleted("tlbb.dy_阿朱阿碧事件结束");
         var finishedSession = new GameSession(finishedState, repository);
@@ -489,12 +472,12 @@ public sealed class MapServiceTests
         Assert.Null(finishedLocation.Event);
     }
 
-    private static MapEventConditionDefinition CreateCondition(string type, string value) =>
-        new()
-        {
-            Type = type,
-            Value = value,
-        };
+    private static ParsedCall Call(string source) => new ExpressionParser().ParseCall(source, "map test");
+    private static ParsedExpression Expr(string source) => new ExpressionParser().ParseExpression(source, "map test");
+    private static string CallArgument(ParsedCall call) =>
+        ((LiteralExpressionSyntax)call.Root.Arguments.Single()).Value.AsString("map test call argument");
+    private static string ActionId(MapEventDefinition mapEvent) =>
+        CallArgument(mapEvent.Action);
 
     private static MapDefinition CreateMap(string id, MapKind kind, params MapLocationDefinition[] locations) =>
         new()

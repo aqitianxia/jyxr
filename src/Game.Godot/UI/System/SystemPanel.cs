@@ -370,11 +370,11 @@ public partial class SystemPanel : Control
 		return $"{invocation.Name} {string.Join(" ", invocation.Arguments.Select(FormatArgument))}";
 	}
 
-	private static string FormatArgument(ExprValue value) =>
+	private static string FormatArgument(ExpressionValue value) =>
 		value.Kind switch
 		{
-			ExprValueKind.String => $"\"{value.AsString("console")}\"",
-			ExprValueKind.List => $"[{string.Join(", ", value.AsList("console").Select(FormatArgument))}]",
+			ExpressionValueKind.String => $"\"{value.AsString("console")}\"",
+			ExpressionValueKind.List => $"[{string.Join(", ", value.AsList("console").Select(FormatArgument))}]",
 			_ => value.ToString(),
 		};
 }

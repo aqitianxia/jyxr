@@ -10,40 +10,34 @@ namespace Game.Tests;
 public sealed class FavorabilityStoryTests
 {
     [Fact]
-    public async Task HaoganCommand_SupportsDefaultAndTargetedFavorability()
+    public async Task ChangeFavorabilityCommand_RequiresExplicitTarget()
     {
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
         var dispatcher = new StoryCommandDispatcher(session, new ThrowingRuntimeHost());
 
-        await dispatcher.ExecuteCommandAsync("haogan", [ExprValue.FromNumber(3)], default);
         await dispatcher.ExecuteCommandAsync(
-            "haogan",
-            [ExprValue.FromString("李文秀"), ExprValue.FromNumber(5)],
+            "change_favorability",
+            [ExpressionValue.FromString("李文秀"), ExpressionValue.FromNumber(5)],
             default);
 
-        Assert.Equal(53, session.State.Adventure.GetFavorability());
+        Assert.Equal(50, session.State.Adventure.GetFavorability());
         Assert.Equal(55, session.State.Adventure.GetFavorability("李文秀"));
         Assert.Equal(50, session.State.Adventure.GetFavorability("长安一梦阿玉"));
     }
 
     [Fact]
-    public async Task HaoganPredicates_SupportDefaultAndTargetedFavorability()
+    public void FavorabilityFunction_ReturnsTargetedFavorability()
     {
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
         session.State.Adventure.ChangeFavorability(10);
         session.State.Adventure.ChangeFavorability("李文秀", 5);
-        var evaluator = new StoryConditionEvaluator(session, new ThrowingRuntimeHost());
+        var evaluator = new ExpressionEvaluator();
+        var environment = new GameExpressionEnvironment(session).Create();
 
-        Assert.True(await evaluator.EvaluatePredicateAsync("haogan_more_than", [ExprValue.FromNumber(60)], default));
-        Assert.False(await evaluator.EvaluatePredicateAsync("haogan_less_than", [ExprValue.FromNumber(60)], default));
-        Assert.False(await evaluator.EvaluatePredicateAsync(
-            "haogan_more_than",
-            [ExprValue.FromString("李文秀"), ExprValue.FromNumber(60)],
-            default));
-        Assert.True(await evaluator.EvaluatePredicateAsync(
-            "haogan_less_than",
-            [ExprValue.FromString("李文秀"), ExprValue.FromNumber(60)],
-            default));
+        Assert.True(evaluator.Evaluate(new ExpressionParser().ParseExpression("favorability('李文秀') == 55"), environment).AsBoolean("test"));
+        Assert.True(evaluator.Evaluate(new ExpressionParser().ParseExpression("favorability('未记录角色') == 50"), environment).AsBoolean("test"));
+        Assert.True(evaluator.Evaluate(new ExpressionParser().ParseExpression("favorability() == 60"), environment).AsBoolean("test"));
+        Assert.True(evaluator.Evaluate(new ExpressionParser().ParseExpression("haogan() == 60"), environment).AsBoolean("test"));
     }
 
     [Fact]
@@ -79,18 +73,18 @@ public sealed class FavorabilityStoryTests
         public ValueTask DialogueAsync(DialogueContext dialogue, CancellationToken cancellationToken) =>
             ValueTask.FromException(new InvalidOperationException("Dialogue should not be invoked."));
 
-        public ValueTask<ExprValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
-            ValueTask.FromException<ExprValue>(new InvalidOperationException("Variable fallback should not be invoked."));
+        public ValueTask<ExpressionValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
+            ValueTask.FromException<ExpressionValue>(new InvalidOperationException("Variable fallback should not be invoked."));
 
         public ValueTask<bool> EvaluatePredicateAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<bool>(new InvalidOperationException("Predicate fallback should not be invoked."));
 
         public ValueTask<StoryCommandResult> ExecuteCommandAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<StoryCommandResult>(new InvalidOperationException("Command fallback should not be invoked."));
 

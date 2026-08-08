@@ -10,4 +10,8 @@
     <Folder Include="Model\State\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Game.Expressions\Game.Expressions.csproj" />
+  </ItemGroup>
+
 </Project>

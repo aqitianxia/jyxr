@@ -17,27 +17,27 @@ public sealed record StoryTimeKeyRecord(
     string TargetStoryId);
 
 public sealed record StoryVariableRecord(
-    ExprValueKind Kind,
+    ExpressionValueKind Kind,
     bool Boolean,
     double Number,
     string? Text,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<StoryVariableRecord>? List = null)
 {
-    public static StoryVariableRecord FromExprValue(ExprValue value) =>
+    public static StoryVariableRecord FromExpressionValue(ExpressionValue value) =>
         new(
             value.Kind,
             value.Boolean,
             value.Number,
             value.Text,
-            value.List?.Select(FromExprValue).ToList());
+            value.List?.Select(FromExpressionValue).ToList());
 
-    public ExprValue ToExprValue() => Kind switch
+    public ExpressionValue ToExpressionValue() => Kind switch
     {
-        ExprValueKind.Boolean => ExprValue.FromBoolean(Boolean),
-        ExprValueKind.Number => ExprValue.FromNumber(Number),
-        ExprValueKind.String => ExprValue.FromString(Text ?? string.Empty),
-        ExprValueKind.List => ExprValue.FromList((List ?? []).Select(static item => item.ToExprValue()).ToList()),
+        ExpressionValueKind.Boolean => ExpressionValue.FromBoolean(Boolean),
+        ExpressionValueKind.Number => ExpressionValue.FromNumber(Number),
+        ExpressionValueKind.String => ExpressionValue.FromString(Text ?? string.Empty),
+        ExpressionValueKind.List => ExpressionValue.FromList((List ?? []).Select(static item => item.ToExpressionValue()).ToList()),
         _ => throw new InvalidOperationException($"Unsupported story variable kind '{Kind}'."),
     };
 }

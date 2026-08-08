@@ -9,7 +9,7 @@ namespace Game.Godot.Story;
 
 public sealed partial class GodotStoryRuntimeHost
 {
-	[StoryCommand("debug_story", "dstory")]
+	[DebugCommand("run_story")]
 	private ValueTask ExecuteDebugStoryAsync(string storyId)
 	{
 		Game.ContentRepository.GetStorySegment(storyId);
@@ -47,7 +47,7 @@ public sealed partial class GodotStoryRuntimeHost
 		}
 	}
 
-	[StoryCommand("debug_battle", "dbattle")]
+	[DebugCommand("run_battle")]
 	private async ValueTask ExecuteDebugBattleAsync(
 		string battleId,
 		CancellationToken cancellationToken)

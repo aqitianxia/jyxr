@@ -6,7 +6,8 @@ public sealed record TowerDefinition
     public required string Name { get; init; }
     public string Description { get; init; } = "";
     public IReadOnlyList<TowerStageDefinition> Stages { get; init; } =  [];
-    public IReadOnlyList<TowerUnlockConditionDefinition> UnlockConditions { get; init; } = [];
+    [System.Text.Json.Serialization.JsonConverter(typeof(Game.Core.Serialization.ParsedExpressionJsonConverter))]
+    public ParsedExpression? When { get; init; }
 }
 
 public sealed record TowerStageDefinition
@@ -26,11 +27,4 @@ public sealed record TowerRewardDefinition
     public required double Weight { get; init; }
 
     public int? MaxClaims { get; init; }
-}
-
-public sealed record TowerUnlockConditionDefinition
-{
-    public required string Type { get; init; }
-
-    public string Value { get; init; } = "";
 }

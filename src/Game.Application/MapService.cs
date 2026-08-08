@@ -8,28 +8,17 @@ namespace Game.Application;
 public sealed class MapService
 {
     private readonly GameSession _session;
-    private readonly MapConditionEvaluator _conditionEvaluator;
+    private readonly GameConditionExpressionService _conditions;
 
     public MapService(GameSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
         _session = session;
-        _conditionEvaluator = new MapConditionEvaluator(session);
+        _conditions = new GameConditionExpressionService(session);
     }
 
     private GameState State => _session.State;
     private IContentRepository ContentRepository => _session.ContentRepository;
-
-    public enum MapInteractionOutcome
-    {
-        MapChanged,
-        StoryRequested,
-        ShopRequested,
-        ChestRequested,
-        BattleRequested,
-        PlaceholderInteraction,
-        Blocked,
-    }
 
     public MapEnterResult EnterMap(string mapId)
     {
@@ -66,7 +55,7 @@ public sealed class MapService
         {
             return new MapInteractionResult
             {
-                Outcome = MapInteractionOutcome.Blocked,
+                Command = null,
             };
         }
 
@@ -75,12 +64,16 @@ public sealed class MapService
         State.Clock.AdvanceTimeSlots(1);
         _session.Events.Publish(new ClockChangedEvent());
 
-        MarkEventCompletedIfNeeded(
-            location.Event,
-            location.EventIndex,
-            BuildLocationEventKey(location.MapId, location.Location.Id, location.EventIndex));
-
-        return ResolveMapEvent(location.Event, consumedTimeSlots, movement.Result);
+        return new MapInteractionResult
+        {
+            Command = location.Event.Action,
+            Message = location.Event.Description,
+            ConsumedTimeSlots = consumedTimeSlots,
+            Movement = movement.Result,
+            MapEventCompletionKey = location.Event.RepeatMode == RepeatMode.Once && location.EventIndex >= 0
+                ? BuildLocationEventKey(location.MapId, location.Location.Id, location.EventIndex)
+                : null,
+        };
     }
 
     public int PreviewInteractionConsumedTimeSlots((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
@@ -116,20 +109,17 @@ public sealed class MapService
         {
             var mapEvent = location.Events[index];
             if (mapEvent.RepeatMode == RepeatMode.Once &&
-                IsOnceEventCompleted(mapEvent, BuildLocationEventKey(mapId, location.Id, index)))
+                IsOnceEventCompleted(BuildLocationEventKey(mapId, location.Id, index)))
             {
                 continue;
             }
 
-            if (!_conditionEvaluator.AreSatisfied(mapEvent.Conditions))
+            if (!_conditions.Evaluate(mapEvent.When))
             {
                 continue;
             }
 
-            if (Probability.RollPercentage(mapEvent.Probability))
-            {
-                return (mapEvent, mapEvent.RepeatMode == RepeatMode.Once ? index : -1);
-            }
+            return (mapEvent, mapEvent.RepeatMode == RepeatMode.Once ? index : -1);
         }
 
         return null;
@@ -173,65 +163,17 @@ public sealed class MapService
         return (int)(currentPosition.DistanceTo(targetPosition) / 10d);
     }
 
-    private MapInteractionResult ChangeMapFromEvent(string targetMapId, int consumedTimeSlots, MapMovementResult? movement)
+    public void CompleteInteraction(MapInteractionResult interaction)
     {
-        var enterResult = EnterMap(targetMapId);
-        return new MapInteractionResult
+        ArgumentNullException.ThrowIfNull(interaction);
+        if (interaction.MapEventCompletionKey is { } eventKey)
         {
-            Outcome = MapInteractionOutcome.MapChanged,
-            TargetId = targetMapId,
-            ConsumedTimeSlots = consumedTimeSlots + enterResult.ConsumedTimeSlots,
-            EnterResult = enterResult,
-            Movement = movement,
-        };
-    }
-
-    private MapInteractionResult ResolveMapEvent(MapEventDefinition mapEvent, int consumedTimeSlots, MapMovementResult? movement) =>
-        mapEvent.Type switch
-        {
-            "map" => ChangeMapFromEvent(mapEvent.TargetId, consumedTimeSlots, movement),
-            "story" => BuildInteractionResult(MapInteractionOutcome.StoryRequested, mapEvent, consumedTimeSlots, movement),
-            "shop" => BuildInteractionResult(MapInteractionOutcome.ShopRequested, mapEvent, consumedTimeSlots, movement),
-            "xiangzi" => BuildInteractionResult(MapInteractionOutcome.ChestRequested, mapEvent, consumedTimeSlots, movement),
-            "battle" => BuildInteractionResult(MapInteractionOutcome.BattleRequested, mapEvent, consumedTimeSlots, movement),
-            _ => BuildInteractionResult(MapInteractionOutcome.PlaceholderInteraction, mapEvent, consumedTimeSlots, movement),
-        };
-
-    private void MarkEventCompletedIfNeeded(MapEventDefinition mapEvent, int eventIndex, string eventKey)
-    {
-        if (mapEvent.RepeatMode != RepeatMode.Once ||
-            IsStoryEvent(mapEvent) ||
-            eventIndex < 0)
-        {
-            return;
+            State.MapEventProgress.MarkCompleted(eventKey);
         }
-
-        State.MapEventProgress.MarkCompleted(eventKey);
     }
 
-    private bool IsOnceEventCompleted(MapEventDefinition mapEvent, string eventKey) =>
-        IsStoryEvent(mapEvent)
-            ? State.Story.IsStoryCompleted(mapEvent.TargetId)
-            : State.MapEventProgress.IsCompleted(eventKey);
-
-    private static bool IsStoryEvent(MapEventDefinition mapEvent) =>
-        string.Equals(mapEvent.Type, "story", StringComparison.Ordinal);
-
-    private static MapInteractionResult BuildInteractionResult(
-        MapInteractionOutcome outcome,
-        MapEventDefinition mapEvent,
-        int consumedTimeSlots,
-        MapMovementResult? movement)
-    {
-        return new MapInteractionResult
-        {
-            Outcome = outcome,
-            Message = mapEvent.Description,
-            TargetId = mapEvent.TargetId,
-            ConsumedTimeSlots = consumedTimeSlots,
-            Movement = movement,
-        };
-    }
+    private bool IsOnceEventCompleted(string eventKey) =>
+        State.MapEventProgress.IsCompleted(eventKey);
 
     private static string BuildLocationEventKey(string mapId, string locationId, int eventIndex) =>
         $"{mapId}|{locationId}|{eventIndex}";
@@ -249,12 +191,11 @@ public sealed record MapEnterResult
 
 public sealed record MapInteractionResult
 {
-    public required MapService.MapInteractionOutcome Outcome { get; init; }
+    public ParsedCall? Command { get; init; }
     public int ConsumedTimeSlots { get; init; }
-    public MapEnterResult? EnterResult { get; init; }
     public MapMovementResult? Movement { get; init; }
     public string? Message { get; init; }
-    public string? TargetId { get; init; }
+    internal string? MapEventCompletionKey { get; init; }
 }
 
 public sealed record MapMovementResult(

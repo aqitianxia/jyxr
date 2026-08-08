@@ -77,20 +77,8 @@ public sealed class CharacterResourceLimitPolicyTests
                 new Segment(
                     "resource_boost",
                     [
-                        new CommandStep(
-                            "upgrade",
-                            [
-                                new LiteralExprNode(ExprValue.FromString("maxhp")),
-                                new LiteralExprNode(ExprValue.FromString("hero")),
-                                new LiteralExprNode(ExprValue.FromNumber(20)),
-                            ]),
-                        new CommandStep(
-                            "upgrade",
-                            [
-                                new LiteralExprNode(ExprValue.FromString("maxmp")),
-                                new LiteralExprNode(ExprValue.FromString("hero")),
-                                new LiteralExprNode(ExprValue.FromNumber(30)),
-                            ]),
+                        new CommandStep(new ExpressionParser().ParseCall("change_stat('hero', 'maxhp', 20)")),
+                        new CommandStep(new ExpressionParser().ParseCall("change_stat('hero', 'maxmp', 30)")),
                     ]),
             ]);
         var state = CreateStateWithHero(heroDefinition, out var hero);

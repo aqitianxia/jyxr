@@ -607,7 +607,7 @@ public sealed class ContentLoadingTests
                 """,
             ["story/item-effect.story.json"] = """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [{ "name": "item_effect", "steps": [] }]
                 }
                 """,
@@ -671,7 +671,7 @@ public sealed class ContentLoadingTests
                 ["items.json"] = itemsJson,
                 ["story/item-effect.story.json"] = """
                     {
-                      "version": 2,
+                      "version": 3,
                       "segments": [{ "name": "item_effect", "steps": [] }]
                     }
                     """,
@@ -1065,7 +1065,7 @@ public sealed class ContentLoadingTests
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",
@@ -1124,7 +1124,7 @@ public sealed class ContentLoadingTests
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",
@@ -1158,7 +1158,7 @@ public sealed class ContentLoadingTests
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",
@@ -1189,7 +1189,7 @@ public sealed class ContentLoadingTests
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",
@@ -1230,9 +1230,7 @@ public sealed class ContentLoadingTests
                         "name": "Keeper",
                         "events": [
                           {
-                            "type": "story",
-                            "targetId": "story_missing",
-                            "probability": 100
+                            "action": "story('story_missing')"
                           }
                         ]
                       }
@@ -1243,7 +1241,7 @@ public sealed class ContentLoadingTests
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",
@@ -1287,16 +1285,14 @@ public sealed class ContentLoadingTests
                 [
                   {
                     "id": "story_missing",
-                    "type": "story",
-                    "targetId": "story_missing",
-                    "probability": 100
+                    "action": "story('story_missing')"
                   }
                 ]
                 """,
             ["story/main.story.json"] =
                 """
                 {
-                  "version": 2,
+                  "version": 3,
                   "segments": [
                     {
                       "name": "story_intro",

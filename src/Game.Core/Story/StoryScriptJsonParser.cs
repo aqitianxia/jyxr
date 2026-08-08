@@ -2,8 +2,10 @@ using System.Text.Json;
 
 namespace Game.Core.Story;
 
-internal sealed class StoryScriptJsonParser(JsonElement root)
+internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName = "story")
 {
+    private readonly ExpressionParser _expressionParser = new();
+
     public StoryScript Parse()
     {
         EnsureObject(root, "root");
@@ -13,36 +15,23 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
             throw new StoryRuntimeException(
                 $"Unsupported story script version '{version}'. Expected version {StoryScript.CurrentVersion}.");
         }
+
         var segmentsElement = GetRequiredProperty(root, "segments");
         EnsureArray(segmentsElement, "segments");
-
-        var segments = new List<Segment>();
-        foreach (var segmentElement in segmentsElement.EnumerateArray())
-        {
-            segments.Add(ParseSegment(segmentElement));
-        }
-
-        return new StoryScript(version, segments);
+        return new StoryScript(version, segmentsElement.EnumerateArray().Select(ParseSegment).ToArray());
     }
 
     private Segment ParseSegment(JsonElement element)
     {
         EnsureObject(element, "segment");
         var name = GetRequiredString(element, "name");
-        var steps = ParseSteps(GetRequiredProperty(element, "steps"), "segment.steps");
-        return new Segment(name, steps);
+        return new Segment(name, ParseSteps(GetRequiredProperty(element, "steps"), $"segment '{name}'.steps"));
     }
 
     private IReadOnlyList<Step> ParseSteps(JsonElement element, string path)
     {
         EnsureArray(element, path);
-        var steps = new List<Step>();
-        foreach (var stepElement in element.EnumerateArray())
-        {
-            steps.Add(ParseStep(stepElement));
-        }
-
-        return steps;
+        return element.EnumerateArray().Select(ParseStep).ToArray();
     }
 
     private Step ParseStep(JsonElement element)
@@ -51,12 +40,8 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
         var kind = GetRequiredString(element, "kind");
         return kind switch
         {
-            "dialogue" => new DialogueStep(
-                GetRequiredString(element, "speaker"),
-                GetRequiredString(element, "text")),
-            "command" => new CommandStep(
-                GetRequiredString(element, "name"),
-                ParseValueArgs(GetRequiredProperty(element, "args"), "command.args")),
+            "dialogue" => new DialogueStep(GetRequiredString(element, "speaker"), GetRequiredString(element, "text")),
+            "command" => ParseCommandStep(element),
             "jump" => new JumpStep(GetRequiredString(element, "target")),
             "call" => new CallStep(GetRequiredString(element, "target")),
             "return" => new ReturnStep(),
@@ -67,44 +52,48 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
         };
     }
 
+    private CommandStep ParseCommandStep(JsonElement element)
+    {
+        if (TryGetProperty(element, "name", out _) || TryGetProperty(element, "args", out _))
+        {
+            throw new StoryRuntimeException("Story v3 command steps only accept the string 'call' form; 'name/args' are not supported.");
+        }
+
+        return new CommandStep(ParseCall(GetRequiredString(element, "call"), "command.call"));
+    }
+
     private ChoiceStep ParseChoiceStep(JsonElement element)
     {
-        var style = ParseChoiceStyle(element);
         var promptElement = GetRequiredProperty(element, "prompt");
         EnsureObject(promptElement, "choice.prompt");
-        var prompt = new ChoicePrompt(
-            GetRequiredString(promptElement, "speaker"),
-            GetRequiredString(promptElement, "text"));
-
+        var prompt = new ChoicePrompt(GetRequiredString(promptElement, "speaker"), GetRequiredString(promptElement, "text"));
         var groupsElement = GetRequiredProperty(element, "groups");
         EnsureArray(groupsElement, "choice.groups");
         var groups = new List<ChoiceGroup>();
         foreach (var groupElement in groupsElement.EnumerateArray())
         {
             EnsureObject(groupElement, "choice.group");
-            ExprNode? when = null;
+            ParsedExpression? when = null;
             if (TryGetProperty(groupElement, "when", out var whenElement))
             {
-                if (whenElement.ValueKind == JsonValueKind.Null)
+                if (whenElement.ValueKind != JsonValueKind.String)
                 {
-                    throw new StoryRuntimeException("choice.group.when must be omitted for an unconditional group.");
+                    throw new StoryRuntimeException("choice.group.when must be a string or be omitted.");
                 }
 
-                when = ParseExpression(whenElement);
+                when = ParseExpression(whenElement.GetString() ?? string.Empty, "choice.group.when");
             }
 
             var optionsElement = GetRequiredProperty(groupElement, "options");
             EnsureArray(optionsElement, "choice.group.options");
-            var options = new List<ChoiceOption>();
-            foreach (var optionElement in optionsElement.EnumerateArray())
+            var options = optionsElement.EnumerateArray().Select(optionElement =>
             {
                 EnsureObject(optionElement, "choice.option");
-                options.Add(new ChoiceOption(
+                return new ChoiceOption(
                     GetRequiredString(optionElement, "text"),
-                    ParseSteps(GetRequiredProperty(optionElement, "steps"), "choice.option.steps")));
-            }
-
-            if (options.Count == 0)
+                    ParseSteps(GetRequiredProperty(optionElement, "steps"), "choice.option.steps"));
+            }).ToArray();
+            if (options.Length == 0)
             {
                 throw new StoryRuntimeException("choice.group.options must contain at least one option.");
             }
@@ -117,7 +106,7 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
             throw new StoryRuntimeException("choice.groups must contain at least one group.");
         }
 
-        return new ChoiceStep(prompt, groups, style);
+        return new ChoiceStep(prompt, groups, ParseChoiceStyle(element));
     }
 
     private static ChoiceStyle ParseChoiceStyle(JsonElement element)
@@ -145,7 +134,6 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
         var battleId = GetRequiredString(element, "battleId");
         var outcomesElement = GetRequiredProperty(element, "outcomes");
         EnsureObject(outcomesElement, "battle.outcomes");
-
         var outcomes = new Dictionary<BattleOutcome, IReadOnlyList<Step>>();
         foreach (var property in outcomesElement.EnumerateObject())
         {
@@ -159,14 +147,13 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
     {
         var casesElement = GetRequiredProperty(element, "cases");
         EnsureArray(casesElement, "branch.cases");
-        var cases = new List<BranchCase>();
-        foreach (var caseElement in casesElement.EnumerateArray())
+        var cases = casesElement.EnumerateArray().Select(caseElement =>
         {
             EnsureObject(caseElement, "branch.case");
-            cases.Add(new BranchCase(
-                ParseExpression(GetRequiredProperty(caseElement, "when")),
-                ParseSteps(GetRequiredProperty(caseElement, "steps"), "branch.case.steps")));
-        }
+            return new BranchCase(
+                ParseExpression(GetRequiredString(caseElement, "when"), "branch.case.when"),
+                ParseSteps(GetRequiredProperty(caseElement, "steps"), "branch.case.steps"));
+        }).ToArray();
 
         IReadOnlyList<Step>? fallback = null;
         if (TryGetProperty(element, "fallback", out var fallbackElement) && fallbackElement.ValueKind != JsonValueKind.Null)
@@ -177,101 +164,29 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
         return new BranchStep(cases, fallback);
     }
 
-    private ExprNode ParseExpression(JsonElement element)
+    private ParsedExpression ParseExpression(string source, string path)
     {
-        return element.ValueKind switch
+        try
         {
-            JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => ParseLiteralExpression(element),
-            JsonValueKind.Array => ParseArrayExpression(element),
-            _ => throw new StoryRuntimeException($"Unsupported expression token kind '{element.ValueKind}'."),
-        };
+            return _expressionParser.ParseExpression(source, $"{sourceName}:{path}");
+        }
+        catch (ExpressionException exception)
+        {
+            throw new StoryRuntimeException(exception.Message, exception);
+        }
     }
 
-    private ExprNode ParseArrayExpression(JsonElement element)
+    private ParsedCall ParseCall(string source, string path)
     {
-        var items = element.EnumerateArray().ToArray();
-        if (items.Length == 0)
+        try
         {
-            throw new StoryRuntimeException("Expression array cannot be empty.");
+            return _expressionParser.ParseCall(source, $"{sourceName}:{path}");
         }
-
-        if (items[0].ValueKind != JsonValueKind.String)
+        catch (ExpressionException exception)
         {
-            throw new StoryRuntimeException("Expression operator must be a string.");
+            throw new StoryRuntimeException(exception.Message, exception);
         }
-
-        var op = items[0].GetString() ?? string.Empty;
-        return op switch
-        {
-            "var" => ParseVariableExpression(items),
-            "pred" => ParsePredicateExpression(items),
-            "not" => ParseNotExpression(items),
-            "and" or "or" or "==" or "!=" or ">" or ">=" or "<" or "<=" => ParseBinaryExpression(op, items),
-            _ => throw new StoryRuntimeException($"Unsupported expression operator '{op}'."),
-        };
     }
-
-    private static ExprNode ParseVariableExpression(IReadOnlyList<JsonElement> items)
-    {
-        if (items.Count != 2 || items[1].ValueKind != JsonValueKind.String)
-        {
-            throw new StoryRuntimeException("Variable expression must be ['var', <name>].");
-        }
-
-        return new VariableExprNode(items[1].GetString() ?? string.Empty);
-    }
-
-    private ExprNode ParsePredicateExpression(IReadOnlyList<JsonElement> items)
-    {
-        if (items.Count < 2 || items[1].ValueKind != JsonValueKind.String)
-        {
-            throw new StoryRuntimeException("Predicate expression must start with ['pred', <name>, ...].");
-        }
-
-        var args = new List<ExprNode>();
-        for (var index = 2; index < items.Count; index += 1)
-        {
-            args.Add(ParseValueArg(items[index], "pred args"));
-        }
-
-        return new PredicateExprNode(items[1].GetString() ?? string.Empty, args);
-    }
-
-    private ExprNode ParseNotExpression(IReadOnlyList<JsonElement> items)
-    {
-        if (items.Count != 2)
-        {
-            throw new StoryRuntimeException("Not expression must be ['not', <expr>].");
-        }
-
-        return new NotExprNode(ParseExpression(items[1]));
-    }
-
-    private ExprNode ParseBinaryExpression(string op, IReadOnlyList<JsonElement> items)
-    {
-        if (items.Count != 3)
-        {
-            throw new StoryRuntimeException($"Binary expression '{op}' must be ['{op}', <left>, <right>].");
-        }
-
-        return new BinaryExprNode(
-            ParseBinaryOperator(op),
-            ParseExpression(items[1]),
-            ParseExpression(items[2]));
-    }
-
-    private static ExprBinaryOperator ParseBinaryOperator(string op) => op switch
-    {
-        "and" => ExprBinaryOperator.And,
-        "or" => ExprBinaryOperator.Or,
-        "==" => ExprBinaryOperator.Equal,
-        "!=" => ExprBinaryOperator.NotEqual,
-        ">" => ExprBinaryOperator.GreaterThan,
-        ">=" => ExprBinaryOperator.GreaterThanOrEqual,
-        "<" => ExprBinaryOperator.LessThan,
-        "<=" => ExprBinaryOperator.LessThanOrEqual,
-        _ => throw new StoryRuntimeException($"Unsupported binary operator '{op}'."),
-    };
 
     private static BattleOutcome ParseBattleOutcome(string raw) => raw switch
     {
@@ -280,67 +195,6 @@ internal sealed class StoryScriptJsonParser(JsonElement root)
         "timeout" => BattleOutcome.Timeout,
         _ => throw new StoryRuntimeException($"Unsupported battle outcome '{raw}'."),
     };
-
-    private IReadOnlyList<ExprNode> ParseValueArgs(JsonElement element, string path)
-    {
-        EnsureArray(element, path);
-        var values = new List<ExprNode>();
-        foreach (var item in element.EnumerateArray())
-        {
-            values.Add(ParseValueArg(item, path));
-        }
-
-        return values;
-    }
-
-    private ExprNode ParseValueArg(JsonElement element, string path)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String or JsonValueKind.Number => ParseLiteralExpression(element),
-            JsonValueKind.Array => ParseArrayValueArg(element, path),
-            _ => throw new StoryRuntimeException($"{path} must contain only strings, numbers, ['var', name], or ['list', ...]."),
-        };
-    }
-
-    private static ExprNode ParseLiteralExpression(JsonElement element)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => new LiteralExprNode(ExprValue.FromString(element.GetString() ?? string.Empty)),
-            JsonValueKind.Number => new LiteralExprNode(ExprValue.FromNumber(element.GetDouble())),
-            JsonValueKind.True => new LiteralExprNode(ExprValue.FromBoolean(true)),
-            JsonValueKind.False => new LiteralExprNode(ExprValue.FromBoolean(false)),
-            _ => throw new StoryRuntimeException($"Unsupported literal token kind '{element.ValueKind}'."),
-        };
-    }
-
-    private ExprNode ParseArrayValueArg(JsonElement element, string path)
-    {
-        var items = element.EnumerateArray().ToArray();
-        if (items.Length == 0 || items[0].ValueKind != JsonValueKind.String)
-        {
-            throw new StoryRuntimeException($"{path} array value arguments must start with an operator string.");
-        }
-
-        return items[0].GetString() switch
-        {
-            "var" => ParseVariableExpression(items),
-            "list" => ParseListValueArg(items, path),
-            _ => throw new StoryRuntimeException($"{path} must contain only variable or list array values."),
-        };
-    }
-
-    private ExprNode ParseListValueArg(IReadOnlyList<JsonElement> items, string path)
-    {
-        var values = new List<ExprNode>(Math.Max(0, items.Count - 1));
-        for (var index = 1; index < items.Count; index += 1)
-        {
-            values.Add(ParseValueArg(items[index], $"{path}.list"));
-        }
-
-        return new ListExprNode(values);
-    }
 
     private static JsonElement GetRequiredProperty(JsonElement element, string name)
     {

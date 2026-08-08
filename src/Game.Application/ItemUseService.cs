@@ -96,15 +96,11 @@ public sealed class ItemUseService
         {
             CommitSuccessfulUse(entry);
             var storyService = _session.StoryService;
-            storyService.ConditionEvaluator.ItemTargetCharacterId = target.Id;
-            try
+            var context = new StoryExecutionContext(new Dictionary<string, ExpressionValue>(StringComparer.Ordinal)
             {
-                await storyService.ExecuteAsync(runStory.StoryId, cancellationToken);
-            }
-            finally
-            {
-                storyService.ConditionEvaluator.ItemTargetCharacterId = null;
-            }
+                [ItemTargetCharacterIdVariable] = ExpressionValue.FromString(target.Id),
+            });
+            await storyService.ExecuteAsync(runStory.StoryId, context, cancellationToken);
             return ItemUseResult.Succeeded($"【{target.Name}】使用【{entry.Definition.Name}】");
         }
 

@@ -36,23 +36,7 @@ public static class ClockFormatter
         return $"{FormatDateCn(clock)}，{FormatTimeSlotCn(clock.TimeSlot)}";
     }
 
-    public static string FormatTimeSlotCn(TimeSlot timeSlot) =>
-        timeSlot switch
-        {
-            TimeSlot.Zi => "子时",
-            TimeSlot.Chou => "丑时",
-            TimeSlot.Yin => "寅时",
-            TimeSlot.Mao => "卯时",
-            TimeSlot.Chen => "辰时",
-            TimeSlot.Si => "巳时",
-            TimeSlot.Wu => "午时",
-            TimeSlot.Wei => "未时",
-            TimeSlot.Shen => "申时",
-            TimeSlot.You => "酉时",
-            TimeSlot.Xu => "戌时",
-            TimeSlot.Hai => "亥时",
-            _ => throw new ArgumentOutOfRangeException(nameof(timeSlot), timeSlot, null),
-        };
+    public static string FormatTimeSlotCn(TimeSlot timeSlot) => $"{timeSlot.ToChineseBranch()}时";
 
     private static string FormatPositiveIntegerCn(int value)
     {

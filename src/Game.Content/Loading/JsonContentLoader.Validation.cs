@@ -1148,7 +1148,7 @@ public sealed partial class JsonContentLoader
     {
         foreach (var trigger in repository.WorldTriggers)
         {
-            ValidateWorldTriggerStoryReference(repository, trigger);
+            ValidateActionReference(repository, trigger.Action, $"World trigger '{trigger.Id}'");
         }
 
         foreach (var map in repository.Maps.Values)
@@ -1157,37 +1157,47 @@ public sealed partial class JsonContentLoader
             {
                 foreach (var mapEvent in location.Events)
                 {
-                    ValidateMapStoryReference(repository, map.Id, location.Id, mapEvent);
+                    ValidateActionReference(repository, mapEvent.Action, $"Map '{map.Id}' location '{location.Id}'");
                 }
             }
         }
     }
 
-    private static void ValidateMapStoryReference(
+    private static void ValidateActionReference(
         InMemoryContentRepository repository,
-        string mapId,
-        string locationId,
-        MapEventDefinition mapEvent)
+        ParsedCall action,
+        string owner)
     {
-        if (!string.Equals(mapEvent.Type, "story", StringComparison.Ordinal))
+        if (!TryGetLiteralActionId(action, out var targetId))
         {
             return;
         }
 
-        Ensure(repository.StorySegments.ContainsKey(mapEvent.TargetId),
-            $"Map '{mapId}' location '{locationId}' references missing story segment '{mapEvent.TargetId}'.");
+        var exists = action.Root.Name switch
+        {
+            "story" => repository.StorySegments.ContainsKey(targetId),
+            "map" => repository.Maps.ContainsKey(targetId),
+            "shop" => repository.Shops.ContainsKey(targetId),
+            "battle" => repository.Battles.ContainsKey(targetId),
+            _ => true,
+        };
+        Ensure(exists, $"{owner} action '{action.Root.Name}' references missing target '{targetId}'.");
     }
 
-    private static void ValidateWorldTriggerStoryReference(
-        InMemoryContentRepository repository,
-        WorldTriggerDefinition trigger)
+    private static bool TryGetLiteralActionId(ParsedCall action, out string targetId)
     {
-        if (!string.Equals(trigger.Type, "story", StringComparison.Ordinal))
+        targetId = string.Empty;
+        if (action.Root.Arguments.Count != 1
+            || action.Root.Arguments[0] is not LiteralExpressionSyntax
+            {
+                Value.Kind: ExpressionValueKind.String,
+            } literal)
         {
-            return;
+            return false;
         }
 
-        Ensure(repository.StorySegments.ContainsKey(trigger.TargetId),
-            $"World trigger '{trigger.Id}' references missing story segment '{trigger.TargetId}'.");
+        targetId = literal.Value.AsString("action target id");
+        return true;
     }
+
 }

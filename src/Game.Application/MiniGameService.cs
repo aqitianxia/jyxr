@@ -165,7 +165,7 @@ public sealed class MiniGameService
             }
         }
 
-        await host.ExecuteCommandAsync("effect", [ExprValue.FromString(LevelUpEffectId)], cancellationToken);
+        await host.PlayEffectAsync(LevelUpEffectId, cancellationToken);
         return StoryCommandResult.None;
     }
 

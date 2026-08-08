@@ -587,24 +587,12 @@ public sealed class ItemUseServiceTests
                 new Segment(
                     "apply_item_effect",
                     [
-                        new CommandStep(
-                            "upgrade",
-                            [
-                                new LiteralExprNode(ExprValue.FromString("maxhp")),
-                                new VariableExprNode(ItemUseService.ItemTargetCharacterIdVariable),
-                                new LiteralExprNode(ExprValue.FromNumber(100)),
-                            ]),
+                        new CommandStep(new ExpressionParser().ParseCall("change_stat(" + ItemUseService.ItemTargetCharacterIdVariable + ", 'maxhp', 100)")),
                     ]),
                 new Segment(
                     "probe_context",
                     [
-                        new CommandStep(
-                            "upgrade",
-                            [
-                                new LiteralExprNode(ExprValue.FromString("maxhp")),
-                                new VariableExprNode(ItemUseService.ItemTargetCharacterIdVariable),
-                                new LiteralExprNode(ExprValue.FromNumber(1)),
-                            ]),
+                        new CommandStep(new ExpressionParser().ParseCall("change_stat(" + ItemUseService.ItemTargetCharacterIdVariable + ", 'maxhp', 1)")),
                     ]),
             ]);
         var repository = TestContentFactory.CreateRepository(
@@ -623,7 +611,7 @@ public sealed class ItemUseServiceTests
         Assert.False(state.Story.TryGetVariable(
             ItemUseService.ItemTargetCharacterIdVariable,
             out _));
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<ExpressionEvaluationException>(
             () => session.StoryService.ExecuteAsync("probe_context"));
     }
 
@@ -644,13 +632,13 @@ public sealed class ItemUseServiceTests
             [
                 new StoryScript(
                     StoryScript.CurrentVersion,
-                    [new Segment("broken_story", [new CommandStep("unsupported", [])])]),
+                    [new Segment("broken_story", [new CommandStep(new ExpressionParser().ParseCall("unsupported()"))])]),
             ],
             items: [item]);
         var session = new GameSession(state, repository);
         var entry = state.Inventory.GetStack(item);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<ExpressionBindingException>(
             () => session.ItemUseService.UseAsync(entry, hero.Id));
 
         Assert.Empty(state.Inventory.Entries);

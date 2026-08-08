@@ -11,7 +11,7 @@ public static class StoryRunHelper
 		ArgumentException.ThrowIfNullOrWhiteSpace(storyId);
 
 		var completed = false;
-		await foreach (var storyEvent in Game.StoryService.RunAsync(storyId, cancellationToken))
+		await foreach (var storyEvent in Game.StoryService.RunAsync(storyId, cancellationToken: cancellationToken))
 		{
 			completed = storyEvent is SegmentCompletedEvent;
 		}

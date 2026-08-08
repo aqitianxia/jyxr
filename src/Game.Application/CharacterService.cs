@@ -103,13 +103,14 @@ public sealed class CharacterService
         PublishToastAndCharacterChanged(character, $"{character.Name} {statName} {value:+0;-0;0}");
     }
 
-    public void ScaleLegacyMinusMaxPoints(string characterId, int tenths)
+    public void ScaleProgress(string characterId, double ratio)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(tenths);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(tenths, 10);
+        if (ratio is < 0 or > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ratio), "Progress scale must be between 0 and 1.");
+        }
 
         var character = GetPartyMember(characterId);
-        var ratio = tenths / 10d;
 
         foreach (var statType in StatCatalog.MinusMaxPointsStats)
         {
@@ -130,7 +131,7 @@ public sealed class CharacterService
         {
             character.SetUnspentStatPoints(targetPoints);
         }
-        PublishToastAndCharacterChanged(character, $"{character.Name} 所有属性减半");
+        PublishToastAndCharacterChanged(character, $"{character.Name} 成长进度调整为 {ratio:P0}");
     }
 
     public void AllocateStat(string characterId, StatType statType, int points = 1)
@@ -193,53 +194,36 @@ public sealed class CharacterService
         GainExperience(characterId, requiredTotalExperience - currentLevelStartExperience);
     }
 
-    public void Learn(string characterId, string learnType, string targetId, int level = 1)
+    public void LearnAny(string characterId, string targetId, int level = 1)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(level);
         var character = GetPartyMember(characterId);
-        switch (learnType)
+        switch (ResolveLearnableKind(targetId, "learn"))
         {
-            case "skill":
-                LearnSkill(character, targetId, level);
-                return;
-            case "external":
-                GrantExternalSkill(character, targetId, level);
-                return;
-            case "internal":
-                GrantInternalSkill(character, targetId, level);
-                return;
-            case "talent":
-                LearnTalent(character, targetId);
-                return;
-            case "special":
-                LearnSpecialSkill(character, targetId);
-                return;
-            default:
-                throw new InvalidOperationException($"Unsupported learn type '{learnType}'.");
+            case LearnableKind.External: GrantExternalSkill(character, targetId, level); break;
+            case LearnableKind.Internal: GrantInternalSkill(character, targetId, level); break;
+            case LearnableKind.Special: LearnSpecialSkill(character, targetId); break;
+            case LearnableKind.Talent: LearnTalent(character, targetId); break;
         }
     }
 
-    private void LearnSkill(CharacterInstance character, string skillId, int level)
+    public void LearnExternalSkill(string characterId, string skillId, int level = 1)
     {
-        if (ContentRepository.TryGetExternalSkill(skillId, out _))
-        {
-            GrantExternalSkill(character, skillId, level);
-            return;
-        }
-
-        if (ContentRepository.TryGetInternalSkill(skillId, out _))
-        {
-            GrantInternalSkill(character, skillId, level);
-            return;
-        }
-
-        if (ContentRepository.TryGetSpecialSkill(skillId, out _))
-        {
-            LearnSpecialSkill(character, skillId);
-            return;
-        }
-
-        throw new InvalidOperationException($"Command 'learn skill' references unknown skill '{skillId}'.");
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(level);
+        GrantExternalSkill(GetPartyMember(characterId), skillId, level);
     }
+
+    public void LearnInternalSkill(string characterId, string skillId, int level = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(level);
+        GrantInternalSkill(GetPartyMember(characterId), skillId, level);
+    }
+
+    public void LearnSpecialSkill(string characterId, string skillId) =>
+        LearnSpecialSkill(GetPartyMember(characterId), skillId);
+
+    public void LearnTalent(string characterId, string talentId) =>
+        LearnTalent(GetPartyMember(characterId), talentId);
 
     public void GrantExternalSkill(CharacterInstance character, string skillId, int level = 1)
     {
@@ -283,6 +267,7 @@ public sealed class CharacterService
 
     public void UpgradeExternalSkillLevel(string characterId, string skillId, int levels)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(levels);
         var character = GetPartyMember(characterId);
         var definition = ContentRepository.GetExternalSkill(skillId);
         PublishSkillUpgradeResult(
@@ -293,12 +278,31 @@ public sealed class CharacterService
 
     public void UpgradeInternalSkillLevel(string characterId, string skillId, int levels)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(levels);
         var character = GetPartyMember(characterId);
         var definition = ContentRepository.GetInternalSkill(skillId);
         PublishSkillUpgradeResult(
             character,
             character.UpgradeInternalSkillLevel(definition, levels, ResolveAbsoluteSkillMaxLevel()),
             "内功");
+    }
+
+    public void UpgradeSkillLevel(string characterId, string skillId, int levels = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(levels);
+        if (ContentRepository.TryGetExternalSkill(skillId, out _))
+        {
+            UpgradeExternalSkillLevel(characterId, skillId, levels);
+            return;
+        }
+
+        if (ContentRepository.TryGetInternalSkill(skillId, out _))
+        {
+            UpgradeInternalSkillLevel(characterId, skillId, levels);
+            return;
+        }
+
+        throw new InvalidOperationException($"Unknown levelable skill '{skillId}'.");
     }
 
     public void LearnTalent(CharacterInstance character, string talentId)
@@ -331,53 +335,29 @@ public sealed class CharacterService
         }
     }
 
-    public void Remove(string characterId, string removeType, string targetId)
+    public void RemoveAny(string characterId, string targetId)
     {
         var character = GetPartyMember(characterId);
-        switch (removeType)
+        switch (ResolveLearnableKind(targetId, "remove"))
         {
-            case "skill":
-                RemoveSkill(character, targetId);
-                return;
-            case "external":
-                RemoveExternalSkill(character, targetId);
-                return;
-            case "internal":
-                RemoveInternalSkill(character, targetId);
-                return;
-            case "talent":
-                RemoveTalent(character, targetId);
-                return;
-            case "special":
-                RemoveSpecialSkill(character, targetId);
-                return;
-            default:
-                throw new InvalidOperationException($"Unsupported remove type '{removeType}'.");
+            case LearnableKind.External: RemoveExternalSkill(character, targetId); break;
+            case LearnableKind.Internal: RemoveInternalSkill(character, targetId); break;
+            case LearnableKind.Special: RemoveSpecialSkill(character, targetId); break;
+            case LearnableKind.Talent: RemoveTalent(character, targetId); break;
         }
     }
 
-    private void RemoveSkill(CharacterInstance character, string skillId)
-    {
-        if (ContentRepository.TryGetExternalSkill(skillId, out _))
-        {
-            RemoveExternalSkill(character, skillId);
-            return;
-        }
+    public void RemoveExternalSkill(string characterId, string skillId) =>
+        RemoveExternalSkill(GetPartyMember(characterId), skillId);
 
-        if (ContentRepository.TryGetInternalSkill(skillId, out _))
-        {
-            RemoveInternalSkill(character, skillId);
-            return;
-        }
+    public void RemoveInternalSkill(string characterId, string skillId) =>
+        RemoveInternalSkill(GetPartyMember(characterId), skillId);
 
-        if (ContentRepository.TryGetSpecialSkill(skillId, out _))
-        {
-            RemoveSpecialSkill(character, skillId);
-            return;
-        }
+    public void RemoveSpecialSkill(string characterId, string skillId) =>
+        RemoveSpecialSkill(GetPartyMember(characterId), skillId);
 
-        throw new InvalidOperationException($"Command 'remove skill' references unknown skill '{skillId}'.");
-    }
+    public void RemoveTalent(string characterId, string talentId) =>
+        RemoveTalent(GetPartyMember(characterId), talentId);
 
     public void RemoveExternalSkill(CharacterInstance character, string skillId)
     {
@@ -530,7 +510,7 @@ public sealed class CharacterService
 
     private CharacterInstance GetPartyMember(string characterId)
     {
-        if (TryFindPartyMember(characterId, out var character))
+        if (State.Party.TryGetMember(characterId, out var character))
         {
             return character;
         }
@@ -538,19 +518,13 @@ public sealed class CharacterService
         throw new InvalidOperationException($"Party member '{characterId}' does not exist.");
     }
 
-    private bool TryFindPartyMember(string characterId, out CharacterInstance character)
+    private LearnableKind ResolveLearnableKind(string targetId, string commandName)
     {
-        foreach (var member in State.Party.Members)
-        {
-            if (string.Equals(member.Id, characterId, StringComparison.Ordinal))
-            {
-                character = member;
-                return true;
-            }
-        }
-
-        character = null!;
-        return false;
+        if (ContentRepository.TryGetExternalSkill(targetId, out _)) return LearnableKind.External;
+        if (ContentRepository.TryGetInternalSkill(targetId, out _)) return LearnableKind.Internal;
+        if (ContentRepository.TryGetSpecialSkill(targetId, out _)) return LearnableKind.Special;
+        if (ContentRepository.TryGetTalent(targetId, out _)) return LearnableKind.Talent;
+        throw new InvalidOperationException($"Command '{commandName}' references unknown skill or talent '{targetId}'.");
     }
 
     private GrowTemplateDefinition ResolveGrowTemplate(CharacterInstance character)
@@ -558,5 +532,13 @@ public sealed class CharacterService
         ArgumentNullException.ThrowIfNull(character);
         var growTemplateId = character.GrowTemplateId ?? CharacterExperienceProgression.DefaultGrowTemplateId;
         return ContentRepository.GetGrowTemplate(growTemplateId);
+    }
+
+    private enum LearnableKind
+    {
+        External,
+        Internal,
+        Special,
+        Talent,
     }
 }

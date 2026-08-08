@@ -38,7 +38,7 @@ public sealed class SessionFlowService
             nextRound,
             carriedChest);
         nextState.Currency.AddSilver(NextRoundInitialSilver);
-        nextState.Story.SetVariable("last_trial_count", ExprValue.FromNumber(lastTrialCount));
+        nextState.Story.SetVariable("last_trial_count", ExpressionValue.FromNumber(lastTrialCount));
 
         ReplaceState(nextState);
     }

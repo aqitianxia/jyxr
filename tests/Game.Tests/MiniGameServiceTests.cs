@@ -15,7 +15,7 @@ public sealed class MiniGameServiceTests
         var host = new LightnessTrainingHost(5);
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
 
         Assert.Equal(1, host.RunCount);
         Assert.Contains(session.State.Inventory.Entries.OfType<StackInventoryEntry>(), entry =>
@@ -30,14 +30,14 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 30);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(14));
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(30, hero.GetBaseStat(StatType.Shenfa));
         Assert.Equal(28, session.State.MiniGame.GetPracticePoints("lightness_training"));
 
         dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(1));
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
 
         Assert.Equal(35, hero.GetBaseStat(StatType.Shenfa));
         Assert.Equal(0, session.State.MiniGame.GetPracticePoints("lightness_training"));
@@ -49,7 +49,7 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 70);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(30));
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(70, hero.GetBaseStat(StatType.Shenfa));
@@ -62,7 +62,7 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 68);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(34));
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(70, hero.GetBaseStat(StatType.Shenfa));
@@ -81,7 +81,7 @@ public sealed class MiniGameServiceTests
         for (var index = 0; index < 20; index += 1)
         {
             var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(23));
-            await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("qinggong")], default);
+            await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("qinggong")], default);
         }
 
         Assert.DoesNotContain(session.State.Inventory.Entries.OfType<StackInventoryEntry>(), entry =>
@@ -103,7 +103,7 @@ public sealed class MiniGameServiceTests
         };
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         Assert.Equal(1, host.StrengthRunCount);
         Assert.Contains("大还丹", host.StrengthItemCandidates);
@@ -122,14 +122,14 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 30, heroBili: 10);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(0) { StrengthScore = 9 });
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(10, hero.GetBaseStat(StatType.Bili));
         Assert.Equal(9, session.State.MiniGame.GetPracticePoints("strength_training"));
 
         dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(0) { StrengthScore = 1 });
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         Assert.Equal(15, hero.GetBaseStat(StatType.Bili));
         Assert.Equal(0, session.State.MiniGame.GetPracticePoints("strength_training"));
@@ -141,7 +141,7 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 30, heroBili: 20);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(0) { StrengthScore = -2 });
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         Assert.Equal(-2, session.State.MiniGame.GetPracticePoints("strength_training"));
     }
@@ -153,7 +153,7 @@ public sealed class MiniGameServiceTests
         session.State.MiniGame.SetPracticePoints("strength_training", 12);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(0) { StrengthScore = 30 });
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(70, hero.GetBaseStat(StatType.Bili));
@@ -166,7 +166,7 @@ public sealed class MiniGameServiceTests
         var session = CreateSession(heroShenfa: 30, heroBili: 68);
         var dispatcher = new StoryCommandDispatcher(session, new LightnessTrainingHost(0) { StrengthScore = 68 });
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         var hero = session.State.Party.GetMember(Party.HeroCharacterId);
         Assert.Equal(70, hero.GetBaseStat(StatType.Bili));
@@ -184,7 +184,7 @@ public sealed class MiniGameServiceTests
         var host = new LightnessTrainingHost(0);
         var dispatcher = new StoryCommandDispatcher(session, host);
 
-        await dispatcher.ExecuteCommandAsync("game", [ExprValue.FromString("dianxue")], default);
+        await dispatcher.ExecuteCommandAsync("minigame", [ExpressionValue.FromString("dianxue")], default);
 
         Assert.DoesNotContain("柳叶刀", host.StrengthItemCandidates);
         Assert.DoesNotContain("金丝道袍", host.StrengthItemCandidates);
@@ -308,18 +308,18 @@ public sealed class MiniGameServiceTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<ExprValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
-            ValueTask.FromException<ExprValue>(new InvalidOperationException($"Unknown variable '{name}'."));
+        public ValueTask<ExpressionValue> GetVariableAsync(string name, CancellationToken cancellationToken) =>
+            ValueTask.FromException<ExpressionValue>(new InvalidOperationException($"Unknown variable '{name}'."));
 
         public ValueTask<bool> EvaluatePredicateAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<bool>(new InvalidOperationException($"Unknown predicate '{name}'."));
 
         public ValueTask<StoryCommandResult> ExecuteCommandAsync(
             string name,
-            IReadOnlyList<ExprValue> args,
+            IReadOnlyList<ExpressionValue> args,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<StoryCommandResult>(new InvalidOperationException($"Host command '{name}' should not be invoked."));
 

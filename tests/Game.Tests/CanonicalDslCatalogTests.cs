@@ -1,0 +1,167 @@
+using Game.Application;
+using Game.Core.Model;
+
+namespace Game.Tests;
+
+public sealed class CanonicalDslCatalogTests
+{
+    [Theory]
+    [InlineData("change_item")]
+    [InlineData("remove_item")]
+    [InlineData("add_random_item")]
+    [InlineData("change_silver")]
+    [InlineData("change_yuanbao")]
+    [InlineData("advance_days")]
+    [InlineData("set_round")]
+    [InlineData("set_difficulty")]
+    [InlineData("set_no_regret")]
+    [InlineData("set_sect")]
+    [InlineData("change_morality")]
+    [InlineData("change_favorability")]
+    [InlineData("set_rank")]
+    [InlineData("journal")]
+    [InlineData("set_var")]
+    [InlineData("set_flag")]
+    [InlineData("change_var")]
+    [InlineData("remove_var")]
+    [InlineData("clear_flag")]
+    [InlineData("set_time_key")]
+    [InlineData("clear_time_key")]
+    [InlineData("world_triggers")]
+    [InlineData("change_stat")]
+    [InlineData("set_growth")]
+    [InlineData("scale_progress")]
+    [InlineData("grant_points")]
+    [InlineData("grant_exp")]
+    [InlineData("level_up")]
+    [InlineData("upgrade_external")]
+    [InlineData("upgrade_internal")]
+    [InlineData("upgrade_skill")]
+    [InlineData("raise_skill_cap")]
+    [InlineData("join")]
+    [InlineData("join_random")]
+    [InlineData("follow")]
+    [InlineData("leave")]
+    [InlineData("leave_follower")]
+    [InlineData("leave_all")]
+    [InlineData("learn_external")]
+    [InlineData("learn")]
+    [InlineData("learn_internal")]
+    [InlineData("learn_special")]
+    [InlineData("learn_talent")]
+    [InlineData("remove_external")]
+    [InlineData("remove")]
+    [InlineData("remove_internal")]
+    [InlineData("remove_special")]
+    [InlineData("remove_talent")]
+    [InlineData("unlock_achievement")]
+    [InlineData("minigame")]
+    [InlineData("refine")]
+    [InlineData("tower")]
+    [InlineData("huashan")]
+    [InlineData("trial")]
+    [InlineData("zhenlong")]
+    [InlineData("arena")]
+    public void BusinessCommandIsExplicitlyRegistered(string name)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(session.StoryService.CommandDispatcher.Registry.TryGetDescriptor(name, out _));
+    }
+
+    [Theory]
+    [InlineData("item", "change_item")]
+    [InlineData("cost_item", "remove_item")]
+    [InlineData("item_random", "add_random_item")]
+    [InlineData("get_money", "change_silver")]
+    [InlineData("yuanbao", "change_yuanbao")]
+    [InlineData("cost_day", "advance_days")]
+    [InlineData("set_game_mode", "set_difficulty")]
+    [InlineData("log", "journal")]
+    [InlineData("daode", "change_morality")]
+    [InlineData("menpai", "set_sect")]
+    [InlineData("growtemplate", "set_growth")]
+    [InlineData("grant_point", "grant_points")]
+    [InlineData("get_point", "grant_points")]
+    [InlineData("get_exp", "grant_exp")]
+    [InlineData("levelup", "level_up")]
+    [InlineData("leave_follow", "leave_follower")]
+    [InlineData("game", "minigame")]
+    [InlineData("xilian", "refine")]
+    [InlineData("zhenlongqiju", "zhenlong")]
+    public void ApprovedBusinessAliasSharesCanonicalDescriptor(string alias, string canonical)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(session.StoryService.CommandDispatcher.Registry.TryGetDescriptor(alias, out var descriptor));
+        Assert.Equal(canonical, descriptor.Name);
+    }
+
+    [Theory]
+    [InlineData("item_count")]
+    [InlineData("favorability")]
+    [InlineData("character_level")]
+    [InlineData("character_stat")]
+    [InlineData("skill_level")]
+    [InlineData("story_completed")]
+    [InlineData("last_story_is")]
+    [InlineData("has_time_key")]
+    [InlineData("active_party_contains")]
+    [InlineData("has_var")]
+    [InlineData("has_flag")]
+    [InlineData("contains")]
+    [InlineData("chance")]
+    public void QueryFunctionIsExplicitlyRegistered(string name)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(new GameExpressionEnvironment(session).Create().Functions.TryGetDescriptor(name, out _));
+    }
+
+    [Theory]
+    [InlineData("should_finish", "story_completed")]
+    [InlineData("follow_story", "last_story_is")]
+    [InlineData("in_team", "active_party_contains")]
+    [InlineData("haogan", "favorability")]
+    public void ApprovedQueryAliasSharesCanonicalDescriptor(string alias, string canonical)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(new GameExpressionEnvironment(session).Create().Functions.TryGetDescriptor(alias, out var descriptor));
+        Assert.Equal(canonical, descriptor.Name);
+    }
+
+    [Theory]
+    [InlineData("silver")]
+    [InlineData("yuanbao")]
+    [InlineData("round")]
+    [InlineData("difficulty")]
+    [InlineData("sect")]
+    [InlineData("morality")]
+    [InlineData("daode")]
+    [InlineData("rank")]
+    [InlineData("elapsed_days")]
+    [InlineData("current_map")]
+    [InlineData("current_time_slot")]
+    [InlineData("friend_count")]
+    public void BuiltInValueIsResolvable(string name)
+    {
+        var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
+        Assert.True(new GameExpressionEnvironment(session).Create().Variables.TryResolve(name, out _));
+    }
+
+    [Fact]
+    public void BusinessCommandsUseClrParametersExceptDynamicSetVarBoundary()
+    {
+        var offenders = typeof(GameSession).Assembly.GetTypes()
+            .SelectMany(static type => type.GetMethods(
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.DeclaredOnly))
+            .Where(static method => method.GetCustomAttributes(typeof(StoryCommandAttribute), inherit: false).Length > 0)
+            .Where(static method => method.Name != "SetVariable")
+            .Where(static method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(ExpressionValue)))
+            .Select(static method => $"{method.DeclaringType?.Name}.{method.Name}")
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+}

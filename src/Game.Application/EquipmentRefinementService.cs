@@ -102,10 +102,7 @@ public sealed class EquipmentRefinementService
             ReplaceAffixGroup(equipment, affixGroups[selectedAffixIndex], candidates[candidateIndex].Affixes);
             _session.Events.Publish(new InventoryChangedEvent());
             _session.Events.Publish(new ToastRequestedEvent("洗练成功！"));
-            await host.ExecuteCommandAsync(
-                "effect",
-                [ExprValue.FromString(SuccessEffectId)],
-                cancellationToken);
+            await host.PlayEffectAsync(SuccessEffectId, cancellationToken);
         }
     }
 

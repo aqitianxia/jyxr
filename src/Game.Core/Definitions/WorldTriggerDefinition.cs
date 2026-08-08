@@ -4,15 +4,14 @@ public sealed record WorldTriggerDefinition
 {
     public required string Id { get; init; }
 
-    public required string Type { get; init; }
+    [System.Text.Json.Serialization.JsonConverter(typeof(Game.Core.Serialization.ParsedCallJsonConverter))]
+    public required ParsedCall Action { get; init; }
 
-    public string TargetId { get; init; } = "";
-
-    public int Probability { get; init; } = 100;
+    [System.Text.Json.Serialization.JsonConverter(typeof(Game.Core.Serialization.ParsedExpressionJsonConverter))]
+    public ParsedExpression? When { get; init; }
 
     public RepeatMode RepeatMode { get; init; } = RepeatMode.Once;
 
     public string? Description { get; init; }
 
-    public IReadOnlyList<MapEventConditionDefinition> Conditions { get; init; } = [];
 }

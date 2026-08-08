@@ -37,11 +37,11 @@ public sealed record MapLocationDefinition
 
 public sealed record MapEventDefinition
 {
-    public required string Type { get; init; }
+    [JsonConverter(typeof(Game.Core.Serialization.ParsedCallJsonConverter))]
+    public required ParsedCall Action { get; init; }
 
-    public string TargetId { get; init; } = "";
-
-    public int Probability { get; init; }
+    [JsonConverter(typeof(Game.Core.Serialization.ParsedExpressionJsonConverter))]
+    public ParsedExpression? When { get; init; }
 
     public RepeatMode RepeatMode { get; init; } = RepeatMode.Infinite;
 
@@ -49,14 +49,6 @@ public sealed record MapEventDefinition
 
     public string? Description { get; init; }
 
-    public IReadOnlyList<MapEventConditionDefinition> Conditions { get; init; } = [];
-}
-
-public sealed record MapEventConditionDefinition
-{
-    public required string Type { get; init; }
-
-    public string Value { get; init; } = "";
 }
 
 public enum RepeatMode

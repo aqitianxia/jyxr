@@ -13,7 +13,7 @@ public sealed record DialogueReadyEvent(
 
 public sealed record CommandExecutedEvent(
     string Name,
-    IReadOnlyList<ExprValue> Args) : StoryEvent;
+    IReadOnlyList<ExpressionValue> Args) : StoryEvent;
 
 public sealed record ChoiceOfferedEvent(
     ChoiceContext Choice) : StoryEvent;

@@ -4,7 +4,7 @@ public sealed record StoryScript(
     int Version,
     IReadOnlyList<Segment> Segments)
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 }
 
 public sealed record Segment(
@@ -18,8 +18,7 @@ public sealed record DialogueStep(
     string Text) : Step;
 
 public sealed record CommandStep(
-    string Name,
-    IReadOnlyList<ExprNode> Args) : Step;
+    ParsedCall Call) : Step;
 
 public readonly record struct StoryCommandResult(string? JumpTarget)
 {
@@ -56,7 +55,7 @@ public sealed record ChoicePrompt(
     string Text);
 
 public sealed record ChoiceGroup(
-    ExprNode? When,
+    ParsedExpression? When,
     IReadOnlyList<ChoiceOption> Options);
 
 public sealed record ChoiceOption(
@@ -72,7 +71,7 @@ public sealed record BranchStep(
     IReadOnlyList<Step>? Fallback) : Step;
 
 public sealed record BranchCase(
-    ExprNode When,
+    ParsedExpression When,
     IReadOnlyList<Step> Steps);
 
 public enum BattleOutcome

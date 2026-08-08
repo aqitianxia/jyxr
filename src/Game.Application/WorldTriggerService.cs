@@ -1,5 +1,5 @@
-using Game.Core.Definitions;
 using Game.Core;
+using Game.Core.Definitions;
 using Game.Core.Model;
 
 namespace Game.Application;
@@ -7,13 +7,12 @@ namespace Game.Application;
 public sealed class WorldTriggerService
 {
     private readonly GameSession _session;
-    private readonly MapConditionEvaluator _conditionEvaluator;
+    private readonly GameConditionExpressionService _conditions;
 
     public WorldTriggerService(GameSession session)
     {
-        ArgumentNullException.ThrowIfNull(session);
-        _session = session;
-        _conditionEvaluator = new MapConditionEvaluator(session);
+        _session = session ?? throw new ArgumentNullException(nameof(session));
+        _conditions = new GameConditionExpressionService(session);
     }
 
     private GameState State => _session.State;
@@ -27,75 +26,32 @@ public sealed class WorldTriggerService
 
         foreach (var trigger in _session.ContentRepository.GetWorldTriggers())
         {
-            if (IsCompleted(trigger))
+            if (IsCompleted(trigger) || !_conditions.Evaluate(trigger.When))
             {
                 continue;
             }
 
-            if (!_conditionEvaluator.AreSatisfied(trigger.Conditions))
+            // Mark before dispatch so a map-changing command cannot resolve the same trigger recursively.
+            if (trigger.RepeatMode == RepeatMode.Once)
             {
-                continue;
+                State.WorldTriggers.MarkCompleted(trigger.Id);
             }
 
-            if (!Probability.RollPercentage(trigger.Probability))
+            return new MapInteractionResult
             {
-                continue;
-            }
-
-            MarkCompletedIfNeeded(trigger);
-            return BuildInteractionResult(trigger);
+                Command = trigger.Action,
+                Message = trigger.Description,
+                ConsumedTimeSlots = 0,
+            };
         }
 
         return null;
-    }
-
-    private bool IsCompleted(WorldTriggerDefinition trigger)
-    {
-        if (trigger.RepeatMode != RepeatMode.Once)
-        {
-            return false;
-        }
-
-        if (State.WorldTriggers.IsCompleted(trigger.Id))
-        {
-            return true;
-        }
-
-        return string.Equals(trigger.Type, "story", StringComparison.Ordinal) &&
-            State.Story.IsStoryCompleted(trigger.TargetId);
-    }
-
-    private void MarkCompletedIfNeeded(WorldTriggerDefinition trigger)
-    {
-        if (trigger.RepeatMode == RepeatMode.Once)
-        {
-            State.WorldTriggers.MarkCompleted(trigger.Id);
-        }
     }
 
     public void Block() => State.WorldTriggers.Block();
 
     public void Unblock() => State.WorldTriggers.Unblock();
 
-    private static MapInteractionResult BuildInteractionResult(WorldTriggerDefinition trigger) =>
-        trigger.Type switch
-        {
-            "story" => BuildInteractionResult(MapService.MapInteractionOutcome.StoryRequested, trigger),
-            "shop" => BuildInteractionResult(MapService.MapInteractionOutcome.ShopRequested, trigger),
-            "xiangzi" => BuildInteractionResult(MapService.MapInteractionOutcome.ChestRequested, trigger),
-            "battle" => BuildInteractionResult(MapService.MapInteractionOutcome.BattleRequested, trigger),
-            _ => BuildInteractionResult(MapService.MapInteractionOutcome.PlaceholderInteraction, trigger),
-        };
-
-    private static MapInteractionResult BuildInteractionResult(
-        MapService.MapInteractionOutcome outcome,
-        WorldTriggerDefinition trigger) =>
-        new()
-        {
-            Outcome = outcome,
-            Message = trigger.Description,
-            TargetId = trigger.TargetId,
-            ConsumedTimeSlots = 0,
-        };
-
+    private bool IsCompleted(WorldTriggerDefinition trigger) =>
+        trigger.RepeatMode == RepeatMode.Once && State.WorldTriggers.IsCompleted(trigger.Id);
 }

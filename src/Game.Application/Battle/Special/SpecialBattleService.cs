@@ -29,13 +29,13 @@ public sealed class SpecialBattleService
     ];
 
     private readonly GameSession _session;
-    private readonly MapConditionEvaluator _towerConditionEvaluator;
+    private readonly GameConditionExpressionService _conditions;
 
     public SpecialBattleService(GameSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
         _session = session;
-        _towerConditionEvaluator = new MapConditionEvaluator(session);
+        _conditions = new GameConditionExpressionService(session);
     }
 
     private GameState State => _session.State;
@@ -133,7 +133,7 @@ public sealed class SpecialBattleService
                 cancellationToken);
             if (!isWin)
             {
-                await host.ExecuteCommandAsync("gameover", [], cancellationToken);
+                await host.GameOverAsync(cancellationToken);
                 return StoryCommandResult.None;
             }
         }
@@ -257,17 +257,7 @@ public sealed class SpecialBattleService
         return towers[index];
     }
 
-    private bool IsTowerUnlocked(TowerDefinition tower)
-    {
-        var conditions = tower.UnlockConditions
-            .Select(static condition => new MapEventConditionDefinition
-            {
-                Type = condition.Type,
-                Value = condition.Value,
-            })
-            .ToArray();
-        return _towerConditionEvaluator.AreSatisfied(conditions);
-    }
+    private bool IsTowerUnlocked(TowerDefinition tower) => _conditions.Evaluate(tower.When);
 
     private async ValueTask<IReadOnlyList<string>> SelectCombatantsAsync(
         IRuntimeHost host,

@@ -4,11 +4,11 @@ namespace Game.Core.Story;
 
 internal sealed partial class StoryRuntimeSession(
     StoryScript script,
-    IRuntimeHost host,
+    IStoryRuntimeContext host,
     string? startSegment,
     CancellationToken cancellationToken)
 {
-    private const string GameOverCommand = "gameover";
+    private readonly ExpressionEvaluator _expressionEvaluator = new();
 
     private readonly IReadOnlyDictionary<string, Segment> _segments =
         script.Segments.ToDictionary(segment => segment.Name, StringComparer.Ordinal);
@@ -153,9 +153,9 @@ internal sealed partial class StoryRuntimeSession(
                 yield break;
             case CommandStep command:
             {
-                var args = await EvaluateValueArgsAsync(command.Args, ct);
-                var result = await host.ExecuteCommandAsync(command.Name, args, ct);
-                yield return StepResult.FromEvent(new CommandExecutedEvent(command.Name, args));
+                var args = _expressionEvaluator.EvaluateArguments(command.Call.Root, host.ExpressionEnvironment);
+                var result = await host.Commands.InvokeAsync(command.Call.Root.Name, args, ct);
+                yield return StepResult.FromEvent(new CommandExecutedEvent(command.Call.Root.Name, args));
                 if (result.JumpTarget is not null)
                 {
                     yield return StepResult.FromEvent(new JumpEvent(result.JumpTarget));
@@ -221,19 +221,6 @@ internal sealed partial class StoryRuntimeSession(
             default:
                 throw new StoryRuntimeException($"Unsupported step type '{step.GetType().Name}'.");
         }
-    }
-
-    private async Task<IReadOnlyList<ExprValue>> EvaluateValueArgsAsync(
-        IReadOnlyList<ExprNode> args,
-        CancellationToken ct)
-    {
-        var values = new List<ExprValue>(args.Count);
-        foreach (var arg in args)
-        {
-            values.Add(await ExpressionEvaluator.EvaluateValueArgAsync(arg, host, ct));
-        }
-
-        return values;
     }
 
 }

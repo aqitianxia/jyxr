@@ -45,7 +45,7 @@ public sealed class SaveGameServiceTests
         state.Location.ChangeMap("sample_map");
         state.Location.SetLargeMapPosition("world", new MapPosition(512, 410));
         state.MapEventProgress.MarkCompleted("world|village|0");
-        state.Story.SetVariable("tutorial_finished", ExprValue.FromBoolean(true));
+        state.Story.SetVariable("tutorial_finished", ExpressionValue.FromBoolean(true));
         state.Story.MarkCompleted("新手村_南贤开场");
         state.Story.SetLastStory("新手村_南贤开场");
         state.Journal.Append(ClockState.Restore(new ClockRecord(1, 2, 3, TimeSlot.Chou)), "拜访南贤");

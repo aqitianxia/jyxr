@@ -4,7 +4,7 @@ public sealed class StoryRuntime
 {
     public IAsyncEnumerable<StoryEvent> RunAsync(
         StoryScript script,
-        IRuntimeHost host,
+        IStoryRuntimeContext host,
         string? startSegment = null,
         CancellationToken cancellationToken = default)
     {

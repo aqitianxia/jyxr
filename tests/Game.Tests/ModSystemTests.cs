@@ -481,7 +481,7 @@ public sealed class ModSystemTests
                   "target": {"kind": "storySegment", "id": "test_story"},
                   "value": {
                     "name": "test_story",
-                    "steps": [{"kind":"command","name":"yuanbao","args":[99]}]
+                    "steps": [{"kind":"command","call":"change_yuanbao(99)"}]
                   }
                 }
               ]
@@ -496,7 +496,7 @@ public sealed class ModSystemTests
 
         var segment = repository.GetStorySegment("test_story");
         var command = Assert.IsType<Game.Core.Story.CommandStep>(Assert.Single(segment.Segment.Steps));
-        Assert.Equal("yuanbao", command.Name);
+        Assert.Equal("change_yuanbao", command.Call.Root.Name);
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public sealed class ModSystemTests
                   "op": "prepend",
                   "target": {"kind": "storySegment", "id": "test_story"},
                   "path": ["steps"],
-                  "values": [{"kind":"command","name":"get_money","args":[1]}]
+                  "values": [{"kind":"command","call":"change_silver(1)"}]
                 }
               ]
             }
@@ -551,7 +551,7 @@ public sealed class ModSystemTests
         Assert.Equal(42, loaded.Config.MaxLevel);
         Assert.Equal(["ally_warrior", "ally_mage"], loaded.Config.InitialPartyCharacterIds);
         var steps = loaded.Repository.GetStorySegment("test_story").Segment.Steps;
-        Assert.Equal("get_money", Assert.IsType<Game.Core.Story.CommandStep>(steps[0]).Name);
+        Assert.Equal("change_silver", Assert.IsType<Game.Core.Story.CommandStep>(steps[0]).Call.Root.Name);
     }
 
     [Fact]
@@ -798,12 +798,12 @@ public sealed class ModSystemTests
             Path.Combine(storyDirectory, "test.story.json"),
             """
             {
-              "version": 2,
+              "version": 3,
               "segments": [
                 {
                   "name": "test_story",
                   "steps": [
-                    {"kind": "command", "name": "get_money", "args": [1]}
+                    {"kind": "command", "call": "change_silver(1)"}
                   ]
                 }
               ]

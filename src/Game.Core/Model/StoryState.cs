@@ -5,11 +5,11 @@ namespace Game.Core.Model;
 
 public sealed class StoryState
 {
-    private readonly Dictionary<string, ExprValue> _variables = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ExpressionValue> _variables = new(StringComparer.Ordinal);
     private readonly HashSet<string> _completedStoryIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StoryTimeKeyState> _timeKeys = new(StringComparer.Ordinal);
 
-    public IReadOnlyDictionary<string, ExprValue> Variables => _variables;
+    public IReadOnlyDictionary<string, ExpressionValue> Variables => _variables;
 
     public IReadOnlyCollection<string> CompletedStoryIds => _completedStoryIds;
 
@@ -28,7 +28,8 @@ public sealed class StoryState
         foreach (var (name, variable) in record.Variables)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            state._variables.Add(name, variable.ToExprValue());
+            ExpressionSymbol.Validate(name);
+            state._variables.Add(name, variable.ToExpressionValue());
         }
 
         foreach (var storyId in record.CompletedStoryIds)
@@ -49,22 +50,43 @@ public sealed class StoryState
         return state;
     }
 
-    public bool TryGetVariable(string name, out ExprValue value)
+    public bool TryGetVariable(string name, out ExpressionValue value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ExpressionSymbol.Validate(name);
         return _variables.TryGetValue(name, out value);
     }
 
-    public void SetVariable(string name, ExprValue value)
+    public void SetVariable(string name, ExpressionValue value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ExpressionSymbol.Validate(name);
+        if (_variables.TryGetValue(name, out var current) && current.Kind != value.Kind)
+        {
+            throw new InvalidOperationException(
+                $"Story variable '{name}' is {current.Kind} and cannot be changed to {value.Kind}.");
+        }
+
         _variables[name] = value;
     }
 
     public bool RemoveVariable(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ExpressionSymbol.Validate(name);
         return _variables.Remove(name);
+    }
+
+    public void ChangeNumberVariable(string name, double delta)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ExpressionSymbol.Validate(name);
+        if (!_variables.TryGetValue(name, out var current))
+        {
+            throw new InvalidOperationException($"Story variable '{name}' does not exist.");
+        }
+
+        SetVariable(name, ExpressionValue.FromNumber(current.AsNumber($"Story variable '{name}'") + delta));
     }
 
     public StoryTimeKeyState SetTimeKey(
@@ -127,7 +149,7 @@ public sealed class StoryState
                 .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
                 .ToDictionary(
                     static entry => entry.Key,
-                    static entry => StoryVariableRecord.FromExprValue(entry.Value),
+                    static entry => StoryVariableRecord.FromExpressionValue(entry.Value),
                     StringComparer.Ordinal),
             _completedStoryIds.OrderBy(static id => id, StringComparer.Ordinal).ToArray(),
             LastStoryId,

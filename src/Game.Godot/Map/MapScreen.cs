@@ -1,8 +1,6 @@
 using Game.Application;
 using Game.Core.Definitions;
 using Game.Godot.Assets;
-using Game.Godot.Story;
-using Game.Godot.UI;
 using Godot;
 
 namespace Game.Godot.Map;
@@ -196,50 +194,27 @@ public partial class MapScreen : Control
 		{
 			Game.Session.Events.Publish(
 				new AutoSaveRequestedEvent(
-					$"map interaction completed: outcome='{result.Outcome}', target='{result.TargetId}'"));
+					$"map interaction command completed: '{result.Command?.Root.Name}'"));
 		}
 	}
 
 	private async Task<bool> HandleMapInteractionResultAsync(MapInteractionResult result)
 	{
-		if (result.EnterResult is not null)
+		if (result.Command is null)
 		{
-			Apply(result.EnterResult);
-			if (result.EnterResult.PendingInteraction is not null)
-			{
-				return await HandleMapInteractionResultAsync(result.EnterResult.PendingInteraction);
-			}
-
-			return true;
+			Game.Logger.Info("Map interaction is blocked because it has no command.");
+			return false;
 		}
 
-		switch (result.Outcome)
-		{
-			case MapService.MapInteractionOutcome.StoryRequested:
-				return await RunStoryAsync(result.TargetId);
-			case MapService.MapInteractionOutcome.ShopRequested:
-				await OpenShopAsync(result.TargetId);
-				return true;
-			case MapService.MapInteractionOutcome.ChestRequested:
-				await OpenChestAsync();
-				return true;
-			case MapService.MapInteractionOutcome.BattleRequested:
-				var isWin = await OpenBattleAsync(result.TargetId);
-				if (isWin && GodotObject.IsInstanceValid(this))
-				{
-					World.Instance.RefreshCurrentMap();
-				}
+		await Game.StoryService.CommandDispatcher.ExecuteCallAsync(result.Command);
+		Game.MapService.CompleteInteraction(result);
 
-				return isWin;
-			case MapService.MapInteractionOutcome.PlaceholderInteraction:
-				Game.Logger.Info($"Map event requested: {result.Outcome}, target={result.TargetId}");
-				return true;
-			case MapService.MapInteractionOutcome.Blocked:
-				Game.Logger.Info($"Map event requested: {result.Outcome}, target={result.TargetId}");
-				return false;
-			default:
-				throw new InvalidOperationException($"Unsupported map interaction outcome '{result.Outcome}'.");
+		if (GodotObject.IsInstanceValid(this) && ReferenceEquals(World.Instance.CurrentScene, this))
+		{
+			World.Instance.RefreshCurrentMap();
 		}
+
+		return true;
 	}
 
 	private void SchedulePendingInteraction(MapEnterResult result)
@@ -278,38 +253,6 @@ public partial class MapScreen : Control
 		}
 	}
 
-	private static async Task OpenShopAsync(string? shopId)
-	{
-		if (string.IsNullOrWhiteSpace(shopId))
-		{
-			throw new InvalidOperationException("Map shop event is missing target shop id.");
-		}
-
-		await UIRoot.Instance.ShowShopPanelAsync(shopId);
-	}
-
-	private static async Task OpenChestAsync() =>
-		await UIRoot.Instance.ShowChestPanelAsync();
-
-	private static async Task<bool> OpenBattleAsync(string? battleId)
-	{
-		if (string.IsNullOrWhiteSpace(battleId))
-		{
-			throw new InvalidOperationException("Map battle event is missing target battle id.");
-		}
-
-		var selected = await UIRoot.Instance.ShowCombatantSelectPanelAsync(battleId);
-		var isWin = await UIRoot.Instance.ShowBattleScreenAsync(
-			new OrdinaryBattleRequest(battleId, selected.ToArray()));
-		if (!isWin)
-		{
-			GameFlow.GameOver();
-			return false;
-		}
-
-		return true;
-	}
-
 	private void SetSmallMapBackground(string? resourceId)
 	{
 		var texture = AssetResolver.LoadTextureResource(resourceId);
@@ -336,41 +279,6 @@ public partial class MapScreen : Control
 		var dimAlpha = MapTimeLighting.GetDimAlpha(Game.State.Clock.TimeSlot);
 		_smallMapTimeDim.Color = new Color(0f, 0f, 0f, dimAlpha);
 		_smallMapTimeDim.Visible = dimAlpha > 0f;
-	}
-
-	private async Task<bool> RunStoryAsync(string? storyId)
-	{
-		if (string.IsNullOrWhiteSpace(storyId))
-		{
-			throw new InvalidOperationException("Map story event is missing target story id.");
-		}
-
-		var world = World.Instance;
-		UIRoot.Instance.SetStoryPresentationActive(true);
-
-		try
-		{
-			var completed = await StoryRunHelper.RunAsync(storyId);
-			if (!completed)
-			{
-				return false;
-			}
-		}
-		finally
-		{
-			if (GodotObject.IsInstanceValid(UIRoot.Instance))
-			{
-				UIRoot.Instance.SetStoryPresentationActive(false);
-			}
-		}
-
-		if (!GodotObject.IsInstanceValid(world))
-		{
-			return false;
-		}
-
-		world.RefreshCurrentMap();
-		return true;
 	}
 
 	private static void ClearChildren(Node node)

@@ -68,7 +68,7 @@ public sealed class SessionFlowServiceTests
         session.SessionFlowService.StartNextRound();
 
         Assert.True(session.State.Story.TryGetVariable("last_trial_count", out var value));
-        Assert.Equal(ExprValueKind.Number, value.Kind);
+        Assert.Equal(ExpressionValueKind.Number, value.Kind);
         Assert.Equal(3, value.AsInt32("last_trial_count"));
     }
 }
