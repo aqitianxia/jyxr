@@ -6,26 +6,41 @@ namespace Game.Godot.Map;
 
 internal static class MapEntityPresentation
 {
+	private const string OverflowResourceTag = "map-marker-overflow";
+
 	public static string ResolveLocationName(MapLocationDefinition location) =>
 		location.Name ?? AssetResolver.ResolveCharacterName(location.Id);
 
-	public static Texture2D? ResolveAvatarTexture(
+	public static MapEntityAvatarPresentation ResolveAvatar(
 		Texture2D? defaultTexture,
 		MapLocationDefinition location,
 		MapEventDefinition? mapEvent)
 	{
 		if (mapEvent is null)
 		{
-			return defaultTexture;
+			return new MapEntityAvatarPresentation(defaultTexture, false);
 		}
 
 		var image = mapEvent.Image ?? location.Picture;
 		if (image is not null)
 		{
-			return AssetResolver.LoadTextureResource(image) ?? defaultTexture;
+			var texture = AssetResolver.LoadTextureResource(image);
+			return texture is null
+				? new MapEntityAvatarPresentation(defaultTexture, false)
+				: new MapEntityAvatarPresentation(texture, HasOverflowTag(image));
 		}
 
-		return AssetResolver.LoadCharacterPortraitByCharacterId(location.Id) ?? defaultTexture;
+		return new MapEntityAvatarPresentation(
+			AssetResolver.LoadCharacterPortraitByCharacterId(location.Id) ?? defaultTexture,
+			false);
+	}
+
+	private static bool HasOverflowTag(string resourceId)
+	{
+		var normalizedResourceId = resourceId.Trim();
+		return !normalizedResourceId.StartsWith("res://", StringComparison.Ordinal) &&
+			Game.ContentRepository.TryGetResource(normalizedResourceId, out var resource) &&
+			resource.Tags.Contains(OverflowResourceTag, StringComparer.Ordinal);
 	}
 
 	public static string BuildTooltipText(
@@ -60,3 +75,5 @@ internal static class MapEntityPresentation
 			: $"{days}天{remainingTimeSlots}个时辰";
 	}
 }
+
+internal readonly record struct MapEntityAvatarPresentation(Texture2D? Texture, bool UseOverflow);

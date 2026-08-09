@@ -1,4 +1,5 @@
 using Game.Core.Definitions;
+using Game.Godot.UI;
 using Godot;
 
 namespace Game.Godot.Map;
@@ -9,6 +10,7 @@ public partial class LargeMapMarker : Control
 	public Texture2D? DefaultTexture { get; set; }
 
 	private TextureRect _avatar = null!;
+	private OverflowTextureRect _overflowAvatar = null!;
 	private Label _nameLabel = null!;
 	private TextureRect _notice = null!;
 
@@ -19,6 +21,7 @@ public partial class LargeMapMarker : Control
 	public override void _Ready()
 	{
 		_avatar = GetNode<TextureRect>("%Avatar");
+		_overflowAvatar = GetNode<OverflowTextureRect>("%OverflowAvatar");
 		_nameLabel = GetNode<Label>("%NameLabel");
 		_notice = GetNode<TextureRect>("%Notice");
 		Refresh();
@@ -42,9 +45,13 @@ public partial class LargeMapMarker : Control
 
 		_nameLabel.Text = MapEntityPresentation.ResolveLocationName(location.Location);
 		_notice.Visible = location.Event?.RepeatMode == RepeatMode.Once;
-		_avatar.Texture = MapEntityPresentation.ResolveAvatarTexture(
+		var avatar = MapEntityPresentation.ResolveAvatar(
 			DefaultTexture,
 			location.Location,
 			location.Event);
+		_avatar.Texture = avatar.UseOverflow ? null : avatar.Texture;
+		_avatar.Visible = !avatar.UseOverflow;
+		_overflowAvatar.Texture = avatar.UseOverflow ? avatar.Texture : null;
+		_overflowAvatar.Visible = avatar.UseOverflow;
 	}
 }

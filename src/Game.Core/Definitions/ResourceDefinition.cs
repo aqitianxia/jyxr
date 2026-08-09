@@ -7,6 +7,8 @@ public sealed record ResourceDefinition
     public string? Group { get; init; }
 
     public string Value { get; init; } = "";
+
+    public IReadOnlyList<string> Tags { get; init; } = [];
 }
 
 public sealed record GameTipDefinition

@@ -82,10 +82,10 @@ public partial class MapEntityButton : Button
 
 		_nameLabel.Text = MapEntityPresentation.ResolveLocationName(location.Location);
 		_notice.Visible = location.Event?.RepeatMode == RepeatMode.Once;
-		_avatar.Texture = MapEntityPresentation.ResolveAvatarTexture(
+		_avatar.Texture = MapEntityPresentation.ResolveAvatar(
 			DefaultTexture,
 			location.Location,
-			location.Event);
+			location.Event).Texture;
 	}
 
 	private void OnPressed()

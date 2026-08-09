@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Game.Content.Loading;
 using Game.Core.Affix;
 using Game.Core.Battle;
@@ -5,6 +6,7 @@ using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Story;
+using Game.Core.Serialization;
 using GrantModelAffix = Game.Core.Affix.GrantModelAffix;
 using GrantTalentAffix = Game.Core.Affix.GrantTalentAffix;
 
@@ -35,6 +37,53 @@ public sealed class ContentLoadingTests
         Assert.NotNull(repository.GetSect("sample_sect"));
         Assert.NotNull(repository.GetShop("sample_shop"));
         Assert.NotNull(repository.GetTower("sample_tower"));
+    }
+
+    [Fact]
+    public void JsonLoader_LoadsResourceTags()
+    {
+        const string json =
+            """
+            {"id":"city","value":"ui/town/city","tags":["map-marker-overflow"]}
+            """;
+        var resource = JsonSerializer.Deserialize<ResourceDefinition>(json, GameJson.Default);
+
+        Assert.NotNull(resource);
+        Assert.Equal(["map-marker-overflow"], resource.Tags);
+
+        var repository = new JsonContentLoader().LoadFromPackage(new ContentPackage { Resources = [resource] });
+        Assert.Equal(["map-marker-overflow"], repository.GetResource("city").Tags);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void JsonLoader_RejectsEmptyResourceTags(string tag)
+    {
+        var package = new ContentPackage
+        {
+            Resources = [new ResourceDefinition { Id = "resource", Tags = [tag] }],
+        };
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsDuplicateResourceTags()
+    {
+        var package = new ContentPackage
+        {
+            Resources =
+            [
+                new ResourceDefinition
+                {
+                    Id = "resource",
+                    Tags = ["map-marker-overflow", "map-marker-overflow"],
+                },
+            ],
+        };
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
     }
 
     [Fact]

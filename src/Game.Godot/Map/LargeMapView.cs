@@ -19,6 +19,7 @@ public partial class LargeMapView : Control
 	private const float MaximumZoom = 3f;
 	private const float MobileDefaultZoom = 1.5f;
 	private const float MouseWheelZoomStep = 1.15f;
+	private const double ZoomSaveDelaySeconds = 1.0;
 	private const float DragThreshold = 10f;
 	private const float PinMovePixelsPerSecond = 900f;
 	private const float PinMoveMinDuration = 0.25f;
@@ -34,6 +35,8 @@ public partial class LargeMapView : Control
 	private Control _locations = null!;
 	private Control _heroPin = null!;
 	private TextureRect _heroAvatar = null!;
+	private global::Godot.Timer _zoomSaveTimer = null!;
+	private UserSettingsRecord _settings = UserSettingsRecord.Default;
 	private Vector2 _heroDesignPosition;
 	private bool _mousePressed;
 	private bool _mouseDragging;
@@ -66,6 +69,14 @@ public partial class LargeMapView : Control
 		_locations = GetNode<Control>("%MapEntitySlots");
 		_heroPin = GetNode<Control>("%MapPin");
 		_heroAvatar = GetNode<TextureRect>("%PinAvatar");
+		_settings = _settingsStore.LoadOrDefault();
+		_zoomSaveTimer = new global::Godot.Timer
+		{
+			OneShot = true,
+			WaitTime = ZoomSaveDelaySeconds,
+		};
+		_zoomSaveTimer.Timeout += PersistZoom;
+		AddChild(_zoomSaveTimer);
 		Resized += OnResized;
 		ResetView();
 	}
@@ -240,9 +251,8 @@ public partial class LargeMapView : Control
 
 	private void ResetView(Vector2? centerDesignPosition = null)
 	{
-		var settings = _settingsStore.LoadOrDefault();
-		var initialZoom = settings.LargeMapZoom > 0f
-			? settings.LargeMapZoom
+		var initialZoom = _settings.LargeMapZoom > 0f
+			? _settings.LargeMapZoom
 			: Game.IsMobilePlatform ? MobileDefaultZoom : MinimumZoom;
 		_transform.Reset(Size, initialZoom, centerDesignPosition);
 		ApplyVisualTransform();
@@ -288,17 +298,22 @@ public partial class LargeMapView : Control
 		ApplyVisualTransform();
 	}
 
-	private void SaveZoom()
+	private void ScheduleZoomSave()
+	{
+		if (Mathf.IsEqualApprox(_settings.LargeMapZoom, _transform.Zoom))
+		{
+			return;
+		}
+
+		_settings = _settings with { LargeMapZoom = _transform.Zoom };
+		_zoomSaveTimer.Start();
+	}
+
+	private void PersistZoom()
 	{
 		try
 		{
-			var settings = _settingsStore.LoadOrDefault();
-			if (Mathf.IsEqualApprox(settings.LargeMapZoom, _transform.Zoom))
-			{
-				return;
-			}
-
-			_settingsStore.Save(settings with { LargeMapZoom = _transform.Zoom });
+			_settingsStore.Save(_settings);
 		}
 		catch (Exception exception)
 		{
@@ -325,7 +340,7 @@ public partial class LargeMapView : Control
 				? MouseWheelZoomStep
 				: 1f / MouseWheelZoomStep;
 			ApplyGesture(position, position, factor);
-			SaveZoom();
+			ScheduleZoomSave();
 			return true;
 		}
 
@@ -443,7 +458,7 @@ public partial class LargeMapView : Control
 		_touches.Remove(touch.Index);
 		if (wasPinching)
 		{
-			SaveZoom();
+			ScheduleZoomSave();
 		}
 		if (shouldActivate)
 		{

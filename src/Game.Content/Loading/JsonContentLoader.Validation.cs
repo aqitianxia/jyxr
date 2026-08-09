@@ -33,6 +33,7 @@ public sealed partial class JsonContentLoader
 
     private static void ValidateRepository(InMemoryContentRepository repository)
     {
+        ValidateResources(repository);
         ValidateCharacters(repository);
         ValidateBattles(repository);
         ValidateBattleHookAffixes(repository);
@@ -47,6 +48,20 @@ public sealed partial class JsonContentLoader
         ValidateWorldTriggers(repository);
         ValidateTowers(repository);
         ValidateStoryContent(repository);
+    }
+
+    private static void ValidateResources(InMemoryContentRepository repository)
+    {
+        foreach (var resource in repository.Resources.Values)
+        {
+            Ensure(resource.Tags is not null, $"Resource '{resource.Id}' has null tags.");
+            var tags = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var tag in resource.Tags!)
+            {
+                Ensure(!string.IsNullOrWhiteSpace(tag), $"Resource '{resource.Id}' has an empty tag.");
+                Ensure(tags.Add(tag), $"Resource '{resource.Id}' contains tag '{tag}' more than once.");
+            }
+        }
     }
 
     private static void ValidateItemTags(InMemoryContentRepository repository)
