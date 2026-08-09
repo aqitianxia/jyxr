@@ -8,6 +8,8 @@ namespace Game.Core.Definitions;
 [JsonDerivedType(typeof(SkillMaxLevelRewardDefinition), "skill_max_level")]
 public abstract record RewardDefinition
 {
+    public int Quantity { get; init; } = 1;
+
     public string GetStableKey() =>
         this switch
         {
@@ -22,22 +24,15 @@ public abstract record RewardDefinition
 public sealed record ItemRewardDefinition : RewardDefinition
 {
     public required string ItemId { get; init; }
-
-    public int Quantity { get; init; } = 1;
 }
 
-public sealed record YuanbaoRewardDefinition : RewardDefinition
-{
-    public int Amount { get; init; } = 1;
-}
+public sealed record YuanbaoRewardDefinition : RewardDefinition;
 
 public sealed record SkillMaxLevelRewardDefinition : RewardDefinition
 {
     public required SkillFragmentKind SkillKind { get; init; }
 
     public required string SkillId { get; init; }
-
-    public int Levels { get; init; } = 1;
 }
 
 public enum SkillFragmentKind

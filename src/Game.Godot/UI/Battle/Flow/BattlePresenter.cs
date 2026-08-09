@@ -131,7 +131,7 @@ public sealed class BattlePresenter
 		}
 
 		var detail = $"获得金钱：{settlement.Silver}           获得经验：{settlement.ExperiencePerMember}/每人";
-		var yuanbao = settlement.Rewards.OfType<YuanbaoRewardGrant>().Sum(static reward => reward.Amount);
+		var yuanbao = settlement.Rewards.OfType<YuanbaoRewardGrant>().Sum(static reward => reward.Quantity);
 		if (yuanbao > 0)
 		{
 			detail += $"           获得元宝：{yuanbao}";
@@ -186,7 +186,7 @@ public sealed class BattlePresenter
 						fragment.DisplayName,
 						fragment.Kind,
 						fragment.SkillId,
-						fragment.Levels));
+						fragment.Quantity));
 					break;
 				case YuanbaoRewardGrant:
 					break;
@@ -236,4 +236,4 @@ public sealed record BattleSettlementSkillFragmentRewardView(
 	string DisplayName,
 	SkillFragmentKind Kind,
 	string SkillId,
-	int Levels) : BattleSettlementRewardView(DisplayName);
+	int Quantity) : BattleSettlementRewardView(DisplayName);

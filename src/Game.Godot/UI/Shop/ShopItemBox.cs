@@ -143,9 +143,9 @@ public partial class ShopItemBox : TextureButton
 		if (_product is not null)
 		{
 			_priceLabel.Text = FormatProductPrice(_product);
-			_limitLabel.Text = _product.RemainingLimit is null
+			_limitLabel.Text = _product.RemainingClaims is null
 				? "∞"
-				: _product.RemainingLimit.Value.ToString();
+				: _product.RemainingClaims.Value.ToString();
 			return;
 		}
 

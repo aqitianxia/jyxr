@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using Game.Core.Model;
 using Game.Core.Story;
 
@@ -25,8 +24,6 @@ internal static class ModContentLoader
     private const string PatchFilePattern = "*.patch.json";
     private const string StoryDirectoryName = "story";
     private const string StoryFilePattern = "*.story.json";
-
-    private static readonly JsonSerializerOptions ContentJson = CreateContentJson();
 
     public static LoadedModContent Load(IReadOnlyList<ModContentInput> inputs)
     {
@@ -713,7 +710,7 @@ internal static class ModContentLoader
 
         try
         {
-            var package = packageNode.Deserialize<ContentPackage>(ContentJson)
+            var package = packageNode.Deserialize<ContentPackage>(JsonContentLoader.ContentJson)
                 ?? throw new ContentLoadException("Unable to deserialize content package.");
             package.StoryScripts = catalog.BuildStoryScripts();
             return package;
@@ -733,7 +730,7 @@ internal static class ModContentLoader
 
         try
         {
-            return value.Deserialize<T>(ContentJson)
+            return value.Deserialize<T>(JsonContentLoader.ContentJson)
                 ?? throw new ContentLoadException($"Unable to deserialize '{description}'.");
         }
         catch (JsonException exception)
@@ -802,17 +799,6 @@ internal static class ModContentLoader
     }
 
     private static string Format(JsonNode? value) => value?.ToJsonString() ?? "null";
-
-    private static JsonSerializerOptions CreateContentJson()
-    {
-        var options = new JsonSerializerOptions(Game.Core.Serialization.GameJson.Default)
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = false,
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        };
-        return options;
-    }
 
     private sealed record PatchSource(string ModId, string FilePath, int OperationIndex)
     {

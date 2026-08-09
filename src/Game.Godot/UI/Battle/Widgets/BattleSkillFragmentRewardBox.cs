@@ -47,7 +47,7 @@ public partial class BattleSkillFragmentRewardBox : Panel
 			SkillFragmentKind.Internal => "内功",
 			_ => "武学",
 		};
-		var levelText = reward.Levels == 1 ? "1 级" : $"{reward.Levels} 级";
+		var levelText = reward.Quantity == 1 ? "1 级" : $"{reward.Quantity} 级";
 		return $"{reward.DisplayName}：自动提高该{skillKind}等级上限 {levelText}。";
 	}
 

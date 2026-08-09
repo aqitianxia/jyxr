@@ -60,7 +60,7 @@ public sealed class ShopService
             throw new InvalidOperationException($"Shop product '{product.DisplayName}' cannot be bought with {selectedCurrency}.");
         }
 
-        if (product.RemainingLimit is not null && quantity > product.RemainingLimit.Value)
+        if (product.RemainingClaims is not null && quantity > product.RemainingClaims.Value)
         {
             return ShopTransactionResult.Failed($"【{product.DisplayName}】已达购买上限。");
         }
@@ -72,7 +72,7 @@ public sealed class ShopService
         }
 
         if (productDefinition.Reward is SkillMaxLevelRewardDefinition fragment &&
-            checked(fragment.Levels * quantity) >
+            checked(fragment.Quantity * quantity) >
             _session.RewardGrantService.GetRemainingSkillMaxLevelBonus(fragment.SkillKind, fragment.SkillId))
         {
             return ShopTransactionResult.Failed($"【{product.DisplayName}】购买数量超过剩余可提升等级。");
@@ -149,9 +149,9 @@ public sealed class ShopService
         var rewardKey = product.Reward.GetStableKey();
         var purchaseKey = BuildPurchaseKey(shopId, rewardKey);
         var purchasedQuantity = State.Shop.GetPurchasedQuantity(purchaseKey);
-        int? remainingLimit = product.PurchaseLimit is null
+        int? remainingClaims = product.MaxClaims is null
             ? null
-            : Math.Max(0, product.PurchaseLimit.Value - purchasedQuantity);
+            : Math.Max(0, product.MaxClaims.Value - purchasedQuantity);
         var item = product.Reward is ItemRewardDefinition itemReward
             ? _session.ContentRepository.GetItem(itemReward.ItemId)
             : null;
@@ -173,7 +173,7 @@ public sealed class ShopService
             price,
             product.PremiumPrice,
             purchasedQuantity,
-            remainingLimit);
+            remainingClaims);
     }
 
     private bool IsAvailable(RewardDefinition reward) =>
@@ -188,10 +188,10 @@ public sealed class ShopService
             ItemRewardDefinition => (item!.Picture, item.Description),
             YuanbaoRewardDefinition yuanbao => (
                 "物品.元宝",
-                $"兑换 {yuanbao.Amount} 枚跨存档、跨周目共享的元宝。"),
+                $"兑换 {yuanbao.Quantity} 枚跨存档、跨周目共享的元宝。"),
             SkillMaxLevelRewardDefinition fragment => (
                 ResolveSkillIcon(fragment),
-                $"立即永久提高【{ResolveSkillName(fragment)}】等级上限 {fragment.Levels} 级。"),
+                $"立即永久提高【{ResolveSkillName(fragment)}】等级上限 {fragment.Quantity} 级。"),
             _ => throw new NotSupportedException($"Unsupported shop reward '{reward.GetType().Name}'."),
         };
 
@@ -268,7 +268,7 @@ public sealed record ShopProductView(
     int? Price,
     int? PremiumPrice,
     int PurchasedQuantity,
-    int? RemainingLimit)
+    int? RemainingClaims)
 {
     public ShopCurrencyKind DefaultCurrencyKind =>
         Price is not null ? ShopCurrencyKind.Silver : ShopCurrencyKind.Gold;

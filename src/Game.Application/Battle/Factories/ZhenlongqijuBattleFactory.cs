@@ -91,7 +91,7 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
                 .OfType<SkillMaxLevelRewardGrant>()
                 .Where(reward => reward.Kind == SkillFragmentKind.External &&
                                  string.Equals(reward.SkillId, skill.Id, StringComparison.Ordinal))
-                .Sum(static reward => reward.Levels) <
+                .Sum(static reward => reward.Quantity) <
                 Config.AbsoluteSkillMaxLevel -
                 session.SkillMaxLevelPolicy.GetExternalSkillMaxLevelWithoutRoundBonus(skill.Id))
             .ToArray();

@@ -92,7 +92,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
             state,
             goldDropChance: 1d);
 
-        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Amount);
+        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Quantity);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
         var settlement = PreviewOrdinarySettlement(session, battleState);
 
-        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Amount);
+        Assert.Equal(1, Assert.Single(settlement.Rewards.OfType<YuanbaoRewardGrant>()).Quantity);
     }
 
     [Fact]

@@ -69,6 +69,22 @@ public sealed class SpecialBattleServiceTests
     }
 
     [Fact]
+    public async Task TowerGrantsConfiguredQuantityForOneClaim()
+    {
+        var reward = CreateItem("stack_reward");
+        var tower = CreateSingleStageTower(reward.Id, quantity: 3);
+        var session = CreateSession(tower, reward);
+
+        await session.SpecialBattleService.RunTowerAsync(
+            new TowerRuntimeHost([["hero"]], [true]));
+
+        Assert.Equal(3, Assert.Single(session.State.Inventory.Entries.OfType<StackInventoryEntry>()).Quantity);
+        Assert.Equal(
+            1,
+            session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "item:stack_reward"));
+    }
+
+    [Fact]
     public async Task TowerEquipmentRewardsAreGrantedAsRandomAffixInstances()
     {
         var reward = TestContentFactory.CreateEquipment("rare_sword");
@@ -137,14 +153,14 @@ public sealed class SpecialBattleServiceTests
         return new GameSession(state, repository);
     }
 
-    private static TowerDefinition CreateSingleStageTower(string rewardId) =>
+    private static TowerDefinition CreateSingleStageTower(string rewardId, int quantity = 1) =>
         new()
         {
             Id = "tower",
             Name = "tower",
             Stages =
             [
-                CreateStage("stage_a", "battle_a", rewardId, 0),
+                CreateStage("stage_a", "battle_a", rewardId, 0, quantity),
             ],
         };
 
@@ -164,7 +180,8 @@ public sealed class SpecialBattleServiceTests
         string id,
         string battleId,
         string rewardId,
-        int index) =>
+        int index,
+        int quantity = 1) =>
         new()
         {
             Id = id,
@@ -175,7 +192,7 @@ public sealed class SpecialBattleServiceTests
             [
                 new TowerRewardDefinition
                 {
-                    Reward = new ItemRewardDefinition { ItemId = rewardId },
+                    Reward = new ItemRewardDefinition { ItemId = rewardId, Quantity = quantity },
                     Weight = 1d,
                     MaxClaims = 1,
                 },

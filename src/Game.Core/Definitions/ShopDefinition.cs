@@ -17,7 +17,7 @@ public sealed record ShopProductDefinition
 {
     public required RewardDefinition Reward { get; init; }
 
-    public int? PurchaseLimit { get; init; }
+    public int? MaxClaims { get; init; }
 
     public int? Price { get; init; }
 

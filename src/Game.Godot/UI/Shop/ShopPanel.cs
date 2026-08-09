@@ -310,7 +310,7 @@ public partial class ShopPanel : JyPanel
 
 	private bool CanBuy(ShopProductView product)
 	{
-		if (product.RemainingLimit == 0)
+		if (product.RemainingClaims == 0)
 		{
 			return false;
 		}

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Game.Core.Definitions;
 using Game.Core.Serialization;
 
@@ -15,10 +16,12 @@ public sealed record ModContentInput(
 
 public sealed partial class JsonContentLoader
 {
+    internal static JsonSerializerOptions ContentJson { get; } = CreateContentJson();
+
     public InMemoryContentRepository LoadFromFile(string filePath)
     {
         var json = File.ReadAllText(filePath);
-        var package = JsonSerializer.Deserialize<ContentPackage>(json, GameJson.Default)
+        var package = JsonSerializer.Deserialize<ContentPackage>(json, ContentJson)
             ?? throw new InvalidOperationException("Unable to deserialize content package.");
         return LoadFromPackage(package);
     }
@@ -46,4 +49,12 @@ public sealed partial class JsonContentLoader
             throw new InvalidOperationException(message);
         }
     }
+
+    private static JsonSerializerOptions CreateContentJson() =>
+        new(GameJson.Default)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = false,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        };
 }

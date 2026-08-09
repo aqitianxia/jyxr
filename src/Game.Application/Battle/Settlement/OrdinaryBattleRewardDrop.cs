@@ -14,13 +14,13 @@ public sealed record EquipmentRewardGrant(
     IReadOnlyList<GeneratedEquipmentAffixRoll> Rolls) : RewardGrant;
 
 public sealed record YuanbaoRewardGrant(
-    int Amount) : RewardGrant;
+    int Quantity) : RewardGrant;
 
 public sealed record SkillMaxLevelRewardGrant(
     SkillFragmentKind Kind,
     string SkillId,
     string DisplayName,
-    int Levels) : RewardGrant
+    int Quantity) : RewardGrant
 {
     public SkillMaxLevelRewardGrant(
         SkillFragmentKind kind,

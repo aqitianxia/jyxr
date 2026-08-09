@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Game.Core.Serialization;
 using Game.Core.Story;
 
 namespace Game.Content.Loading;
@@ -28,7 +27,7 @@ public sealed partial class JsonContentLoader
             packageNode[spec.PackagePropertyName] = LoadDefinitionArray(directoryPath, spec.FileName, required);
         }
 
-        var package = packageNode.Deserialize<ContentPackage>(GameJson.Default)
+        var package = packageNode.Deserialize<ContentPackage>(ContentJson)
             ?? throw new InvalidOperationException($"Unable to deserialize content directory '{directoryPath}'.");
         package.StoryScripts = LoadStoryScripts(directoryPath);
         return package;

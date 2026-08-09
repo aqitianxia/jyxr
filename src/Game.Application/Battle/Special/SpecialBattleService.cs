@@ -302,7 +302,7 @@ public sealed class SpecialBattleService
     private PendingTowerReward SelectTowerReward(TowerDefinition tower, TowerStageDefinition stage)
     {
         var candidates = stage.Rewards
-            .Where(reward => reward.MaxClaims is not > 0 ||
+            .Where(reward => reward.MaxClaims is null ||
                 State.SpecialBattle.GetTowerRewardClaimCount(
                     tower.Id,
                     stage.Id,
@@ -338,7 +338,7 @@ public sealed class SpecialBattleService
             selectedReward.Reward,
             rewardKey,
             _session.RewardGrantService.GetDisplayName(selectedReward.Reward),
-            IsLimited: selectedReward.MaxClaims is > 0);
+            IsLimited: selectedReward.MaxClaims is not null);
     }
 
     private void GrantTowerRewards(IReadOnlyList<PendingTowerReward> rewards)

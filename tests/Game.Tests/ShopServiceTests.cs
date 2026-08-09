@@ -11,13 +11,13 @@ namespace Game.Tests;
 public sealed class ShopServiceTests
 {
     [Fact]
-    public void Buy_SpendsSilverAddsItemAndTracksPurchaseLimit()
+    public void Buy_SpendsSilverAddsItemAndTracksMaxClaims()
     {
         var herb = CreateItem("herb", price: 30);
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
             Reward = new ItemRewardDefinition { ItemId = herb.Id },
-            PurchaseLimit = 2,
+            MaxClaims = 2,
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 100);
@@ -86,7 +86,7 @@ public sealed class ShopServiceTests
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
             Reward = new ItemRewardDefinition { ItemId = herb.Id },
-            PurchaseLimit = 1,
+            MaxClaims = 1,
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 100);
@@ -97,6 +97,28 @@ public sealed class ShopServiceTests
         Assert.False(result.Success);
         Assert.Equal(60, session.State.Currency.Silver);
         Assert.Equal(1, session.State.Inventory.GetStack(herb).Quantity);
+    }
+
+    [Fact]
+    public void Buy_MultipliesRewardQuantityByClaimCount()
+    {
+        var herb = CreateItem("herb", price: 30);
+        var shop = CreateShop("village_shop", new ShopProductDefinition
+        {
+            Reward = new ItemRewardDefinition { ItemId = herb.Id, Quantity = 3 },
+            MaxClaims = 2,
+            Price = 10,
+        });
+        var session = CreateSession([herb], [shop], silver: 100);
+
+        var result = session.ShopService.Buy(shop.Id, productIndex: 0, quantity: 2);
+        var rejected = session.ShopService.Buy(shop.Id, productIndex: 0);
+
+        Assert.True(result.Success);
+        Assert.Equal(6, session.State.Inventory.GetStack(herb).Quantity);
+        Assert.Equal(2, session.State.Shop.PurchasedQuantities.Single().Value);
+        Assert.Equal(80, session.State.Currency.Silver);
+        Assert.False(rejected.Success);
     }
 
     [Fact]
@@ -200,7 +222,7 @@ public sealed class ShopServiceTests
         var shop = CreateShop("village_shop", new ShopProductDefinition
         {
             Reward = new ItemRewardDefinition { ItemId = herb.Id },
-            PurchaseLimit = 2,
+            MaxClaims = 2,
             Price = 40,
         });
         var session = CreateSession([herb], [shop], silver: 100);

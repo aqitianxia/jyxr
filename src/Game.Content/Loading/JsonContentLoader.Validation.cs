@@ -1063,7 +1063,7 @@ public sealed partial class JsonContentLoader
                 var rewardKey = reward.GetStableKey();
                 Ensure(rewardKeys.Add(rewardKey),
                     $"Shop '{shop.Id}' has duplicate reward '{rewardKey}'.");
-                Ensure(product.PurchaseLimit is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid purchaseLimit.");
+                Ensure(product.MaxClaims is null or > 0, $"Shop '{shop.Id}' product {index} has invalid maxClaims.");
                 Ensure(product.Price is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid price.");
                 Ensure(product.PremiumPrice is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid premiumPrice.");
                 if (reward is YuanbaoRewardDefinition)
@@ -1101,7 +1101,7 @@ public sealed partial class JsonContentLoader
                         $"Tower '{tower.Id}' stage '{stage.Id}' reward");
                     Ensure(double.IsFinite(reward.Weight) && reward.Weight > 0d,
                         $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid weight '{reward.Weight}'.");
-                    Ensure(reward.MaxClaims is null or >= 0,
+                    Ensure(reward.MaxClaims is null or > 0,
                         $"Tower '{tower.Id}' stage '{stage.Id}' reward has invalid maxClaims '{reward.MaxClaims}'.");
                 }
 
@@ -1129,20 +1129,19 @@ public sealed partial class JsonContentLoader
         RewardDefinition reward,
         string context)
     {
+        Ensure(reward.Quantity > 0, $"{context} has invalid reward quantity '{reward.Quantity}'.");
+
         switch (reward)
         {
             case ItemRewardDefinition item:
                 Ensure(!string.IsNullOrWhiteSpace(item.ItemId), $"{context} has an empty itemId.");
                 Ensure(repository.Items.ContainsKey(item.ItemId),
                     $"{context} references missing item '{item.ItemId}'.");
-                Ensure(item.Quantity > 0, $"{context} has invalid item quantity '{item.Quantity}'.");
                 return;
-            case YuanbaoRewardDefinition yuanbao:
-                Ensure(yuanbao.Amount > 0, $"{context} has invalid yuanbao amount '{yuanbao.Amount}'.");
+            case YuanbaoRewardDefinition:
                 return;
             case SkillMaxLevelRewardDefinition fragment:
                 Ensure(!string.IsNullOrWhiteSpace(fragment.SkillId), $"{context} has an empty skillId.");
-                Ensure(fragment.Levels > 0, $"{context} has invalid skill levels '{fragment.Levels}'.");
                 Ensure(
                     fragment.SkillKind switch
                     {

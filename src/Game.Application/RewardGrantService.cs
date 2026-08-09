@@ -15,12 +15,12 @@ public sealed class RewardGrantService(GameSession session)
                 session.ContentRepository.GetItem(item.ItemId),
                 checked(item.Quantity * multiplier)),
             YuanbaoRewardDefinition yuanbao => new YuanbaoRewardGrant(
-                checked(yuanbao.Amount * multiplier)),
+                checked(yuanbao.Quantity * multiplier)),
             SkillMaxLevelRewardDefinition fragment => new SkillMaxLevelRewardGrant(
                 fragment.SkillKind,
                 fragment.SkillId,
                 $"{ResolveSkillName(fragment.SkillKind, fragment.SkillId)}残章",
-                checked(fragment.Levels * multiplier)),
+                checked(fragment.Quantity * multiplier)),
             _ => throw new NotSupportedException($"Unsupported reward definition '{definition.GetType().Name}'."),
         };
     }
@@ -52,11 +52,11 @@ public sealed class RewardGrantService(GameSession session)
                     equipment.Rolls.SelectMany(static roll => roll.Affixes).ToArray());
                 return;
             case YuanbaoRewardGrant yuanbao:
-                session.ProfileService.AddYuanbao(yuanbao.Amount);
+                session.ProfileService.AddYuanbao(yuanbao.Quantity);
                 return;
             case SkillMaxLevelRewardGrant fragment:
                 var appliedLevels = Math.Min(
-                    fragment.Levels,
+                    fragment.Quantity,
                     GetRemainingSkillMaxLevelBonus(fragment.Kind, fragment.SkillId));
                 if (appliedLevels <= 0)
                 {

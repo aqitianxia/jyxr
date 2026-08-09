@@ -211,7 +211,7 @@ public static class OrdinaryBattleLootGenerator
         rewards
             .OfType<SkillMaxLevelRewardGrant>()
             .Where(reward => reward.Kind == kind && string.Equals(reward.SkillId, skillId, StringComparison.Ordinal))
-            .Sum(static reward => reward.Levels);
+            .Sum(static reward => reward.Quantity);
 
     public static IReadOnlyList<GeneratedEquipmentAffixRoll> GenerateEquipmentRolls(
         EquipmentDefinition equipment,

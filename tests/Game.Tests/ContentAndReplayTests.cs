@@ -203,7 +203,6 @@ public sealed class ContentLoadingTests
               "items": [],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
 
@@ -240,7 +239,6 @@ public sealed class ContentLoadingTests
               "items": [],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
 
@@ -283,7 +281,6 @@ public sealed class ContentLoadingTests
                   "affixes": []
                 }
               ],
-              "equipments": []
             }
             """;
 
@@ -329,7 +326,6 @@ public sealed class ContentLoadingTests
                   "affixes": []
                 }
               ],
-              "equipments": []
             }
             """;
 
@@ -455,7 +451,6 @@ public sealed class ContentLoadingTests
               "items": [],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
         const string invalidMinimumLevel = """
@@ -481,7 +476,6 @@ public sealed class ContentLoadingTests
               "items": [],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
         const string missingEffect = """
@@ -503,7 +497,6 @@ public sealed class ContentLoadingTests
               "items": [],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
 
@@ -535,7 +528,6 @@ public sealed class ContentLoadingTests
               ],
               "buffs": [],
               "talents": [],
-              "equipments": []
             }
             """;
 
@@ -854,14 +846,10 @@ public sealed class ContentLoadingTests
                   "id": "poison",
                   "name": "Poison",
                   "isDebuff": true,
-                  "defaultDuration": 2,
-                  "canStack": true,
-                  "maxStacks": 3,
                   "affixes": []
                 }
               ],
               "talents": [],
-              "equipment": []
             }
             """;
 
@@ -986,14 +974,10 @@ public sealed class ContentLoadingTests
                   "id": "regeneration",
                   "name": "Regeneration",
                   "isDebuff": false,
-                  "defaultDuration": 2,
-                  "canStack": true,
-                  "maxStacks": 3,
                   "affixes": []
                 }
               ],
               "talents": [],
-              "equipment": []
             }
             """;
 
