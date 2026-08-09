@@ -82,4 +82,7 @@ offset_top = 564.0
 offset_right = 1547.9043
 offset_bottom = 624.0
 scale = Vector2(1.1825043, 1.1825043)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 4
 text = "跳过"
+flat = true

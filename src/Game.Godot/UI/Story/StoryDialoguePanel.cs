@@ -10,7 +10,6 @@ public partial class StoryDialoguePanel : Control
 	private TaskCompletionSource<bool>? _completionSource;
 	private string _speaker = string.Empty;
 	private string _text = string.Empty;
-	private Control _shadowPanel = null!;
 	private AvatarBox _avatarBox = null!;
 	private Label _speakerLabel = null!;
 	private RichTextLabel _contentLabel = null!;
@@ -23,14 +22,12 @@ public partial class StoryDialoguePanel : Control
 
 	public override void _Ready()
 	{
-		_shadowPanel = GetNode<Control>("%ShadowPanel");
 		_avatarBox = GetNode<AvatarBox>("%AvatarBox");
 		_speakerLabel = GetNode<Label>("%SpeakerLabel");
 		_contentLabel = GetNode<RichTextLabel>("%ContentLabel");
 		_skipButton = GetNode<Button>("%SkipButton");
 
-		_contentLabel.GuiInput += OnContentLabelGuiInput;
-		_shadowPanel.GuiInput += OnShadowPanelGuiInput;
+		_contentLabel.GuiInput += OnAdvanceGuiInput;
 		_skipButton.ButtonDown += OnSkipButtonDown;
 		_skipButton.ButtonUp += OnSkipButtonUp;
 		SetProcess(false);
@@ -54,6 +51,11 @@ public partial class StoryDialoguePanel : Control
 		{
 			RevealFullText();
 		}
+	}
+
+	public override void _GuiInput(InputEvent @event)
+	{
+		OnAdvanceGuiInput(@event);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -148,9 +150,9 @@ public partial class StoryDialoguePanel : Control
 		RevealFullText();
 	}
 
-	private void OnShadowPanelGuiInput(InputEvent @event)
+	private void OnAdvanceGuiInput(InputEvent @event)
 	{
-		if (!IsAdvanceClick(@event))
+		if (!IsAdvanceInput(@event))
 		{
 			return;
 		}
@@ -159,35 +161,12 @@ public partial class StoryDialoguePanel : Control
 		AcceptEvent();
 	}
 
-	private void OnContentLabelGuiInput(InputEvent @event)
-	{
-		if (@event is not InputEventMouseButton mouseButton || !mouseButton.Pressed)
-		{
-			return;
-		}
-
-		if (mouseButton.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
-		{
-			return;
-		}
-
-		if (mouseButton.ButtonIndex != MouseButton.Left)
-		{
-			return;
-		}
-
-		Advance();
-		AcceptEvent();
-	}
-
-	private static bool IsAdvanceClick(InputEvent @event)
-	{
-		return @event is InputEventMouseButton
+	private static bool IsAdvanceInput(InputEvent @event) =>
+		@event is InputEventMouseButton
 		{
 			Pressed: true,
 			ButtonIndex: MouseButton.Left
 		};
-	}
 
 	private void StartTypewriter()
 	{
