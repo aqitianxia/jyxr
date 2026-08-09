@@ -451,8 +451,12 @@ public sealed class ItemUseServiceTests
             "peach",
             ItemType.Booster,
             [
-                new AddMaxHpItemUseEffectDefinition(100),
-                new AddMaxMpItemUseEffectDefinition(50),
+                new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int>
+                {
+                    [StatType.MaxHp] = 100,
+                    [StatType.MaxMp] = 50,
+                    [StatType.Bili] = 5,
+                }),
             ],
             consumeOnUse: true);
         var heroDefinition = TestContentFactory.CreateCharacterDefinition(
@@ -475,7 +479,38 @@ public sealed class ItemUseServiceTests
         Assert.True(result.Success);
         Assert.Equal(300, hero.GetBaseStat(StatType.MaxHp));
         Assert.Equal(130, hero.GetBaseStat(StatType.MaxMp));
+        Assert.Equal(5, hero.GetBaseStat(StatType.Bili));
         Assert.Empty(state.Inventory.Entries);
+    }
+
+    [Fact]
+    public async Task Use_Booster_RejectsCombinedStatChangesBeforeMutatingCharacter()
+    {
+        var booster = CreateItem(
+            "poison",
+            ItemType.Booster,
+            [
+                new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int> { [StatType.Bili] = -60 }),
+                new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int> { [StatType.Bili] = -60 }),
+            ],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            new Dictionary<StatType, int> { [StatType.Bili] = 100 });
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        state.Inventory.AddItem(booster);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            items: [booster]);
+        var session = new GameSession(state, repository);
+        var entry = state.Inventory.GetStack(booster);
+
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id);
+
+        Assert.False(result.Success);
+        Assert.Equal("臂力不能低于0", result.Message);
+        Assert.Equal(100, hero.GetBaseStat(StatType.Bili));
+        Assert.Equal(1, entry.Quantity);
     }
 
     [Fact]
@@ -494,7 +529,7 @@ public sealed class ItemUseServiceTests
         var booster = CreateItem(
             "peach",
             ItemType.Booster,
-            [new AddMaxHpItemUseEffectDefinition(100)],
+            [new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int> { [StatType.MaxHp] = 100 })],
             consumeOnUse: true);
         var heroDefinition = TestContentFactory.CreateCharacterDefinition(
             "hero",

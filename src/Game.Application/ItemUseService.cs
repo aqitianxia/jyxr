@@ -172,13 +172,12 @@ public sealed class ItemUseService
                 case GrantTalentItemUseEffectDefinition talent:
                     target.LearnTalent(_session.ContentRepository.GetTalent(talent.TalentId));
                     break;
-                case AddMaxHpItemUseEffectDefinition maxHp:
-                    target.AddBaseStat(StatType.MaxHp, maxHp.Value);
-                    resourceStatsChanged = true;
-                    break;
-                case AddMaxMpItemUseEffectDefinition maxMp:
-                    target.AddBaseStat(StatType.MaxMp, maxMp.Value);
-                    resourceStatsChanged = true;
+                case AddStatsItemUseEffectDefinition addStats:
+                    foreach (var (statType, value) in addStats.Values)
+                    {
+                        target.AddBaseStat(statType, value);
+                        resourceStatsChanged |= CharacterResourceLimitPolicy.IsBaseResourceStat(statType);
+                    }
                     break;
                 case SetGenderItemUseEffectDefinition setGender:
                     target.SetGender(setGender.Gender);
@@ -243,8 +242,7 @@ public sealed class ItemUseService
             GrantInternalSkillItemUseEffectDefinition or
             GrantSpecialSkillItemUseEffectDefinition or
             GrantTalentItemUseEffectDefinition or
-            AddMaxHpItemUseEffectDefinition or
-            AddMaxMpItemUseEffectDefinition or
+            AddStatsItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
             ReduceMaxResourceRatioItemUseEffectDefinition or
             RunStoryItemUseEffectDefinition;
@@ -296,6 +294,7 @@ public sealed class ItemUseService
         var newInternalSkillIds = new HashSet<string>(StringComparer.Ordinal);
         var specialSkillIds = new HashSet<string>(StringComparer.Ordinal);
         var talentIds = new HashSet<string>(StringComparer.Ordinal);
+        var simulatedBaseStats = new Dictionary<StatType, long>();
         var requiredTalentPoints = 0;
 
         foreach (var effect in effects)
@@ -355,6 +354,33 @@ public sealed class ItemUseService
                     requiredTalentPoints = checked(
                         requiredTalentPoints + _session.ContentRepository.GetTalent(talent.TalentId).Point);
                     break;
+                case AddStatsItemUseEffectDefinition addStats:
+                    foreach (var (statType, value) in addStats.Values)
+                    {
+                        var currentValue = simulatedBaseStats.TryGetValue(statType, out var simulatedValue)
+                            ? simulatedValue
+                            : target.GetBaseStat(statType);
+                        var result = currentValue + value;
+                        if (result < 0)
+                        {
+                            return $"{FormatStatName(statType)}不能低于0";
+                        }
+                        if (result > int.MaxValue)
+                        {
+                            return $"{FormatStatName(statType)}超出有效范围";
+                        }
+
+                        simulatedBaseStats[statType] = result;
+                    }
+                    break;
+                case ReduceMaxResourceRatioItemUseEffectDefinition reduction:
+                {
+                    var currentValue = simulatedBaseStats.TryGetValue(reduction.StatId, out var simulatedValue)
+                        ? simulatedValue
+                        : target.GetBaseStat(reduction.StatId);
+                    simulatedBaseStats[reduction.StatId] = currentValue - (long)(currentValue * reduction.Ratio);
+                    break;
+                }
             }
         }
 

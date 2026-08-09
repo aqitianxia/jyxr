@@ -821,6 +821,15 @@ public sealed partial class JsonContentLoader
                             $"Item '{item.Id}' reduce_max_resource_ratio effect has invalid ratio '{reduction.Ratio}'.");
                         break;
 
+                    case AddStatsItemUseEffectDefinition addStats:
+                        Ensure(addStats.Values is { Count: > 0 },
+                            $"Item '{item.Id}' add_stats effect has no values.");
+                        Ensure(addStats.Values!.All(static entry => Enum.IsDefined(entry.Key)),
+                            $"Item '{item.Id}' add_stats effect contains an invalid stat.");
+                        Ensure(addStats.Values.All(static entry => entry.Value != 0),
+                            $"Item '{item.Id}' add_stats effect contains a zero change.");
+                        break;
+
                     case RunStoryItemUseEffectDefinition runStory:
                         Ensure(!string.IsNullOrWhiteSpace(runStory.StoryId),
                             $"Item '{item.Id}' run_story effect is missing storyId.");
@@ -913,8 +922,7 @@ public sealed partial class JsonContentLoader
             GrantInternalSkillItemUseEffectDefinition or
             GrantSpecialSkillItemUseEffectDefinition or
             GrantTalentItemUseEffectDefinition or
-            AddMaxHpItemUseEffectDefinition or
-            AddMaxMpItemUseEffectDefinition or
+            AddStatsItemUseEffectDefinition or
             SetGenderItemUseEffectDefinition or
             ReduceMaxResourceRatioItemUseEffectDefinition or
             RunStoryItemUseEffectDefinition;

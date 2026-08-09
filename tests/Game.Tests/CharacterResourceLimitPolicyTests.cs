@@ -115,8 +115,11 @@ public sealed class CharacterResourceLimitPolicyTests
             ConsumeOnUse = true,
             UseEffects =
             [
-                new AddMaxHpItemUseEffectDefinition(100),
-                new AddMaxMpItemUseEffectDefinition(100),
+                new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int>
+                {
+                    [StatType.MaxHp] = 100,
+                    [StatType.MaxMp] = 100,
+                }),
             ],
         };
         var heroDefinition = TestContentFactory.CreateCharacterDefinition(
