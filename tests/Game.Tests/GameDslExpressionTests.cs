@@ -73,10 +73,10 @@ public sealed class GameDslExpressionTests
     }
 
     [Fact]
-    public async Task ContextVariableCannotBeOverwrittenByStoryCommand()
+    public async Task ContextVariableCannotBeOverwrittenByAssignment()
     {
         const string json = """
-        {"version":3,"segments":[{"name":"x","steps":[{"kind":"command","call":"set_var('item_target', 'other')"}]}]}
+        {"version":3,"segments":[{"name":"x","steps":[{"kind":"set","target":"item_target","value":"'other'"}]}]}
         """;
         var script = Game.Core.Story.StoryScriptJson.Parse(json);
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository(storyScripts: [script]));

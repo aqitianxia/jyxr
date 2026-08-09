@@ -20,10 +20,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("change_favorability")]
     [InlineData("set_rank")]
     [InlineData("journal")]
-    [InlineData("set_var")]
     [InlineData("set_flag")]
-    [InlineData("change_var")]
-    [InlineData("remove_var")]
     [InlineData("clear_flag")]
     [InlineData("set_time_key")]
     [InlineData("clear_time_key")]
@@ -189,7 +186,7 @@ public sealed class CanonicalDslCatalogTests
     }
 
     [Fact]
-    public void BusinessCommandsUseClrParametersExceptDynamicSetVarBoundary()
+    public void BusinessCommandsUseClrParameters()
     {
         var offenders = typeof(GameSession).Assembly.GetTypes()
             .SelectMany(static type => type.GetMethods(
@@ -199,7 +196,6 @@ public sealed class CanonicalDslCatalogTests
                 System.Reflection.BindingFlags.NonPublic |
                 System.Reflection.BindingFlags.DeclaredOnly))
             .Where(static method => method.GetCustomAttributes(typeof(StoryCommandAttribute), inherit: false).Length > 0)
-            .Where(static method => method.Name != "SetVariable")
             .Where(static method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(ExpressionValue)))
             .Select(static method => $"{method.DeclaringType?.Name}.{method.Name}")
             .ToArray();

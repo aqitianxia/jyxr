@@ -12,26 +12,18 @@ internal sealed partial class StoryRuntimeSession
         var optionViews = new List<ChoiceOptionView>();
         var sourceIndex = 0;
 
-        foreach (var group in choice.Groups)
+        foreach (var block in choice.Blocks)
         {
-            var isAvailable = true;
-            if (group.When is not null)
+            switch (block)
             {
-                isAvailable = _expressionEvaluator.EvaluateBoolean(
-                    group.When,
-                    host.ExpressionEnvironment,
-                    "choice group condition");
-            }
-
-            foreach (var option in group.Options)
-            {
-                if (isAvailable)
-                {
-                    availableOptions.Add(sourceIndex, option);
-                    optionViews.Add(new ChoiceOptionView(sourceIndex, option.Text));
-                }
-
-                sourceIndex += 1;
+                case ChoiceOptionsBlock optionsBlock:
+                    AddChoiceOptions(optionsBlock.Options, true, availableOptions, optionViews, ref sourceIndex);
+                    break;
+                case ChoiceBranchBlock branchBlock:
+                    AddChoiceBranchOptions(branchBlock, availableOptions, optionViews, ref sourceIndex);
+                    break;
+                default:
+                    throw new StoryRuntimeException($"Unsupported choice block type '{block.GetType().Name}'.");
             }
         }
 
@@ -65,6 +57,76 @@ internal sealed partial class StoryRuntimeSession
             {
                 yield break;
             }
+        }
+    }
+
+    private void AddChoiceBranchOptions(
+        ChoiceBranchBlock block,
+        IDictionary<int, ChoiceOption> availableOptions,
+        ICollection<ChoiceOptionView> optionViews,
+        ref int sourceIndex)
+    {
+        var selectedCaseIndex = -1;
+        for (var index = 0; index < block.Cases.Count; index++)
+        {
+            if (!_expressionEvaluator.EvaluateBoolean(
+                    block.Cases[index].When,
+                    host.ExpressionEnvironment,
+                    "choice branch condition"))
+            {
+                continue;
+            }
+
+            selectedCaseIndex = index;
+            break;
+        }
+
+        for (var index = 0; index < block.Cases.Count; index++)
+        {
+            AddChoiceOptions(
+                block.Cases[index].Options,
+                index == selectedCaseIndex,
+                availableOptions,
+                optionViews,
+                ref sourceIndex);
+        }
+
+        if (block.Fallback is not null)
+        {
+            AddChoiceOptions(
+                block.Fallback,
+                selectedCaseIndex < 0,
+                availableOptions,
+                optionViews,
+                ref sourceIndex);
+        }
+    }
+
+    private void AddChoiceOptions(
+        IReadOnlyList<ChoiceOption> options,
+        bool blockIsActive,
+        IDictionary<int, ChoiceOption> availableOptions,
+        ICollection<ChoiceOptionView> optionViews,
+        ref int sourceIndex)
+    {
+        foreach (var option in options)
+        {
+            var isAvailable = blockIsActive;
+            if (isAvailable && option.When is not null)
+            {
+                isAvailable = _expressionEvaluator.EvaluateBoolean(
+                    option.When,
+                    host.ExpressionEnvironment,
+                    "choice option condition");
+            }
+
+            if (isAvailable)
+            {
+                availableOptions.Add(sourceIndex, option);
+                optionViews.Add(new ChoiceOptionView(sourceIndex, option.Text));
+            }
+
+            sourceIndex += 1;
         }
     }
 

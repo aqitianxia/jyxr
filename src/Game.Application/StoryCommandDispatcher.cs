@@ -18,11 +18,12 @@ public sealed class StoryCommandDispatcher
         ArgumentNullException.ThrowIfNull(host);
         _context = context ?? StoryExecutionContext.Empty;
         _expressions = new GameExpressionEnvironment(session);
+        VariableMutations = new StoryVariableMutationService(session, _context);
 
         var builder = new AsyncExpressionCallRegistryBuilder<StoryCommandResult>(StoryCommandResult.None)
             .AddLibrary<StoryCommandAttribute>(new InventoryCurrencyStoryCommands(session))
             .AddLibrary<StoryCommandAttribute>(new AdventureStoryCommands(session))
-            .AddLibrary<StoryCommandAttribute>(new StoryStateCommands(session, _context))
+            .AddLibrary<StoryCommandAttribute>(new StoryStateCommands(session, VariableMutations))
             .AddLibrary<StoryCommandAttribute>(new CharacterGrowthStoryCommands(session))
             .AddLibrary<StoryCommandAttribute>(new PartyLearningStoryCommands(session))
             .AddLibrary<StoryCommandAttribute>(new SpecialFlowStoryCommands(session, host))
@@ -36,6 +37,8 @@ public sealed class StoryCommandDispatcher
     }
 
     public AsyncExpressionCallRegistry<StoryCommandResult> Registry { get; }
+
+    internal StoryVariableMutationService VariableMutations { get; }
 
     public ValueTask<StoryCommandResult> ExecuteCommandAsync(
         string name,

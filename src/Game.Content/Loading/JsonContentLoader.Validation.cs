@@ -1093,6 +1093,8 @@ public sealed partial class JsonContentLoader
             {
                 case DialogueStep:
                 case CommandStep:
+                case SetVariableStep:
+                case DeleteVariableStep:
                     break;
                 case JumpStep jump:
                     Ensure(repository.StorySegments.ContainsKey(jump.Target),
@@ -1105,13 +1107,29 @@ public sealed partial class JsonContentLoader
                 case ReturnStep:
                     break;
                 case ChoiceStep choice:
-                    Ensure(choice.Groups.Count > 0, $"{ownerName} has choice without groups.");
-                    foreach (var group in choice.Groups)
+                    Ensure(choice.Blocks.Count > 0, $"{ownerName} has choice without blocks.");
+                    foreach (var block in choice.Blocks)
                     {
-                        Ensure(group.Options.Count > 0, $"{ownerName} has choice group without options.");
-                        foreach (var option in group.Options)
+                        switch (block)
                         {
-                            ValidateStorySteps(option.Steps, repository, $"{ownerName} choice option '{option.Text}'");
+                            case ChoiceOptionsBlock optionsBlock:
+                                ValidateChoiceOptions(optionsBlock.Options, repository, ownerName);
+                                break;
+                            case ChoiceBranchBlock branchBlock:
+                                Ensure(branchBlock.Cases.Count > 0, $"{ownerName} has choice branch without cases.");
+                                foreach (var branchCase in branchBlock.Cases)
+                                {
+                                    ValidateChoiceOptions(branchCase.Options, repository, ownerName);
+                                }
+
+                                if (branchBlock.Fallback is not null)
+                                {
+                                    ValidateChoiceOptions(branchBlock.Fallback, repository, ownerName);
+                                }
+
+                                break;
+                            default:
+                                throw new InvalidOperationException($"Unsupported choice block type '{block.GetType().Name}'.");
                         }
                     }
 
@@ -1141,6 +1159,18 @@ public sealed partial class JsonContentLoader
                 default:
                     throw new InvalidOperationException($"Unsupported story step type '{step.GetType().Name}'.");
             }
+        }
+    }
+
+    private static void ValidateChoiceOptions(
+        IReadOnlyList<ChoiceOption> options,
+        InMemoryContentRepository repository,
+        string ownerName)
+    {
+        Ensure(options.Count > 0, $"{ownerName} has choice block without options.");
+        foreach (var option in options)
+        {
+            ValidateStorySteps(option.Steps, repository, $"{ownerName} choice option '{option.Text}'");
         }
     }
 

@@ -6,6 +6,7 @@ internal sealed class ApplicationStoryRuntimeHost : IStoryRuntimeContext
 {
     private readonly IRuntimeHost _externalHost;
     private readonly StoryTextInterpolator _textInterpolator;
+    private readonly StoryVariableMutationService _variableMutations;
 
     public ApplicationStoryRuntimeHost(
         IRuntimeHost externalHost,
@@ -16,12 +17,25 @@ internal sealed class ApplicationStoryRuntimeHost : IStoryRuntimeContext
         _externalHost = externalHost ?? throw new ArgumentNullException(nameof(externalHost));
         ArgumentNullException.ThrowIfNull(commandDispatcher);
         _textInterpolator = textInterpolator ?? throw new ArgumentNullException(nameof(textInterpolator));
+        _variableMutations = commandDispatcher.VariableMutations;
         Commands = commandDispatcher.Registry;
         ExpressionEnvironment = expressionEnvironment ?? throw new ArgumentNullException(nameof(expressionEnvironment));
     }
 
     public ExpressionEnvironment ExpressionEnvironment { get; }
     public AsyncExpressionCallRegistry<StoryCommandResult> Commands { get; }
+
+    public ValueTask AssignVariableAsync(
+        string name,
+        ExpressionValue value,
+        CancellationToken cancellationToken)
+    {
+        _variableMutations.Assign(name, value);
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<bool> DeleteVariableAsync(string name, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(_variableMutations.Delete(name, "del"));
 
     public ValueTask DialogueAsync(DialogueContext dialogue, CancellationToken cancellationToken) =>
         _externalHost.DialogueAsync(

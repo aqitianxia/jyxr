@@ -9,8 +9,8 @@ public sealed class StoryCommandLineServiceTests
     public void Parse_SupportsCanonicalThinTokens()
     {
         var service = CreateService(out _);
-        var invocation = service.Parse("set_var \"hello world\" true");
-        Assert.Equal("set_var", invocation.Name);
+        var invocation = service.Parse("sample_command \"hello world\" true");
+        Assert.Equal("sample_command", invocation.Name);
         Assert.Equal("hello world", invocation.Arguments[0].AsString("test"));
         Assert.True(invocation.Arguments[1].AsBoolean("test"));
     }
@@ -20,7 +20,7 @@ public sealed class StoryCommandLineServiceTests
     {
         var service = CreateService(out _);
 
-        var invocation = service.Parse("set_var 'true' '123'");
+        var invocation = service.Parse("sample_command 'true' '123'");
         Assert.Equal("true", invocation.Arguments[0].AsString("test"));
         Assert.Equal("123", invocation.Arguments[1].AsString("test"));
 

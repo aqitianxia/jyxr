@@ -42,6 +42,8 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         {
             "dialogue" => new DialogueStep(GetRequiredString(element, "speaker"), GetRequiredString(element, "text")),
             "command" => ParseCommandStep(element),
+            "set" => ParseSetVariableStep(element),
+            "delete" => new DeleteVariableStep(ParseVariableName(element, "target")),
             "jump" => new JumpStep(GetRequiredString(element, "target")),
             "call" => new CallStep(GetRequiredString(element, "target")),
             "return" => new ReturnStep(),
@@ -62,51 +64,115 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         return new CommandStep(ParseCall(GetRequiredString(element, "call"), "command.call"));
     }
 
+    private SetVariableStep ParseSetVariableStep(JsonElement element) =>
+        new(
+            ParseVariableName(element, "target"),
+            ParseExpression(GetRequiredString(element, "value"), "set.value"));
+
+    private static string ParseVariableName(JsonElement element, string propertyName)
+    {
+        var name = GetRequiredString(element, propertyName);
+        try
+        {
+            ExpressionSymbol.Validate(name);
+            return name;
+        }
+        catch (ArgumentException exception)
+        {
+            throw new StoryRuntimeException($"Invalid story variable name '{name}'.", exception);
+        }
+    }
+
     private ChoiceStep ParseChoiceStep(JsonElement element)
     {
         var promptElement = GetRequiredProperty(element, "prompt");
         EnsureObject(promptElement, "choice.prompt");
         var prompt = new ChoicePrompt(GetRequiredString(promptElement, "speaker"), GetRequiredString(promptElement, "text"));
-        var groupsElement = GetRequiredProperty(element, "groups");
-        EnsureArray(groupsElement, "choice.groups");
-        var groups = new List<ChoiceGroup>();
-        foreach (var groupElement in groupsElement.EnumerateArray())
+        if (TryGetProperty(element, "groups", out _))
         {
-            EnsureObject(groupElement, "choice.group");
+            throw new StoryRuntimeException("Story v3 choice steps use 'blocks'; the old 'groups' shape is not supported.");
+        }
+
+        var blocksElement = GetRequiredProperty(element, "blocks");
+        EnsureArray(blocksElement, "choice.blocks");
+        var blocks = blocksElement.EnumerateArray().Select(ParseChoiceBlock).ToArray();
+        if (blocks.Length == 0)
+        {
+            throw new StoryRuntimeException("choice.blocks must contain at least one block.");
+        }
+
+        return new ChoiceStep(prompt, blocks, ParseChoiceStyle(element));
+    }
+
+    private ChoiceBlock ParseChoiceBlock(JsonElement element)
+    {
+        EnsureObject(element, "choice.block");
+        return GetRequiredString(element, "kind") switch
+        {
+            "options" => new ChoiceOptionsBlock(ParseChoiceOptions(
+                GetRequiredProperty(element, "options"),
+                "choice.optionsBlock.options")),
+            "branch" => ParseChoiceBranchBlock(element),
+            var kind => throw new StoryRuntimeException($"Unsupported choice block kind '{kind}'."),
+        };
+    }
+
+    private ChoiceBranchBlock ParseChoiceBranchBlock(JsonElement element)
+    {
+        var casesElement = GetRequiredProperty(element, "cases");
+        EnsureArray(casesElement, "choice.branch.cases");
+        var cases = casesElement.EnumerateArray().Select(caseElement =>
+        {
+            EnsureObject(caseElement, "choice.branch.case");
+            return new ChoiceBranchCase(
+                ParseExpression(GetRequiredString(caseElement, "when"), "choice.branch.case.when"),
+                ParseChoiceOptions(
+                    GetRequiredProperty(caseElement, "options"),
+                    "choice.branch.case.options"));
+        }).ToArray();
+        if (cases.Length == 0)
+        {
+            throw new StoryRuntimeException("choice.branch.cases must contain at least one case.");
+        }
+
+        IReadOnlyList<ChoiceOption>? fallback = null;
+        var fallbackElement = GetRequiredProperty(element, "fallback");
+        if (fallbackElement.ValueKind != JsonValueKind.Null)
+        {
+            fallback = ParseChoiceOptions(fallbackElement, "choice.branch.fallback");
+        }
+
+        return new ChoiceBranchBlock(cases, fallback);
+    }
+
+    private IReadOnlyList<ChoiceOption> ParseChoiceOptions(JsonElement element, string path)
+    {
+        EnsureArray(element, path);
+        var options = element.EnumerateArray().Select(optionElement =>
+        {
+            EnsureObject(optionElement, "choice.option");
             ParsedExpression? when = null;
-            if (TryGetProperty(groupElement, "when", out var whenElement))
+            if (TryGetProperty(optionElement, "when", out var whenElement))
             {
                 if (whenElement.ValueKind != JsonValueKind.String)
                 {
-                    throw new StoryRuntimeException("choice.group.when must be a string or be omitted.");
+                    throw new StoryRuntimeException("choice.option.when must be a string or be omitted.");
                 }
 
-                when = ParseExpression(whenElement.GetString() ?? string.Empty, "choice.group.when");
+                when = ParseExpression(whenElement.GetString() ?? string.Empty, "choice.option.when");
             }
 
-            var optionsElement = GetRequiredProperty(groupElement, "options");
-            EnsureArray(optionsElement, "choice.group.options");
-            var options = optionsElement.EnumerateArray().Select(optionElement =>
-            {
-                EnsureObject(optionElement, "choice.option");
-                return new ChoiceOption(
-                    GetRequiredString(optionElement, "text"),
-                    ParseSteps(GetRequiredProperty(optionElement, "steps"), "choice.option.steps"));
-            }).ToArray();
-            if (options.Length == 0)
-            {
-                throw new StoryRuntimeException("choice.group.options must contain at least one option.");
-            }
-
-            groups.Add(new ChoiceGroup(when, options));
-        }
-
-        if (groups.Count == 0)
+            return new ChoiceOption(
+                GetRequiredString(optionElement, "text"),
+                when,
+                ParseSteps(GetRequiredProperty(optionElement, "steps"), "choice.option.steps"));
+        }).ToArray();
+        if (options.Length == 0)
         {
-            throw new StoryRuntimeException("choice.groups must contain at least one group.");
+            throw new StoryRuntimeException($"{path} must contain at least one option.");
         }
 
-        return new ChoiceStep(prompt, groups, ParseChoiceStyle(element));
+        return options;
     }
 
     private static ChoiceStyle ParseChoiceStyle(JsonElement element)

@@ -19,4 +19,13 @@ public interface IStoryRuntimeContext : IRuntimeHost
     ExpressionEnvironment ExpressionEnvironment { get; }
 
     AsyncExpressionCallRegistry<StoryCommandResult> Commands { get; }
+
+    ValueTask AssignVariableAsync(
+        string name,
+        ExpressionValue value,
+        CancellationToken cancellationToken);
+
+    ValueTask<bool> DeleteVariableAsync(
+        string name,
+        CancellationToken cancellationToken);
 }
