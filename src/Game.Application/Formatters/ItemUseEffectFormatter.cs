@@ -15,8 +15,8 @@ public static class ItemUseEffectFormatter
             AddBuffItemUseEffectDefinition addBuff => FormatAddBuffCn(addBuff, contentRepository),
             AddRageItemUseEffectDefinition addRage => $"怒气 +{addRage.Value}",
             DetoxifyItemUseEffectDefinition detoxify => FormatDetoxifyCn(detoxify),
-            AddMaxHpItemUseEffectDefinition addMaxHp => $"气血上限 +{addMaxHp.Value}",
-            AddMaxMpItemUseEffectDefinition addMaxMp => $"内力上限 +{addMaxMp.Value}",
+            AddStatsItemUseEffectDefinition addStats => string.Join("、", addStats.Values.Select(static entry =>
+                $"{FormatterTextCn.GetStatNameCn(entry.Key)} {entry.Value:+0;-0;0}")),
             AddHpItemUseEffectDefinition addHp => $"恢复气血 {addHp.Value}",
             AddMpItemUseEffectDefinition addMp => $"恢复内力 {addMp.Value}",
             AddHpPercentItemUseEffectDefinition addHpPercent => $"恢复气血 {addHpPercent.Value}%",

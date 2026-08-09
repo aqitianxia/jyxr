@@ -28,6 +28,31 @@ public sealed class ItemDescriptionFormatterTests
     }
 
     [Fact]
+    public void ItemDescriptionFormatter_FormatsGroupedBaseStatChanges()
+    {
+        var item = new NormalItemDefinition
+        {
+            Id = "stat_booster",
+            Name = "洗髓丹",
+            Type = ItemType.Booster,
+            ConsumeOnUse = true,
+            UseEffects =
+            [
+                new AddStatsItemUseEffectDefinition(new Dictionary<StatType, int>
+                {
+                    [StatType.MaxHp] = 100,
+                    [StatType.Bili] = 5,
+                }),
+            ],
+        };
+        var repository = TestContentFactory.CreateRepository(items: [item]);
+
+        var text = ItemDescriptionFormatter.FormatBbCodeCn(item, repository);
+
+        Assert.Contains("气血上限 +100、臂力 +5", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ItemDescriptionFormatter_FormatsConsumableItemBbCode()
     {
         var buff = new BuffDefinition

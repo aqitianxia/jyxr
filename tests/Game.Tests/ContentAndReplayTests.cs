@@ -545,6 +545,13 @@ public sealed class ContentLoadingTests
                   ],
                   "useEffects": [
                     {
+                      "type": "add_stats",
+                      "values": {
+                        "max_hp": 100,
+                        "bili": 5
+                      }
+                    },
+                    {
                       "type": "grant_talent",
                       "talentId": "bloodlust"
                     },
@@ -577,12 +584,15 @@ public sealed class ContentLoadingTests
 
         var talentRequirement = Assert.IsType<TalentItemRequirementDefinition>(item.Requirements[0]);
         var statRequirement = Assert.IsType<StatItemRequirementDefinition>(item.Requirements[1]);
-        var grantTalent = Assert.IsType<GrantTalentItemUseEffectDefinition>(item.UseEffects[0]);
-        var grantSkill = Assert.IsType<GrantExternalSkillItemUseEffectDefinition>(item.UseEffects[1]);
+        var addStats = Assert.IsType<AddStatsItemUseEffectDefinition>(item.UseEffects[0]);
+        var grantTalent = Assert.IsType<GrantTalentItemUseEffectDefinition>(item.UseEffects[1]);
+        var grantSkill = Assert.IsType<GrantExternalSkillItemUseEffectDefinition>(item.UseEffects[2]);
 
         Assert.Equal("battle_focus", talentRequirement.TalentId);
         Assert.Equal(StatType.Wuxue, statRequirement.StatId);
         Assert.Equal(60, statRequirement.Value);
+        Assert.Equal(100, addStats.Values[StatType.MaxHp]);
+        Assert.Equal(5, addStats.Values[StatType.Bili]);
         Assert.Equal("bloodlust", grantTalent.TalentId);
         Assert.Equal("songfeng", grantSkill.SkillId);
         Assert.Equal(1, grantSkill.Level);
@@ -651,7 +661,7 @@ public sealed class ContentLoadingTests
               "consumeOnUse": true,
               "useEffects": [
                 { "type": "run_story", "storyId": "item_effect" },
-                { "type": "add_maxhp", "value": 10 }
+                { "type": "add_stats", "values": { "max_hp": 10 } }
               ]
             }]
             """,

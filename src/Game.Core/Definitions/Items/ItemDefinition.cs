@@ -54,8 +54,7 @@ public sealed record GenderItemRequirementDefinition(
 [JsonDerivedType(typeof(AddBuffItemUseEffectDefinition), "add_buff")]
 [JsonDerivedType(typeof(AddRageItemUseEffectDefinition), "add_rage")]
 [JsonDerivedType(typeof(DetoxifyItemUseEffectDefinition), "detoxify")]
-[JsonDerivedType(typeof(AddMaxHpItemUseEffectDefinition), "add_maxhp")]
-[JsonDerivedType(typeof(AddMaxMpItemUseEffectDefinition), "add_maxmp")]
+[JsonDerivedType(typeof(AddStatsItemUseEffectDefinition), "add_stats")]
 [JsonDerivedType(typeof(AddHpItemUseEffectDefinition), "add_hp")]
 [JsonDerivedType(typeof(AddMpItemUseEffectDefinition), "add_mp")]
 [JsonDerivedType(typeof(AddHpPercentItemUseEffectDefinition), "add_hp_percent")]
@@ -81,11 +80,8 @@ public sealed record AddRageItemUseEffectDefinition(
 public sealed record DetoxifyItemUseEffectDefinition(
     IReadOnlyList<int>? Values = null) : ItemUseEffectDefinition;
 
-public sealed record AddMaxHpItemUseEffectDefinition(
-    int Value) : ItemUseEffectDefinition;
-
-public sealed record AddMaxMpItemUseEffectDefinition(
-    int Value) : ItemUseEffectDefinition;
+public sealed record AddStatsItemUseEffectDefinition(
+    IReadOnlyDictionary<StatType, int> Values) : ItemUseEffectDefinition;
 
 public sealed record AddHpItemUseEffectDefinition(
     int Value) : ItemUseEffectDefinition;
