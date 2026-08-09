@@ -5,6 +5,7 @@ using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Model.Character;
 using Game.Application;
+using Game.Expressions;
 
 namespace Game.Tests;
 
@@ -457,22 +458,27 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
                 new EquipmentRandomAffixTableDefinition
                 {
                     Id = "attack-combo",
-                    MinItemLevel = 1,
-                    MaxItemLevel = 7,
+                    When = Expr("item_level >= 1 && item_level <= 7"),
                     Options =
                     [
                         new EquipmentRandomAffixOptionDefinition
                         {
                             Kind = EquipmentRandomAffixKind.AttackCombo,
                             Weight = 1,
+                            Ranges =
+                            [
+                                Range("item_level * (1 + round * 2)", "item_level * 2 * (1 + round * 2)"),
+                                Range("1", "item_level"),
+                            ],
                         },
                     ],
                 },
             ]);
 
-        var rolls = OrdinaryBattleLootGenerator.GenerateEquipmentRolls(equipment, repository, round: 1);
+        var rolls = EquipmentRandomAffixGenerator.GenerateRolls(
+            equipment, repository, round: 1, rollCount: 1, new Game.Core.Engine.DeterministicRandomService(1));
 
-        Assert.InRange(rolls.Count, 1, 4);
+        Assert.Single(rolls);
         Assert.All(rolls, roll =>
         {
             Assert.Equal(EquipmentRandomAffixKind.AttackCombo, roll.Kind);
@@ -493,8 +499,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
                 new EquipmentRandomAffixTableDefinition
                 {
                     Id = "defence-combo",
-                    MinItemLevel = 1,
-                    MaxItemLevel = 7,
+                    When = Expr("item_level >= 1 && item_level <= 7"),
                     Options =
                     [
                         new EquipmentRandomAffixOptionDefinition
@@ -503,17 +508,18 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
                             Weight = 1,
                             Ranges =
                             [
-                                new EquipmentRandomAffixRangeDefinition(8, 15),
-                                new EquipmentRandomAffixRangeDefinition(0, 5),
+                                Range("8", "15"),
+                                Range("0", "5"),
                             ],
                         },
                     ],
                 },
             ]);
 
-        var rolls = OrdinaryBattleLootGenerator.GenerateEquipmentRolls(equipment, repository, round: 1);
+        var rolls = EquipmentRandomAffixGenerator.GenerateRolls(
+            equipment, repository, round: 1, rollCount: 1, new Game.Core.Engine.DeterministicRandomService(1));
 
-        Assert.InRange(rolls.Count, 1, 4);
+        Assert.Single(rolls);
         Assert.All(rolls, roll =>
         {
             Assert.Equal(EquipmentRandomAffixKind.DefenceCombo, roll.Kind);
@@ -588,6 +594,14 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
 
     private static BattleDefinition CreateSettlementBattle() =>
         new() { Id = "settlement", Name = "settlement", MapId = "test" };
+
+    private static ParsedExpression Expr(string source) => new ExpressionParser().ParseExpression(source);
+
+    private static EquipmentRandomAffixRangeDefinition Range(string min, string max) => new()
+    {
+        Min = Expr(min),
+        Max = Expr(max),
+    };
 
     private static BattleUnit CreateUnit(
         string id,

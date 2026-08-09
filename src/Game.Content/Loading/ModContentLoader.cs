@@ -750,6 +750,20 @@ internal static class ModContentLoader
             "Game config is missing initialPartyCharacterIds.");
         JsonContentLoader.Ensure(config.SelectablePortraitIds.Count > 0,
             "Game config is missing selectablePortraitIds.");
+        JsonContentLoader.Ensure(config.EquipmentRandomAffixCountWeights.Count > 0,
+            "Game config is missing equipmentRandomAffixCountWeights.");
+        var counts = new HashSet<int>();
+        var totalWeight = 0;
+        foreach (var entry in config.EquipmentRandomAffixCountWeights)
+        {
+            JsonContentLoader.Ensure(entry.Count > 0,
+                "Equipment random affix count must be positive.");
+            JsonContentLoader.Ensure(entry.Weight > 0,
+                $"Equipment random affix count '{entry.Count}' must have positive weight.");
+            JsonContentLoader.Ensure(counts.Add(entry.Count),
+                $"Equipment random affix count '{entry.Count}' is duplicated.");
+            totalWeight = checked(totalWeight + entry.Weight);
+        }
     }
 
     private static JsonNode ParseNode(string path)

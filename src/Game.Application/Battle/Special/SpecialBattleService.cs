@@ -358,7 +358,7 @@ public sealed class SpecialBattleService
             for (var index = 0; index < itemReward.Quantity; index += 1)
             {
                 var extraAffixes = EquipmentRandomAffixGenerator
-                    .GenerateRolls(equipment, _session.ContentRepository, State.Adventure.Round, 4)
+                    .GenerateRolls(equipment, _session.ContentRepository, State.Adventure.Round, 4, _session.RandomService)
                     .ToArray();
                 _session.RewardGrantService.Apply(new EquipmentRewardGrant(equipment, extraAffixes));
             }

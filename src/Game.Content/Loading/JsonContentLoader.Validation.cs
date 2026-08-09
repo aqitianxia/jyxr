@@ -5,6 +5,7 @@ using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
 using Game.Core.Story;
+using Game.Expressions;
 
 namespace Game.Content.Loading;
 
@@ -12,6 +13,23 @@ public sealed partial class JsonContentLoader
 {
     private const string AchievementResourceGroup = "nick";
     private const string AchievementResourcePrefix = AchievementResourceGroup + ".";
+    private static readonly ExpressionFunctionRegistry RandomAffixExpressionFunctions =
+        new ExpressionFunctionRegistryBuilder()
+            .AddLibrary(new CoreExpressionFunctions())
+            .Build();
+    private static readonly IReadOnlyDictionary<string, ExpressionValueKind> RandomAffixVariables =
+        new Dictionary<string, ExpressionValueKind>(StringComparer.Ordinal)
+        {
+            ["item_level"] = ExpressionValueKind.Number,
+            ["round"] = ExpressionValueKind.Number,
+        };
+    private static readonly IReadOnlyDictionary<string, ExpressionValueKind> RandomAffixCandidateVariables =
+        new Dictionary<string, ExpressionValueKind>(StringComparer.Ordinal)
+        {
+            ["item_level"] = ExpressionValueKind.Number,
+            ["round"] = ExpressionValueKind.Number,
+            ["skill_hard"] = ExpressionValueKind.Number,
+        };
 
     private static void ValidateRepository(InMemoryContentRepository repository)
     {
@@ -122,17 +140,70 @@ public sealed partial class JsonContentLoader
                 "Equipment random affix table has empty id.");
             Ensure(ids.Add(table.Id),
                 $"Equipment random affix table '{table.Id}' is duplicated.");
-            Ensure(table.MinItemLevel > 0,
-                "Equipment random affix table minItemLevel must be positive.");
-            Ensure(table.MaxItemLevel >= table.MinItemLevel,
-                $"Equipment random affix table level range '{table.MinItemLevel}-{table.MaxItemLevel}' is invalid.");
+            ValidateRandomAffixExpression(
+                table.When,
+                RandomAffixVariables,
+                ExpressionValueKind.Boolean,
+                $"Equipment random affix table '{table.Id}' when");
             Ensure(table.Options.Count > 0,
-                $"Equipment random affix table level range '{table.MinItemLevel}-{table.MaxItemLevel}' has no options.");
+                $"Equipment random affix table '{table.Id}' has no options.");
 
             foreach (var option in table.Options)
             {
                 Ensure(option.Weight > 0,
                     $"Equipment random affix option '{option.Kind}' must have positive weight.");
+                var usesPool = option.Kind is EquipmentRandomAffixKind.Talent or EquipmentRandomAffixKind.Speed;
+                Ensure(usesPool == (option.Pool.Count > 0),
+                    usesPool
+                        ? $"Equipment random affix option '{option.Kind}' must declare a non-empty pool."
+                        : $"Equipment random affix option '{option.Kind}' cannot declare a pool.");
+                Ensure((option.Kind == EquipmentRandomAffixKind.WeaponBonus) == (option.WeaponType is not null),
+                    option.Kind == EquipmentRandomAffixKind.WeaponBonus
+                        ? "Equipment random affix weapon bonus option must declare weaponType."
+                        : $"Equipment random affix option '{option.Kind}' cannot declare weaponType.");
+
+                var usesHard = IsSkillRandomAffix(option.Kind);
+                Ensure(usesHard == (option.CandidateWhen is not null),
+                    usesHard
+                        ? $"Equipment random affix option '{option.Kind}' must declare candidateWhen."
+                        : $"Equipment random affix option '{option.Kind}' cannot declare candidateWhen.");
+                if (option.CandidateWhen is not null)
+                {
+                    ValidateRandomAffixExpression(
+                        option.CandidateWhen,
+                        RandomAffixCandidateVariables,
+                        ExpressionValueKind.Boolean,
+                        $"Equipment random affix option '{option.Kind}' candidateWhen");
+                }
+
+                var expectedRangeCount = GetRandomAffixRangeCount(option.Kind);
+                Ensure(option.Ranges.Count == expectedRangeCount,
+                    $"Equipment random affix option '{option.Kind}' requires {expectedRangeCount} ranges, got {option.Ranges.Count}.");
+                var rangeVariables = usesHard ? RandomAffixCandidateVariables : RandomAffixVariables;
+                for (var rangeIndex = 0; rangeIndex < option.Ranges.Count; rangeIndex++)
+                {
+                    var range = option.Ranges[rangeIndex];
+                    ValidateRandomAffixExpression(
+                        range.Min,
+                        rangeVariables,
+                        ExpressionValueKind.Number,
+                        $"Equipment random affix option '{option.Kind}' range {rangeIndex} min");
+                    ValidateRandomAffixExpression(
+                        range.Max,
+                        rangeVariables,
+                        ExpressionValueKind.Number,
+                        $"Equipment random affix option '{option.Kind}' range {rangeIndex} max");
+                    if (range.Mode == EquipmentRandomAffixRangeMode.Integer)
+                    {
+                        Ensure(range.DecimalPlaces == 0,
+                            $"Equipment random affix option '{option.Kind}' integer range cannot declare decimalPlaces.");
+                    }
+                    else
+                    {
+                        Ensure(range.DecimalPlaces is >= 1 and <= 15,
+                            $"Equipment random affix option '{option.Kind}' decimal range requires decimalPlaces from 1 to 15.");
+                    }
+                }
 
                 if (option.Kind == EquipmentRandomAffixKind.Talent)
                 {
@@ -145,15 +216,51 @@ public sealed partial class JsonContentLoader
                     }
                 }
 
-                if (option.Kind == EquipmentRandomAffixKind.WeaponBonus)
+                if (option.Kind == EquipmentRandomAffixKind.Speed)
                 {
-                    Ensure(option.WeaponType is not null,
-                        "Equipment random affix weapon bonus option must declare weaponType.");
-                    Ensure(option.Ranges.Count > 0,
-                        "Equipment random affix weapon bonus option must declare at least one range.");
+                    Ensure(option.Pool.Count > 0,
+                        "Equipment random affix speed option must have a non-empty pool.");
+                    foreach (var value in option.Pool)
+                    {
+                        Ensure(double.TryParse(value, System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var parsed) && double.IsFinite(parsed),
+                            $"Equipment random affix speed value '{value}' is invalid.");
+                    }
                 }
             }
         }
+    }
+
+    private static bool IsSkillRandomAffix(EquipmentRandomAffixKind kind) => kind is
+        EquipmentRandomAffixKind.ExternalSkillBonus or
+        EquipmentRandomAffixKind.InternalSkillBonus or
+        EquipmentRandomAffixKind.FormSkillBonus or
+        EquipmentRandomAffixKind.LegendSkillBonus;
+
+    private static int GetRandomAffixRangeCount(EquipmentRandomAffixKind kind) => kind switch
+    {
+        EquipmentRandomAffixKind.AttackCombo or EquipmentRandomAffixKind.DefenceCombo or
+            EquipmentRandomAffixKind.LegendSkillBonus => 2,
+        EquipmentRandomAffixKind.Talent or EquipmentRandomAffixKind.Speed => 0,
+        _ => 1,
+    };
+
+    private static void ValidateRandomAffixExpression(
+        ParsedExpression expression,
+        IReadOnlyDictionary<string, ExpressionValueKind> variables,
+        ExpressionValueKind expectedKind,
+        string context)
+    {
+        var diagnostics = new ExpressionAnalyzer().Analyze(
+            expression.Root,
+            RandomAffixExpressionFunctions,
+            variables,
+            expectedKind);
+        var errors = diagnostics
+            .Where(static diagnostic => diagnostic.Severity == ExpressionDiagnosticSeverity.Error)
+            .Select(static diagnostic => diagnostic.Message)
+            .ToArray();
+        Ensure(errors.Length == 0, $"{context} is invalid: {string.Join("; ", errors)}");
     }
 
     private static void ValidateSpecialSkills(InMemoryContentRepository repository)

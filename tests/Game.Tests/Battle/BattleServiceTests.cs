@@ -2,6 +2,7 @@ using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
 using Game.Core.Model;
+using Game.Expressions;
 
 namespace Game.Tests;
 
@@ -258,36 +259,43 @@ public sealed class BattleServiceTests
         new()
         {
             Id = "zhenlong",
-            MinItemLevel = 1,
-            MaxItemLevel = 99,
+            When = Expr("true"),
             Options =
             [
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.Accuracy,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.CritMult,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.Lifesteal,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.AntiDebuff,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
             ],
         };
+
+    private static ParsedExpression Expr(string source) => new ExpressionParser().ParseExpression(source);
+
+    private static EquipmentRandomAffixRangeDefinition Range(string min, string max) => new()
+    {
+        Min = Expr(min),
+        Max = Expr(max),
+    };
 
     private static BattleDefinition CreateFixedPlayerBattle() =>
         new()

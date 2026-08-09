@@ -127,7 +127,35 @@ public sealed class ExpressionParser
             (Symbol("||"), Binary(BinaryOperator.Or)),
             (Keyword("or"), Binary(BinaryOperator.Or)));
 
-        expression.Parser = disjunction;
+        var conditionalTail = Symbol("?")
+            .And(expression)
+            .And(Symbol(":"))
+            .And(expression)
+            .Optional();
+        var conditional = disjunction
+            .And(conditionalTail)
+            .Then<ExpressionSyntax>((_, start, _, result) =>
+            {
+                if (!result.Item2.HasValue)
+                {
+                    return result.Item1;
+                }
+
+                var tail = result.Item2.Value;
+                var whenTrue = tail.Item2;
+                var whenFalse = tail.Item4;
+                return new ConditionalExpressionSyntax(
+                    result.Item1,
+                    whenTrue,
+                    whenFalse,
+                    new SourceSpan(
+                        result.Item1.Span.Offset,
+                        whenFalse.Span.EndOffset - result.Item1.Span.Offset,
+                        result.Item1.Span.Line,
+                        result.Item1.Span.Column));
+            });
+
+        expression.Parser = conditional;
         return expression.Eof().WithWhiteSpaceParser(Literals.WhiteSpace(true));
     }
 

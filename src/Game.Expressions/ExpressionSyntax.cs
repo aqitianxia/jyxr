@@ -84,6 +84,19 @@ public sealed record BinaryExpressionSyntax(
         : this(@operator, left, right, default) { }
 }
 
+public sealed record ConditionalExpressionSyntax(
+    ExpressionSyntax Condition,
+    ExpressionSyntax WhenTrue,
+    ExpressionSyntax WhenFalse,
+    SourceSpan Span) : ExpressionSyntax(Span)
+{
+    public ConditionalExpressionSyntax(
+        ExpressionSyntax condition,
+        ExpressionSyntax whenTrue,
+        ExpressionSyntax whenFalse)
+        : this(condition, whenTrue, whenFalse, default) { }
+}
+
 public sealed record ParsedExpression(
     string Source,
     string SourceName,

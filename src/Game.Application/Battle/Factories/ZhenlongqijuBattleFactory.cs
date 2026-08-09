@@ -36,7 +36,8 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
                     equipment,
                     Content,
                     State.Adventure.Round,
-                    4)));
+                    4,
+                    session.RandomService)));
         }
 
         return drops;
@@ -107,7 +108,7 @@ internal sealed class ZhenlongqijuBattleFactory(GameSession session)
         {
             var equipment = PickConfiguredEquipment(slot);
             var affixes = EquipmentRandomAffixGenerator
-                .GenerateRolls(equipment, Content, State.Adventure.Round, 4)
+                .GenerateRolls(equipment, Content, State.Adventure.Round, 4, session.RandomService)
                 .SelectMany(static roll => roll.Affixes)
                 .ToArray();
             character.AddEquipmentInstance(equipmentFactory.Create(equipment, affixes));

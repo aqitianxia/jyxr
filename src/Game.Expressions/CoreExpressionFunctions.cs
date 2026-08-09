@@ -2,6 +2,9 @@ namespace Game.Expressions;
 
 public sealed class CoreExpressionFunctions
 {
+    [ExpressionFunction("floor")]
+    public double Floor(double value) => Math.Floor(value);
+
     [ExpressionFunction("contains")]
     public bool Contains(IReadOnlyList<ExpressionValue> list, ExpressionValue value)
     {
