@@ -57,20 +57,33 @@ public sealed class ExpressionAnalyzer
         List<ExpressionDiagnostic> diagnostics) => expression switch
     {
         LiteralExpressionSyntax literal => new(literal.Value.Kind),
-        IdentifierExpressionSyntax identifier => InferIdentifier(identifier, variables),
+        IdentifierExpressionSyntax identifier => InferIdentifier(identifier, variables, diagnostics),
         ListExpressionSyntax list => InferList(list, functions, variables, diagnostics),
         CallExpressionSyntax call => AnalyzeInvocation(call, functions, functions, variables, diagnostics, rootCall: false),
         UnaryExpressionSyntax unary => InferUnary(unary, functions, variables, diagnostics),
         BinaryExpressionSyntax binary => InferBinary(binary, functions, variables, diagnostics),
+        ConditionalExpressionSyntax conditional => InferConditional(conditional, functions, variables, diagnostics),
         _ => ExpressionStaticType.Unknown,
     };
 
     private static ExpressionStaticType InferIdentifier(
         IdentifierExpressionSyntax identifier,
-        IReadOnlyDictionary<string, ExpressionValueKind>? variables) =>
-        variables is not null && variables.TryGetValue(identifier.Name, out var kind)
-            ? new ExpressionStaticType(kind)
-            : ExpressionStaticType.Unknown;
+        IReadOnlyDictionary<string, ExpressionValueKind>? variables,
+        List<ExpressionDiagnostic> diagnostics)
+    {
+        if (variables is null)
+        {
+            return ExpressionStaticType.Unknown;
+        }
+
+        if (variables.TryGetValue(identifier.Name, out var kind))
+        {
+            return new ExpressionStaticType(kind);
+        }
+
+        diagnostics.Add(Error(identifier, $"Unknown or disallowed variable '{identifier.Name}'."));
+        return ExpressionStaticType.Unknown;
+    }
 
     private ExpressionStaticType InferList(
         ListExpressionSyntax list,
@@ -215,6 +228,37 @@ public sealed class ExpressionAnalyzer
                 Require(binary.Right, right, ExpressionValueKind.Number, diagnostics);
                 return new ExpressionStaticType(ExpressionValueKind.Number);
         }
+    }
+
+    private ExpressionStaticType InferConditional(
+        ConditionalExpressionSyntax conditional,
+        IExpressionCallCatalog functions,
+        IReadOnlyDictionary<string, ExpressionValueKind>? variables,
+        List<ExpressionDiagnostic> diagnostics)
+    {
+        var condition = Infer(conditional.Condition, functions, variables, diagnostics);
+        var whenTrue = Infer(conditional.WhenTrue, functions, variables, diagnostics);
+        var whenFalse = Infer(conditional.WhenFalse, functions, variables, diagnostics);
+        Require(conditional.Condition, condition, ExpressionValueKind.Boolean, diagnostics);
+
+        if (whenTrue.Kind is { } trueKind && whenFalse.Kind is { } falseKind && trueKind != falseKind)
+        {
+            diagnostics.Add(Error(conditional,
+                $"Conditional branches must have matching types, got {trueKind} and {falseKind}."));
+            return ExpressionStaticType.Unknown;
+        }
+
+        if (whenTrue.Kind == ExpressionValueKind.List &&
+            whenTrue.ListElementKind is { } trueElement &&
+            whenFalse.ListElementKind is { } falseElement &&
+            trueElement != falseElement)
+        {
+            diagnostics.Add(Error(conditional,
+                $"Conditional list branches must have matching element types, got {trueElement} and {falseElement}."));
+            return ExpressionStaticType.Unknown;
+        }
+
+        return whenTrue.IsUnknown ? whenFalse : whenTrue;
     }
 
     private static void Require(

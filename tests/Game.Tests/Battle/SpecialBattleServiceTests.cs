@@ -2,6 +2,7 @@ using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Core.Story;
+using Game.Expressions;
 
 namespace Game.Tests;
 
@@ -203,33 +204,32 @@ public sealed class SpecialBattleServiceTests
         new()
         {
             Id = "four-affixes",
-            MinItemLevel = 1,
-            MaxItemLevel = 99,
+            When = Expr("true"),
             Options =
             [
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.Accuracy,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.CritMult,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.Lifesteal,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.AntiDebuff,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
             ],
         };
@@ -238,18 +238,25 @@ public sealed class SpecialBattleServiceTests
         new()
         {
             Id = "single-affix",
-            MinItemLevel = 1,
-            MaxItemLevel = 99,
+            When = Expr("true"),
             Options =
             [
                 new EquipmentRandomAffixOptionDefinition
                 {
                     Kind = EquipmentRandomAffixKind.Accuracy,
                     Weight = 1,
-                    Ranges = [new EquipmentRandomAffixRangeDefinition(1, 1)],
+                    Ranges = [Range("1", "1")],
                 },
             ],
         };
+
+    private static ParsedExpression Expr(string source) => new ExpressionParser().ParseExpression(source);
+
+    private static EquipmentRandomAffixRangeDefinition Range(string min, string max) => new()
+    {
+        Min = Expr(min),
+        Max = Expr(max),
+    };
 
     private sealed class TowerRuntimeHost : IRuntimeHost, ISpecialBattleRuntimeHost
     {

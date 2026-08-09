@@ -17,12 +17,14 @@ public static class OrdinaryBattleLootGenerator
         GameDifficulty difficulty,
         int round,
         int playerTeam,
-        double dropChance)
+        double dropChance,
+        IRandomService random)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(contentRepository);
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(skillMaxLevelPolicy);
+        ArgumentNullException.ThrowIfNull(random);
         ArgumentOutOfRangeException.ThrowIfLessThan(round, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(dropChance, 0d);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(dropChance, 1d);
@@ -33,7 +35,9 @@ public static class OrdinaryBattleLootGenerator
             AddOrdinaryItemDrop(
                 drops,
                 contentRepository,
+                config,
                 round,
+                random,
                 dropChance,
                 enemyUnit.Character.Level);
             AddSkillFragmentDrops(
@@ -52,7 +56,9 @@ public static class OrdinaryBattleLootGenerator
     private static void AddOrdinaryItemDrop(
         List<RewardGrant> drops,
         IContentRepository contentRepository,
+        GameConfig config,
         int round,
+        IRandomService random,
         double dropChance,
         int enemyLevel)
     {
@@ -72,7 +78,7 @@ public static class OrdinaryBattleLootGenerator
         {
             drops.Add(new EquipmentRewardGrant(
                 equipment,
-                GenerateEquipmentRolls(equipment, contentRepository, round)));
+                GenerateEquipmentRolls(equipment, contentRepository, config, round, random)));
             return;
         }
 
@@ -210,8 +216,22 @@ public static class OrdinaryBattleLootGenerator
     public static IReadOnlyList<GeneratedEquipmentAffixRoll> GenerateEquipmentRolls(
         EquipmentDefinition equipment,
         IContentRepository contentRepository,
-        int round) =>
-        EquipmentRandomAffixGenerator.GenerateRolls(equipment, contentRepository, round);
+        GameConfig config,
+        int round,
+        IRandomService random)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        var rollCount = WeightedRandomSelector.Select(
+            config.EquipmentRandomAffixCountWeights,
+            static entry => entry.Weight,
+            random).Count;
+        return EquipmentRandomAffixGenerator.GenerateRolls(
+            equipment,
+            contentRepository,
+            round,
+            rollCount,
+            random);
+    }
 
     private static IReadOnlyList<ItemDefinition> ResolveDropCandidates(
         IContentRepository contentRepository,

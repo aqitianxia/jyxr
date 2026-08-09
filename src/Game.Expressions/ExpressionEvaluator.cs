@@ -84,6 +84,7 @@ public sealed class ExpressionEvaluator
                 CallExpressionSyntax call => EvaluateCall(call, environment, sourceName),
                 UnaryExpressionSyntax unary => EvaluateUnary(unary, environment, sourceName),
                 BinaryExpressionSyntax binary => EvaluateBinary(binary, environment, sourceName),
+                ConditionalExpressionSyntax conditional => EvaluateConditional(conditional, environment, sourceName),
                 _ => throw new ExpressionEvaluationException($"Unsupported expression node '{expression.GetType().Name}'."),
             };
         }
@@ -91,6 +92,16 @@ public sealed class ExpressionEvaluator
         {
             throw ExpressionException.WithLocation(exception, sourceName, expression.Span);
         }
+    }
+
+    private ExpressionValue EvaluateConditional(
+        ConditionalExpressionSyntax conditional,
+        ExpressionEnvironment environment,
+        string? sourceName)
+    {
+        var condition = EvaluateCore(conditional.Condition, environment, sourceName)
+            .AsBoolean("Conditional operator '? :' condition");
+        return EvaluateCore(condition ? conditional.WhenTrue : conditional.WhenFalse, environment, sourceName);
     }
 
     private ExpressionValue ResolveVariable(IdentifierExpressionSyntax identifier, ExpressionEnvironment environment)

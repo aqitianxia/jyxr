@@ -115,6 +115,33 @@ public sealed class ExpressionRegistryTests
         Assert.Contains(listEquality, diagnostic => diagnostic.Message.Contains("not defined for List", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Analyzer_ValidatesConditionalTypesAndKnownVariables()
+    {
+        var parser = new ExpressionParser();
+        var analyzer = new ExpressionAnalyzer();
+        var functions = new ExpressionFunctionRegistryBuilder().Build();
+        var variables = new Dictionary<string, ExpressionValueKind>
+        {
+            ["enabled"] = ExpressionValueKind.Boolean,
+        };
+
+        Assert.Empty(analyzer.Analyze(
+            parser.ParseExpression("enabled ? 1 : 2").Root,
+            functions,
+            variables,
+            ExpressionValueKind.Number));
+        Assert.Contains(
+            analyzer.Analyze(parser.ParseExpression("1 ? 2 : 3").Root, functions, variables),
+            diagnostic => diagnostic.Message.Contains("requires Boolean", StringComparison.Ordinal));
+        Assert.Contains(
+            analyzer.Analyze(parser.ParseExpression("enabled ? 1 : 'no'").Root, functions, variables),
+            diagnostic => diagnostic.Message.Contains("matching types", StringComparison.Ordinal));
+        Assert.Contains(
+            analyzer.Analyze(parser.ParseExpression("missing ? 1 : 2").Root, functions, variables),
+            diagnostic => diagnostic.Message.Contains("missing", StringComparison.Ordinal));
+    }
+
     [AttributeUsage(AttributeTargets.Method)]
     private sealed class TestCallAttribute : ExpressionSymbolAttribute
     {

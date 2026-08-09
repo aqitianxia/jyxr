@@ -60,7 +60,8 @@ internal sealed class BattleSettlementService(
             State.Adventure.Difficulty,
             State.Adventure.Round,
             PlayerTeam,
-            session.Config.OrdinaryBattleDropChance);
+            session.Config.OrdinaryBattleDropChance,
+            session.RandomService);
         return settlement with { Rewards = settlement.Rewards.Concat(drops).ToArray() };
     }
 

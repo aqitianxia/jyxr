@@ -18,6 +18,19 @@ public sealed class ExpressionParserTests
     }
 
     [Fact]
+    public void ParseExpression_ConditionalIsLowerPrecedenceAndRightAssociative()
+    {
+        var root = Assert.IsType<ConditionalExpressionSyntax>(
+            _parser.ParseExpression("false || true ? 1 : false ? 2 : 3").Root);
+
+        Assert.Equal(BinaryOperator.Or, Assert.IsType<BinaryExpressionSyntax>(root.Condition).Operator);
+        Assert.Equal(1d, Assert.IsType<LiteralExpressionSyntax>(root.WhenTrue).Value.Number);
+        var nested = Assert.IsType<ConditionalExpressionSyntax>(root.WhenFalse);
+        Assert.Equal(2d, Assert.IsType<LiteralExpressionSyntax>(nested.WhenTrue).Value.Number);
+        Assert.Equal(3d, Assert.IsType<LiteralExpressionSyntax>(nested.WhenFalse).Value.Number);
+    }
+
+    [Fact]
     public void ParseExpression_ParsesInAtComparisonPrecedence()
     {
         var root = Assert.IsType<BinaryExpressionSyntax>(

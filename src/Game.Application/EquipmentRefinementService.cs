@@ -117,6 +117,7 @@ public sealed class EquipmentRefinementService
                 equipment.Definition,
                 ContentRepository,
                 State.Adventure.Round,
+                _session.RandomService,
                 currentAffixGroups.Select(static group => group.Affixes).ToArray()));
         }
 

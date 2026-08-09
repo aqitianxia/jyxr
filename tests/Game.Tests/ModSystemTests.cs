@@ -789,7 +789,8 @@ public sealed class ModSystemTests
             {
               "initialStorySegmentId": "test_story",
               "initialPartyCharacterIds": ["ally_warrior"],
-              "selectablePortraitIds": ["test_portrait"]
+              "selectablePortraitIds": ["test_portrait"],
+              "equipmentRandomAffixCountWeights": [{"count": 1, "weight": 1}]
             }
             """);
         var storyDirectory = Path.Combine(dataDirectory, "story");

@@ -40,6 +40,26 @@ public sealed class ExpressionEvaluatorTests
         Assert.False(probes.Invoked);
     }
 
+    [Fact]
+    public void Evaluate_ConditionalOnlyEvaluatesSelectedBranch()
+    {
+        var environment = EmptyEnvironment();
+
+        Assert.Equal(4d, _evaluator.Evaluate(_parser.ParseExpression("true ? 4 : 1 / 0"), environment).Number);
+        Assert.Equal(5d, _evaluator.Evaluate(_parser.ParseExpression("false ? 1 / 0 : 5"), environment).Number);
+    }
+
+    [Fact]
+    public void Evaluate_CoreFloorReturnsTheMathematicalFloor()
+    {
+        var environment = new ExpressionEnvironment(
+            new DictionaryExpressionVariableResolver(new Dictionary<string, ExpressionValue>()),
+            new ExpressionFunctionRegistryBuilder().AddLibrary(new CoreExpressionFunctions()).Build());
+
+        Assert.Equal(2d, _evaluator.Evaluate(_parser.ParseExpression("floor(2.9)"), environment).Number);
+        Assert.Equal(-3d, _evaluator.Evaluate(_parser.ParseExpression("floor(-2.1)"), environment).Number);
+    }
+
     [Theory]
     [InlineData("2 in [1, 2, 3]", true)]
     [InlineData("4 in [1, 2, 3]", false)]
