@@ -175,6 +175,19 @@ internal sealed partial class StoryRuntimeSession(
 
                 yield break;
             }
+            case SetVariableStep assignment:
+            {
+                var value = _expressionEvaluator.Evaluate(assignment.Value, host.ExpressionEnvironment);
+                await host.AssignVariableAsync(assignment.Target, value, ct);
+                yield return StepResult.FromEvent(new VariableAssignedEvent(assignment.Target, value));
+                yield break;
+            }
+            case DeleteVariableStep deletion:
+                if (await host.DeleteVariableAsync(deletion.Target, ct))
+                {
+                    yield return StepResult.FromEvent(new VariableDeletedEvent(deletion.Target));
+                }
+                yield break;
             case ChoiceStep choice:
                 await foreach (var result in ExecuteChoiceAsync(choice, ct))
                 {

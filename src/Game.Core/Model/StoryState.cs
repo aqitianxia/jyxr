@@ -77,18 +77,6 @@ public sealed class StoryState
         return _variables.Remove(name);
     }
 
-    public void ChangeNumberVariable(string name, double delta)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ExpressionSymbol.Validate(name);
-        if (!_variables.TryGetValue(name, out var current))
-        {
-            throw new InvalidOperationException($"Story variable '{name}' does not exist.");
-        }
-
-        SetVariable(name, ExpressionValue.FromNumber(current.AsNumber($"Story variable '{name}'") + delta));
-    }
-
     public StoryTimeKeyState SetTimeKey(
         string key,
         ClockState currentClock,

@@ -20,6 +20,13 @@ public sealed record DialogueStep(
 public sealed record CommandStep(
     ParsedCall Call) : Step;
 
+public sealed record SetVariableStep(
+    string Target,
+    ParsedExpression Value) : Step;
+
+public sealed record DeleteVariableStep(
+    string Target) : Step;
+
 public readonly record struct StoryCommandResult(string? JumpTarget)
 {
     public static StoryCommandResult None { get; } = new(null);
@@ -41,7 +48,7 @@ public sealed record ReturnStep : Step;
 
 public sealed record ChoiceStep(
     ChoicePrompt Prompt,
-    IReadOnlyList<ChoiceGroup> Groups,
+    IReadOnlyList<ChoiceBlock> Blocks,
     ChoiceStyle Style = ChoiceStyle.Regular) : Step;
 
 public enum ChoiceStyle
@@ -54,12 +61,22 @@ public sealed record ChoicePrompt(
     string Speaker,
     string Text);
 
-public sealed record ChoiceGroup(
-    ParsedExpression? When,
+public abstract record ChoiceBlock;
+
+public sealed record ChoiceOptionsBlock(
+    IReadOnlyList<ChoiceOption> Options) : ChoiceBlock;
+
+public sealed record ChoiceBranchBlock(
+    IReadOnlyList<ChoiceBranchCase> Cases,
+    IReadOnlyList<ChoiceOption>? Fallback) : ChoiceBlock;
+
+public sealed record ChoiceBranchCase(
+    ParsedExpression When,
     IReadOnlyList<ChoiceOption> Options);
 
 public sealed record ChoiceOption(
     string Text,
+    ParsedExpression? When,
     IReadOnlyList<Step> Steps);
 
 public sealed record BattleStep(

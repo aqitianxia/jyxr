@@ -41,18 +41,17 @@ public sealed class ExpressionCommandEventTests
     }
 
     [Fact]
-    public async Task VariableCommandsPublishStoryStateEvents()
+    public async Task FlagCommandsPublishStoryStateEvents()
     {
         var session = new GameSession(new GameState(), TestContentFactory.CreateRepository());
         var count = 0;
         using var subscription = session.Events.Subscribe<StoryStateChangedEvent>(_ => count++);
         var dispatcher = session.StoryService.CommandDispatcher;
 
-        await dispatcher.ExecuteCommandAsync("set_var", [ExpressionValue.FromString("counter"), ExpressionValue.FromNumber(1)]);
-        await dispatcher.ExecuteCommandAsync("change_var", [ExpressionValue.FromString("counter"), ExpressionValue.FromNumber(2)]);
-        await dispatcher.ExecuteCommandAsync("remove_var", [ExpressionValue.FromString("counter")]);
+        await dispatcher.ExecuteCommandAsync("set_flag", [ExpressionValue.FromString("flag")]);
+        await dispatcher.ExecuteCommandAsync("clear_flag", [ExpressionValue.FromString("flag")]);
 
-        Assert.Equal(3, count);
+        Assert.Equal(2, count);
     }
 
     [Fact]
@@ -93,17 +92,15 @@ public sealed class ExpressionCommandEventTests
         var dispatcher = session.StoryService.CommandDispatcher;
         var parser = new ExpressionParser();
 
-        await dispatcher.ExecuteCallAsync(parser.ParseCall("remove_var('missing_variable')"));
         await dispatcher.ExecuteCallAsync(parser.ParseCall("clear_flag('missing_flag')"));
         await dispatcher.ExecuteCallAsync(parser.ParseCall("clear_time_key('missing_key')"));
-        await dispatcher.ExecuteCallAsync(parser.ParseCall("set_var('continued', true)"));
+        await dispatcher.ExecuteCallAsync(parser.ParseCall("set_flag('continued')"));
 
         Assert.Equal(1, storyChanges);
         Assert.True(session.State.Story.TryGetVariable("continued", out var continued));
         Assert.True(continued.AsBoolean("test"));
         Assert.Collection(
             logger.Entries.Where(entry => entry.Level == DiagnosticLogLevel.Warning),
-            entry => Assert.Contains("missing_variable", entry.Message, StringComparison.Ordinal),
             entry => Assert.Contains("missing_flag", entry.Message, StringComparison.Ordinal),
             entry => Assert.Contains("missing_key", entry.Message, StringComparison.Ordinal));
     }

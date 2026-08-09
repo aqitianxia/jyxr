@@ -124,12 +124,12 @@ internal sealed class AdventureStoryCommands
 internal sealed class StoryStateCommands
 {
     private readonly GameSession _session;
-    private readonly IReadOnlySet<string> _contextVariableNames;
+    private readonly StoryVariableMutationService _variableMutations;
 
-    public StoryStateCommands(GameSession session, StoryExecutionContext context)
+    public StoryStateCommands(GameSession session, StoryVariableMutationService variableMutations)
     {
         _session = session;
-        _contextVariableNames = context.Variables.Keys.ToHashSet(StringComparer.Ordinal);
+        _variableMutations = variableMutations;
     }
 
     [StoryCommand("journal", "log")]
@@ -139,48 +139,11 @@ internal sealed class StoryStateCommands
         _session.Events.Publish(new JournalChangedEvent());
     }
 
-    [StoryCommand("set_var")]
-    public void SetVariable(string name, ExpressionValue value)
-    {
-        if (GameExpressionSymbols.BuiltInVariables.Contains(name) || _contextVariableNames.Contains(name))
-            throw new InvalidOperationException($"'{name}' is a reserved expression variable.");
-        _session.State.Story.SetVariable(name, value);
-        _session.Events.Publish(new StoryStateChangedEvent());
-    }
-
     [StoryCommand("set_flag")]
-    public void SetFlag(string name) => SetVariable(name, ExpressionValue.FromBoolean(true));
-
-    [StoryCommand("change_var")]
-    public void ChangeVariable(string name, double delta)
-    {
-        _session.State.Story.ChangeNumberVariable(name, delta);
-        _session.Events.Publish(new StoryStateChangedEvent());
-    }
-
-    [StoryCommand("remove_var")]
-    public void RemoveVariable(string name)
-    {
-        if (!_session.State.Story.RemoveVariable(name))
-        {
-            _session.DiagnosticLogger.Warning($"Command 'remove_var' ignored missing story variable '{name}'.");
-            return;
-        }
-
-        _session.Events.Publish(new StoryStateChangedEvent());
-    }
+    public void SetFlag(string name) => _variableMutations.Assign(name, ExpressionValue.FromBoolean(true));
 
     [StoryCommand("clear_flag")]
-    public void ClearFlag(string name)
-    {
-        if (!_session.State.Story.RemoveVariable(name))
-        {
-            _session.DiagnosticLogger.Warning($"Command 'clear_flag' ignored missing story flag '{name}'.");
-            return;
-        }
-
-        _session.Events.Publish(new StoryStateChangedEvent());
-    }
+    public void ClearFlag(string name) => _variableMutations.Delete(name, "clear_flag");
 
     [StoryCommand("set_time_key")]
     public void SetTimeKey(string key, int days, string storyId = "")

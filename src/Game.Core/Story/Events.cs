@@ -15,6 +15,13 @@ public sealed record CommandExecutedEvent(
     string Name,
     IReadOnlyList<ExpressionValue> Args) : StoryEvent;
 
+public sealed record VariableAssignedEvent(
+    string Name,
+    ExpressionValue Value) : StoryEvent;
+
+public sealed record VariableDeletedEvent(
+    string Name) : StoryEvent;
+
 public sealed record ChoiceOfferedEvent(
     ChoiceContext Choice) : StoryEvent;
 

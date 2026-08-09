@@ -26,6 +26,28 @@ DSL 字符串优先使用单引号，提高 json 可读性。
 
 地图与世界触发使用 `action` 和可选 `when`，天关使用可选 `when`。省略 `when` 等价于 `true`。
 
+### 剧情选项条件
+
+剧情对白后的选项支持单项尾缀条件，以及互斥的 `if / elif / else` 分支块：
+
+```text
+主角：请选择
+- 离开
+- 购买 if silver >= 100
+if morality >= 50
+  - 正道选项
+  - 特殊正道选项 if rank <= 5
+elif morality < 0
+  - 邪道选项
+else
+  - 中立选项
+
+if has_var('hidden_route')
+  - 隐藏路线
+```
+
+每个 `if` 开启一条独立条件链，只有紧随的 `elif / else` 与它互斥。普通选项、单项条件和多个条件链可以按源码顺序混用。分支条件与访问到的单项条件各求值一次；未选中的 case 及其中的单项条件不会求值。所有条件过滤后没有可见选项时剧情执行失败。
+
 ## 条件表达式
 
 ### 值与字面量
@@ -44,7 +66,7 @@ false
 
 Number 是 invariant-culture `double`。绑定到 `int` 参数时，数值必须没有小数部分且位于 `Int32` 范围内。不同基础类型之间没有隐式转换。
 
-不支持 `null`、赋值、成员访问、索引、三元表达式、语句序列或字符串拼接。列表元素异构、除零、非有限结果和异类型比较都会报错。
+不支持 `null`、赋值表达式、成员访问、索引、三元表达式、语句序列或字符串拼接。列表元素异构、除零、非有限结果和异类型比较都会报错。
 
 ### 运算符与优先级
 
@@ -121,15 +143,16 @@ in_team('郭襄') and skill_level('郭襄', '峨眉剑法') >= 5
 变量首次写入时确定类型，之后不能改型。直接读取不存在的变量会报错；内建值和当前 StoryExecutionContext 变量是保留名。
 
 ```text
-set_var('quest_stage', 1)
-change_var('quest_stage', 1)
+quest_stage = 1
+quest_stage += 1
+quest_stage -= 1
 set_flag('met_heroine')
 has_flag('met_heroine') and quest_stage >= 2
 clear_flag('met_heroine')
-remove_var('quest_stage')
+del quest_stage
 ```
 
-`set_flag(name)` 等价于写入 Boolean `true`；`clear_flag(name)` 等价于删除变量。`change_var` 只修改已存在的 Number。`remove_var` 和 `clear_flag` 清除不存在的名称时记录 Warning 并正常返回。
+赋值和 `del` 是剧情 step，不能写在条件、函数参数、地图 action 或调试控制台中。`=` 创建变量或写入同类型值；`+=` / `-=` 只适用于已存在的 Number。`del` 清除不存在的名称时记录 Warning 并继续剧情。`set_flag(name)` 等价于写入 Boolean `true`；`clear_flag(name)` 等价于删除变量，并与裸语句共享保留名、类型和事件规则。
 
 ## 指令参考
 
@@ -179,9 +202,6 @@ change_favorability('女主', 5)
 | 调用 | 说明 | 别名 |
 | --- | --- | --- |
 | `journal(text)` | 写入带当前时间快照的江湖日志。 | `log` |
-| `set_var(name, value)` | 创建变量或写入同类型值。 | — |
-| `change_var(name, delta)` | 调整已存在的 Number。 | — |
-| `remove_var(name)` | 删除变量；不存在时记录 Warning 并正常返回。 | — |
 | `set_flag(name)` | 写入 Boolean flag。 | — |
 | `clear_flag(name)` | 删除 flag；不存在时记录 Warning 并正常返回。 | — |
 | `set_time_key(key, days, story_id='')` | 创建限时剧情 key；省略 story id 时到期仅移除 key。 | — |
@@ -375,6 +395,9 @@ run_battle 测试战斗
 - `learn(type, character_id, target_id)` 和 `remove(type, ...)`：改用自动分类或显式分类指令。
 - 隐式主角 `head(portrait_id)`：必须显式写角色 id。
 - 字符串 `toast('on'/'off')`：必须传 Boolean。
+- `set_var/change_var/remove_var`：剧情中改用裸赋值、复合赋值和 `del`。
+
+XML 转换器会把通用 `SET_FLAG/CLEAR_FLAG/SET_VAR/CHANGE_VAR/REMOVE_VAR` 转为上述状态语句；`NO_GLOBAL_EVENT` 是世界触发器开关特例。转换结果必须写入独立草稿或临时目录审查，不直接覆盖 `mods/jyxr-base/data` 中的正式 JSON。
 
 常见迁移写法：
 
@@ -415,4 +438,4 @@ public void ChangeItem(string itemId, int delta = 1) => ...;
 
 支持 `string`、`bool`、`int`、`double` 及对应数组/只读列表。最后一个 `params T[]` 是可变参数。异步 command 可以在末尾声明不计入 DSL arity 的 `CancellationToken`，返回 `Task`、`ValueTask` 或带 command result 的泛型版本；纯函数必须同步。
 
-`ExpressionValue` 只用于 `set_var(name, value)`、`contains` 等真正动态的边界。Library 通过构造函数获得会话或服务。函数、StoryCommand 和 DebugCommand 分属不同注册表，名称冲突、非法签名和跨权限调用在注册或分析阶段失败。
+`ExpressionValue` 只用于剧情变量赋值、`contains` 等真正动态的边界。Library 通过构造函数获得会话或服务。函数、StoryCommand 和 DebugCommand 分属不同注册表，名称冲突、非法签名和跨权限调用在注册或分析阶段失败。
