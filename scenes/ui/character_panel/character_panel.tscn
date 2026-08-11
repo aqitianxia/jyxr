@@ -18,6 +18,12 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/character_panel/biography_tab.tscn" id="18_biography_tab"]
 [ext_resource type="LabelSettings" uid="uid://bny34iuy5pp6r" path="res://assets/theme/label_character_under_avatar.tres" id="19_under_avatar"]
 [ext_resource type="PackedScene" uid="uid://b72cussamrrp0" path="res://scenes/ui/character_panel/equipment_tab.tscn" id="20_equipment_tab"]
+[ext_resource type="Texture2D" uid="uid://ce7mvuckybxqc" path="res://assets/art/ui/character_panel/summary_icons/level.png" id="21_level_icon"]
+[ext_resource type="Texture2D" uid="uid://b455tm6x5ju26" path="res://assets/art/ui/character_panel/summary_icons/health.png" id="22_health_icon"]
+[ext_resource type="Texture2D" uid="uid://c8fslfgjyi5ec" path="res://assets/art/ui/character_panel/summary_icons/qi.png" id="23_qi_icon"]
+[ext_resource type="Texture2D" uid="uid://c48mt60shr3f6" path="res://assets/art/ui/character_panel/summary_icons/experience.png" id="24_experience_icon"]
+[ext_resource type="Texture2D" uid="uid://dbu0tl2gb2by8" path="res://assets/art/ui/character_panel/summary_icons/attack.png" id="25_attack_icon"]
+[ext_resource type="Texture2D" uid="uid://kas7qwqxlvmc" path="res://assets/art/ui/character_panel/summary_icons/defense.png" id="26_defense_icon"]
 
 [sub_resource type="StyleBoxEmpty" id="1_empty"]
 
@@ -82,97 +88,196 @@ horizontal_alignment = 1
 
 [node name="Stats" type="HBoxContainer" parent="ContentRoot/Labels" index="1" unique_id=1878933587]
 layout_mode = 0
-offset_left = -30.0
-offset_top = -2.0
-offset_right = 160.0
-offset_bottom = 308.0
-theme_override_constants/separation = 20
+offset_left = -47.0
+offset_top = 26.0
+offset_right = 243.0
+offset_bottom = 336.0
+theme_override_constants/separation = 8
 
-[node name="StatNames" type="VBoxContainer" parent="ContentRoot/Labels/Stats" index="0" unique_id=740608427]
+[node name="StatRows" type="VBoxContainer" parent="ContentRoot/Labels/Stats" index="0" unique_id=702425487]
 layout_mode = 2
-theme_override_constants/separation = 10
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
 
-[node name="LevelText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="0" unique_id=1470090216]
+[node name="LevelRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="0" unique_id=1545525969]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LevelIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/LevelRow" index="0" unique_id=1154982243]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("21_level_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LevelText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/LevelRow" index="1" unique_id=1470090216]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "等级"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="HpText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="1" unique_id=1448672079]
+[node name="LevelValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/LevelRow" index="2" unique_id=682341729]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 25
+text = "1"
+label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
+
+[node name="HpRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="1" unique_id=2053638124]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HpIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/HpRow" index="0" unique_id=263632467]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("22_health_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HpText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/HpRow" index="1" unique_id=1448672079]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "生命"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="MpText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="2" unique_id=1239007595]
+[node name="HpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/HpRow" index="2" unique_id=1583742916]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 25
+text = "0"
+label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
+
+[node name="MpRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="2" unique_id=27192535]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MpIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/MpRow" index="0" unique_id=501560628]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("23_qi_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MpText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/MpRow" index="1" unique_id=1239007595]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "内力"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="XpText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="3" unique_id=2140751199]
+[node name="MpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/MpRow" index="2" unique_id=23051696]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 25
+text = "0"
+label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
+
+[node name="XpRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="3" unique_id=1929239572]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="XpIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/XpRow" index="0" unique_id=314618416]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("24_experience_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="XpText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/XpRow" index="1" unique_id=2140751199]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "经验"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="AttackText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="4" unique_id=1738089070]
+[node name="XpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/XpRow" index="2" unique_id=289827804]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 25
+text = "0"
+label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
+
+[node name="AttackRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="4" unique_id=256966256]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AttackIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/AttackRow" index="0" unique_id=1935330073]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("25_attack_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/AttackRow" index="1" unique_id=1738089070]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "攻击"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="DefenceText" type="Label" parent="ContentRoot/Labels/Stats/StatNames" index="5" unique_id=1011866529]
+[node name="AttackValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/AttackRow" index="2" unique_id=149084320]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 25
+text = "0"
+label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
+
+[node name="DefenceRow" type="HBoxContainer" parent="ContentRoot/Labels/Stats/StatRows" index="5" unique_id=580871125]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DefenceIcon" type="TextureRect" parent="ContentRoot/Labels/Stats/StatRows/DefenceRow" index="0" unique_id=872260614]
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("26_defense_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenceText" type="Label" parent="ContentRoot/Labels/Stats/StatRows/DefenceRow" index="1" unique_id=1011866529]
+custom_minimum_size = Vector2(62, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "防御"
 label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
-[node name="StatValues" type="VBoxContainer" parent="ContentRoot/Labels/Stats" index="1" unique_id=206840489]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="LevelValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="0" unique_id=682341729]
+[node name="DefenceValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatRows/DefenceRow" index="2" unique_id=1589588472]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "1"
-label_settings = ExtResource("19_under_avatar")
-
-[node name="HpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="1" unique_id=1583742916]
-unique_name_in_owner = true
-layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 25
 text = "0"
 label_settings = ExtResource("19_under_avatar")
-
-[node name="MpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="2" unique_id=23051696]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "0"
-label_settings = ExtResource("19_under_avatar")
-
-[node name="XpValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="3" unique_id=289827804]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "0"
-label_settings = ExtResource("19_under_avatar")
-
-[node name="AttackValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="4" unique_id=149084320]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "0"
-label_settings = ExtResource("19_under_avatar")
-
-[node name="DefenceValueLabel" type="Label" parent="ContentRoot/Labels/Stats/StatValues" index="5" unique_id=1589588472]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "0"
-label_settings = ExtResource("19_under_avatar")
+vertical_alignment = 1
 
 [node name="AiTypeRow" type="HBoxContainer" parent="ContentRoot/Labels" index="2" unique_id=704475175]
 layout_mode = 0
