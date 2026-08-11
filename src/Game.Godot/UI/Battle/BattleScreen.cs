@@ -287,7 +287,7 @@ public partial class BattleScreen : Control
 			return;
 		}
 
-		UIRoot.Instance.ShowToast(BattleCommandFailurePresenter.Format(result.Failure));
+		UIRoot.Instance.ShowToast(BattleCommandFailurePresenter.Format(result.Failure), ToastTone.Error);
 		GameRoot.Logger.Warning(
 			$"Battle command rejected: reason={result.Failure.Reason}, " +
 			$"remainingTurns={result.Failure.RemainingTurns?.ToString() ?? "none"}.");

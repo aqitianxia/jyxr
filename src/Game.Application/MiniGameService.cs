@@ -323,7 +323,7 @@ public sealed class MiniGameService
 
     private StoryCommandResult ExecuteTodoCommand()
     {
-        _session.Events.Publish(new ToastRequestedEvent("game指令暂未实现"));
+        _session.Events.Publish(new ToastRequestedEvent("game指令暂未实现", ToastTone.Error));
         return StoryCommandResult.None;
     }
 

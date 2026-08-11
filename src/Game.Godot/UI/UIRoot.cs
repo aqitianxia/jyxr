@@ -562,14 +562,14 @@ public partial class UIRoot : Control
 		CancellationToken cancellationToken = default) =>
 		_confirmDialog.ShowConfirmAsync(text, tone, cancellationToken);
 
-	public void ShowToast(string text)
+	public void ShowToast(string text, ToastTone tone = ToastTone.Normal)
 	{
 		if (_isToastSuppressed)
 		{
 			return;
 		}
 
-		_toastPanel.Enqueue(text);
+		_toastPanel.Enqueue(text, tone);
 	}
 
 	private static IReadOnlySet<string> EmptyForbiddenSet { get; } = new HashSet<string>(StringComparer.Ordinal);
@@ -714,14 +714,15 @@ public partial class UIRoot : Control
 		ShowToast($"获得物品【{sessionEvent.ItemName}】{quantitySuffix}");
 	}
 
-	private void OnToastRequested(ToastRequestedEvent sessionEvent) => ShowToast(sessionEvent.Message);
+	private void OnToastRequested(ToastRequestedEvent sessionEvent) =>
+		ShowToast(sessionEvent.Message, sessionEvent.Tone);
 
 	private void OnCharacterLeveledUp(CharacterLeveledUpEvent sessionEvent)
 	{
 		var characterName = Game.State.Party.TryGetMember(sessionEvent.CharacterId, out var character) && character is not null
 			? character.Name
 			: sessionEvent.CharacterId;
-		ShowToast($"【{characterName}】升到{sessionEvent.NewLevel}级");
+		ShowToast($"【{characterName}】升到{sessionEvent.NewLevel}级", ToastTone.Important);
 	}
 
 	private void OnSaveLoaded(SaveLoadedEvent _)
@@ -732,7 +733,7 @@ public partial class UIRoot : Control
 
 	private void OnAchievementUnlocked(AchievementUnlockedEvent sessionEvent)
 	{
-		ShowToast($"获得称号【{sessionEvent.AchievementId}】");
+		ShowToast($"获得称号【{sessionEvent.AchievementId}】", ToastTone.Important);
 	}
 
 	private void OnProfileChanged(ProfileChangedEvent _)

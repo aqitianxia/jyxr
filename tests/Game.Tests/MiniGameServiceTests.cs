@@ -9,6 +9,28 @@ namespace Game.Tests;
 public sealed class MiniGameServiceTests
 {
     [Fact]
+    public async Task UnknownMiniGamePublishesErrorToast()
+    {
+        var session = CreateSession(heroShenfa: 30);
+        var toasts = new List<ToastRequestedEvent>();
+        using var subscription = session.Events.Subscribe<ToastRequestedEvent>(toasts.Add);
+
+        await session.MiniGameService.RunAsync(new LightnessTrainingHost(0), "unknown");
+
+        var toast = Assert.Single(toasts);
+        Assert.Equal("game指令暂未实现", toast.Message);
+        Assert.Equal(ToastTone.Error, toast.Tone);
+    }
+
+    [Fact]
+    public void ToastRequestDefaultsToNormalTone()
+    {
+        var toast = new ToastRequestedEvent("常规提示");
+
+        Assert.Equal(ToastTone.Normal, toast.Tone);
+    }
+
+    [Fact]
     public async Task StoryCommandDispatcher_GameLightnessTrainingScriptArgumentRunsLightnessTraining()
     {
         var session = CreateSession(heroShenfa: 30);

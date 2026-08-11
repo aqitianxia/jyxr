@@ -45,7 +45,7 @@ public partial class QuickSaveCoordinator : Node
 	{
 		if (Game.State.Adventure.NoRegret)
 		{
-			UIRoot.Instance.ShowToast("无悔周目只允许自动存档");
+			UIRoot.Instance.ShowToast("无悔周目只允许自动存档", ToastTone.Error);
 			return;
 		}
 

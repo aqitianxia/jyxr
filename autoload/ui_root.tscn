@@ -13,8 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://cup3ph7k7eg4o" path="res://scenes/ui/journal/journal_panel.tscn" id="7_journal"]
 [ext_resource type="PackedScene" uid="uid://bdvws2ugdkk6a" path="res://scenes/ui/hero_panel/hero_panel.tscn" id="8_hero_panel"]
 [ext_resource type="PackedScene" uid="uid://sdtyoj35nitl" path="res://scenes/ui/system_panel/system_panel.tscn" id="9_system_panel"]
-[ext_resource type="Script" uid="uid://d0fqg0iuf06b" path="res://src/Game.Godot/UI/ToastPanel.cs" id="9_toast_panel"]
-[ext_resource type="Texture2D" uid="uid://dh8ti123spcg0" path="res://assets/art/ui/toast.png" id="10_1766m"]
+[ext_resource type="PackedScene" path="res://scenes/ui/toast/toast_panel.tscn" id="9_toast_panel"]
 [ext_resource type="Shader" uid="uid://bkkv5qham5ddy" path="res://assets/shader/story_screen_filter.gdshader" id="10_story_filter"]
 [ext_resource type="PackedScene" uid="uid://cxqxd285b6u0o" path="res://scenes/ui/hint/hint_box.tscn" id="10_hint_box"]
 [ext_resource type="PackedScene" uid="uid://brltgo8b2opqk" path="res://scenes/ui/system_panel/save_slot_selection_panel.tscn" id="10_save_slots"]
@@ -129,46 +128,8 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 layer = 50
 
-[node name="ToastPanel" type="Control" parent="OverlayLayer" unique_id=318086013]
+[node name="ToastPanel" parent="OverlayLayer" unique_id=318086013 instance=ExtResource("9_toast_panel")]
 unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(360, 44)
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("9_toast_panel")
-
-[node name="TextureRect" type="TextureRect" parent="OverlayLayer/ToastPanel" unique_id=1470423910]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -362.5
-offset_top = 76.0
-offset_right = 362.5
-offset_bottom = 286.0
-grow_horizontal = 2
-texture = ExtResource("10_1766m")
-stretch_mode = 5
-
-[node name="MessageLabel" type="Label" parent="OverlayLayer/ToastPanel/TextureRect" unique_id=1346246878]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(324, 24)
-layout_mode = 0
-offset_left = 26.0
-offset_top = 45.0
-offset_right = 663.0
-offset_bottom = 163.0
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 40
-text = "获得称号【草头百姓】"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
 
 [node name="VisualEffectsLayer" type="CanvasLayer" parent="."]
 unique_name_in_owner = true

@@ -199,9 +199,9 @@ public sealed class ExpressionCommandEventTests
             new GameState(),
             TestContentFactory.CreateRepository(externalSkills: [skill]));
         var profileChanges = 0;
-        var toasts = new List<string>();
+        var toasts = new List<ToastRequestedEvent>();
         using var profileSubscription = session.Events.Subscribe<ProfileChangedEvent>(_ => profileChanges++);
-        using var toastSubscription = session.Events.Subscribe<ToastRequestedEvent>(@event => toasts.Add(@event.Message));
+        using var toastSubscription = session.Events.Subscribe<ToastRequestedEvent>(toasts.Add);
         var dispatcher = session.StoryService.CommandDispatcher;
         var parser = new ExpressionParser();
 
@@ -213,7 +213,9 @@ public sealed class ExpressionCommandEventTests
         Assert.Equal(2, session.Profile.GetSkillMaxLevelBonus("starter_sword"));
         Assert.Contains("reward.starter_sword", session.Profile.ConsumedSkillMaxLevelKeys);
         Assert.Equal(1, profileChanges);
-        Assert.Equal(["武学精通【starter_sword】+ 2"], toasts);
+        var toast = Assert.Single(toasts);
+        Assert.Equal("武学精通【starter_sword】+ 2", toast.Message);
+        Assert.Equal(ToastTone.Important, toast.Tone);
     }
 
     [Fact]

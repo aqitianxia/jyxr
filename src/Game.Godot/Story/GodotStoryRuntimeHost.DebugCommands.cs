@@ -31,7 +31,7 @@ public sealed partial class GodotStoryRuntimeHost
 		catch (Exception exception)
 		{
 			Game.Logger.Error($"Debug story failed: {storyId}", exception);
-			UIRoot.Instance.ShowToast($"测试剧情执行失败：{exception.Message}");
+			UIRoot.Instance.ShowToast($"测试剧情执行失败：{exception.Message}", ToastTone.Error);
 		}
 		finally
 		{

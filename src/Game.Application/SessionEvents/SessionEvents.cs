@@ -124,7 +124,14 @@ public sealed record ItemAcquiredEvent(
     string ItemName,
     int Quantity) : ISessionEvent;
 
-public sealed record ToastRequestedEvent(string Message) : ISessionEvent;
+public enum ToastTone
+{
+    Normal,
+    Important,
+    Error,
+}
+
+public sealed record ToastRequestedEvent(string Message, ToastTone Tone = ToastTone.Normal) : ISessionEvent;
 
 public sealed record AutoSaveRequestedEvent(string Reason) : ISessionEvent;
 

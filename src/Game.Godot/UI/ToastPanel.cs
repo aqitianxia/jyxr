@@ -1,3 +1,4 @@
+using Game.Application;
 using Godot;
 
 namespace Game.Godot.UI;
@@ -6,23 +7,27 @@ public partial class ToastPanel : Control
 {
 	private const int MaxVisibleMessages = 3;
 	private const int MaxPendingMessages = 5;
-	private const double FadeInDuration = 0.16d;
-	private const double HoldDuration = 1d;
-	private const double FadeOutDuration = 0.24d;
-	private const float StackSpacing = 12f;
+	private const double FadeInDuration = 0.14d;
+	private const double HoldDuration = 1.8d;
+	private const double FadeOutDuration = 0.26d;
+
+	[Export]
+	public PackedScene ToastItemScene { get; set; } = null!;
+
+	[Export]
+	public float StackTop { get; set; }
+
+	[Export]
+	public float StackSpacing { get; set; }
+
+	[Export]
+	public float BottomMargin { get; set; }
 
 	private readonly List<ToastEntry> _pendingMessages = [];
 	private readonly List<ToastView> _visibleMessages = [];
-	private TextureRect _itemTemplate = null!;
-	private float _templateTop;
-	private float _templateHeight;
 
 	public override void _Ready()
 	{
-		_itemTemplate = GetNode<TextureRect>("TextureRect");
-		_templateTop = _itemTemplate.OffsetTop;
-		_templateHeight = _itemTemplate.OffsetBottom - _itemTemplate.OffsetTop;
-		_itemTemplate.Hide();
 		Modulate = Colors.White;
 		SetProcess(false);
 	}
@@ -40,19 +45,19 @@ public partial class ToastPanel : Control
 		}
 	}
 
-	public void Enqueue(string text)
+	public void Enqueue(string text, ToastTone tone = ToastTone.Normal)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
 		var normalizedText = text.Trim();
-		if (TryMergeVisibleMessage(normalizedText) || TryMergePendingMessage(normalizedText))
+		if (TryMergeVisibleMessage(normalizedText, tone) || TryMergePendingMessage(normalizedText, tone))
 		{
 			Show();
 			SetProcess(true);
 			return;
 		}
 
-		_pendingMessages.Add(new ToastEntry(normalizedText));
+		_pendingMessages.Add(new ToastEntry(normalizedText, tone));
 		TrimPendingMessages();
 		Show();
 		SetProcess(true);
@@ -101,15 +106,15 @@ public partial class ToastPanel : Control
 
 	private ToastView CreateToastView(ToastEntry entry)
 	{
-		if (_itemTemplate.Duplicate() is not TextureRect node)
+		if (ToastItemScene.Instantiate() is not ToastItem node)
 		{
-			throw new InvalidOperationException("Toast item template must duplicate to TextureRect.");
+			throw new InvalidOperationException("Toast item scene root must be ToastItem.");
 		}
 
-		var label = node.GetNode<Label>("MessageLabel");
-		var view = new ToastView(entry, node, label);
+		var view = new ToastView(entry, node);
 		AddChild(node);
 		node.Show();
+		node.Configure(entry.Tone);
 		SetToastAlpha(view, 0f);
 		RenderToastText(view);
 		return view;
@@ -150,9 +155,10 @@ public partial class ToastPanel : Control
 		}
 	}
 
-	private bool TryMergeVisibleMessage(string text)
+	private bool TryMergeVisibleMessage(string text, ToastTone tone)
 	{
 		var view = _visibleMessages.FirstOrDefault(candidate =>
+			candidate.Entry.Tone == tone &&
 			string.Equals(candidate.Entry.Text, text, StringComparison.Ordinal));
 		if (view is null)
 		{
@@ -165,12 +171,14 @@ public partial class ToastPanel : Control
 		view.HoldRemaining = HoldDuration;
 		RenderToastText(view);
 		SetToastAlpha(view, 1f);
+		ReflowVisibleMessages();
 		return true;
 	}
 
-	private bool TryMergePendingMessage(string text)
+	private bool TryMergePendingMessage(string text, ToastTone tone)
 	{
 		var entry = _pendingMessages.FirstOrDefault(candidate =>
+			candidate.Tone == tone &&
 			string.Equals(candidate.Text, text, StringComparison.Ordinal));
 		if (entry is null)
 		{
@@ -191,54 +199,54 @@ public partial class ToastPanel : Control
 
 	private void ReflowVisibleMessages()
 	{
-		var totalHeight = _visibleMessages.Count * _templateHeight +
+		var totalHeight = _visibleMessages.Sum(view => view.Height) +
 			Math.Max(0, _visibleMessages.Count - 1) * StackSpacing;
 		var availableBottom = Size.Y > 0f
-			? Size.Y - 16f
-			: _templateTop + totalHeight;
-		var baseTop = Math.Min(_templateTop, Math.Max(0f, availableBottom - totalHeight));
+			? Size.Y - BottomMargin
+			: StackTop + totalHeight;
+		var baseTop = Math.Min(StackTop, Math.Max(0f, availableBottom - totalHeight));
 
-		for (var index = 0; index < _visibleMessages.Count; index++)
+		var top = baseTop;
+		foreach (var view in _visibleMessages)
 		{
-			var node = _visibleMessages[index].Node;
-			var top = baseTop + index * (_templateHeight + StackSpacing);
-			node.OffsetTop = top;
-			node.OffsetBottom = top + _templateHeight;
+			view.Node.OffsetTop = top;
+			view.Node.OffsetBottom = top + view.Height;
+			top += view.Height + StackSpacing;
 		}
 	}
 
 	private static void RenderToastText(ToastView view)
 	{
-		view.Label.Text = view.Entry.Count > 1
-			? $"{view.Entry.Text} x{view.Entry.Count}"
-			: view.Entry.Text;
+		view.Height = view.Node.SetMessage(view.Entry.Text, view.Entry.Count);
 	}
 
 	private static void SetToastAlpha(ToastView view, float alpha)
 	{
-		view.Node.Modulate = new Color(1f, 1f, 1f, alpha);
+		view.Node.SetAlpha(alpha);
 	}
 
-	private sealed class ToastEntry(string text)
+	private sealed class ToastEntry(string text, ToastTone tone)
 	{
 		public string Text { get; } = text;
+
+		public ToastTone Tone { get; } = tone;
 
 		public int Count { get; set; } = 1;
 	}
 
-	private sealed class ToastView(ToastEntry entry, TextureRect node, Label label)
+	private sealed class ToastView(ToastEntry entry, ToastItem node)
 	{
 		public ToastEntry Entry { get; } = entry;
 
-		public TextureRect Node { get; } = node;
-
-		public Label Label { get; } = label;
+		public ToastItem Node { get; } = node;
 
 		public ToastPhase Phase { get; set; } = ToastPhase.FadingIn;
 
 		public double Elapsed { get; set; }
 
 		public double HoldRemaining { get; set; }
+
+		public float Height { get; set; }
 	}
 
 	private enum ToastPhase

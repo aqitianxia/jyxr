@@ -310,7 +310,10 @@ public sealed class CharacterService
         ArgumentNullException.ThrowIfNull(character);
         if (character.LearnTalent(ContentRepository.GetTalent(talentId)))
         {
-            PublishToastAndCharacterChanged(character, $"{character.Name} 获得天赋【{talentId}】");
+            PublishToastAndCharacterChanged(
+                character,
+                $"{character.Name} 获得天赋【{talentId}】",
+                ToastTone.Important);
         }
     }
 
@@ -331,7 +334,10 @@ public sealed class CharacterService
         ArgumentNullException.ThrowIfNull(character);
         if (character.LearnSpecialSkill(ContentRepository.GetSpecialSkill(specialSkillId)))
         {
-            PublishToastAndCharacterChanged(character, $"{character.Name} 习得特技【{specialSkillId}】");
+            PublishToastAndCharacterChanged(
+                character,
+                $"{character.Name} 习得特技【{specialSkillId}】",
+                ToastTone.Important);
         }
     }
 
@@ -455,7 +461,10 @@ public sealed class CharacterService
         var message = change.Created
             ? $"{character.Name} 习得{skillKind}【{change.Skill.Name}】 {change.NewLevel}级"
             : $"{character.Name} {skillKind}【{change.Skill.Name}】 +{change.NewLevel - change.OldLevel}";
-        PublishToastAndCharacterChanged(character, message);
+        PublishToastAndCharacterChanged(
+            character,
+            message,
+            change.Created ? ToastTone.Important : ToastTone.Normal);
     }
 
     private void ApplyGrantedExternalSkill(CharacterInstance character, ExternalSkillDefinition externalSkill, int level)
@@ -467,7 +476,10 @@ public sealed class CharacterService
         }
 
         character.SetExternalSkillState(externalSkill, level, 0, true);
-        PublishToastAndCharacterChanged(character, $"{character.Name} 习得外功【{externalSkill.Name}】 {level}级");
+        PublishToastAndCharacterChanged(
+            character,
+            $"{character.Name} 习得外功【{externalSkill.Name}】 {level}级",
+            ToastTone.Important);
     }
 
     private void ApplyGrantedInternalSkill(CharacterInstance character, InternalSkillDefinition internalSkill, int level)
@@ -479,7 +491,10 @@ public sealed class CharacterService
         }
 
         character.SetInternalSkillState(internalSkill, level, 0);
-        PublishToastAndCharacterChanged(character, $"{character.Name} 习得内功【{internalSkill.Name}】 {level}级");
+        PublishToastAndCharacterChanged(
+            character,
+            $"{character.Name} 习得内功【{internalSkill.Name}】 {level}级",
+            ToastTone.Important);
     }
 
     private int ResolveExternalSkillMaxLevel(ExternalSkillDefinition externalSkill, int level) =>
@@ -499,9 +514,12 @@ public sealed class CharacterService
         return Config.AbsoluteSkillMaxLevel;
     }
 
-    private void PublishToastAndCharacterChanged(CharacterInstance character, string message)
+    private void PublishToastAndCharacterChanged(
+        CharacterInstance character,
+        string message,
+        ToastTone tone = ToastTone.Normal)
     {
-        _session.Events.Publish(new ToastRequestedEvent(message));
+        _session.Events.Publish(new ToastRequestedEvent(message, tone));
         PublishCharacterChanged(character);
     }
 

@@ -240,7 +240,9 @@ internal sealed class CharacterGrowthStoryCommands
         }
 
         _session.Events.Publish(new ProfileChangedEvent());
-        _session.Events.Publish(new ToastRequestedEvent($"武学精通【{skillName}】+ {bonus}"));
+        _session.Events.Publish(new ToastRequestedEvent(
+            $"武学精通【{skillName}】+ {bonus}",
+            ToastTone.Important));
     }
 
     private string ResolveSkillName(string skillId)
