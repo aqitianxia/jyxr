@@ -224,7 +224,7 @@ public sealed class ItemUseServiceTests
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
 
         Assert.False(candidate.CanUse);
-        Assert.Equal("该外功已达上限", candidate.Reason);
+        Assert.Equal("该物品已无法带来新的效果", candidate.Reason);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class ItemUseServiceTests
         var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
 
         Assert.False(candidate.CanUse);
-        Assert.Equal("该外功已达上限", candidate.Reason);
+        Assert.Equal("该物品已无法带来新的效果", candidate.Reason);
     }
 
     [Fact]
@@ -510,6 +510,115 @@ public sealed class ItemUseServiceTests
         Assert.False(result.Success);
         Assert.Equal("臂力不能低于0", result.Message);
         Assert.Equal(100, hero.GetBaseStat(StatType.Bili));
+        Assert.Equal(1, entry.Quantity);
+    }
+
+    [Fact]
+    public async Task Use_MultiEffectBook_RequiresConfirmationAndAppliesOnlyNewEffects()
+    {
+        var externalSkill = TestContentFactory.CreateExternalSkill("known_external");
+        var internalSkill = TestContentFactory.CreateInternalSkill("known_internal");
+        var specialSkill = new SpecialSkillDefinition(
+            "known_special",
+            "known_special",
+            "",
+            SpecialSkillIntent.Support,
+            "",
+            0,
+            new SkillCostDefinition(),
+            null,
+            "",
+            "",
+            null,
+            []);
+        var knownTalent = new TalentDefinition { Id = "known_talent", Name = "known_talent", Point = 27 };
+        var newTalent = new TalentDefinition { Id = "new_talent", Name = "new_talent", Point = 1 };
+        var book = CreateItem(
+            "mixed_book",
+            ItemType.TalentBook,
+            [
+                new GrantExternalSkillItemUseEffectDefinition(externalSkill.Id, Level: 5),
+                new GrantInternalSkillItemUseEffectDefinition(internalSkill.Id, Level: 5),
+                new GrantSpecialSkillItemUseEffectDefinition(specialSkill.Id),
+                new GrantTalentItemUseEffectDefinition(knownTalent.Id),
+                new GrantTalentItemUseEffectDefinition(newTalent.Id),
+            ],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition(
+            "hero",
+            externalSkills: [new InitialExternalSkillEntryDefinition(externalSkill, Level: 10)],
+            internalSkills: [new InitialInternalSkillEntryDefinition(internalSkill, Level: 10)]);
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        hero.LearnSpecialSkill(specialSkill);
+        hero.LearnTalent(knownTalent);
+        state.Inventory.AddItem(book);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            externalSkills: [externalSkill],
+            internalSkills: [internalSkill],
+            specialSkills: [specialSkill],
+            growTemplates: [CreateDefaultGrowTemplate()],
+            talents: [knownTalent, newTalent],
+            items: [book]);
+        var session = new GameSession(
+            state,
+            repository,
+            config: new GameConfig
+            {
+                MaxExternalSkillCount = 1,
+                MaxInternalSkillCount = 1,
+            });
+        var entry = state.Inventory.GetStack(book);
+
+        var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
+        var unconfirmedResult = await session.ItemUseService.UseAsync(entry, hero.Id);
+
+        Assert.True(candidate.CanUse);
+        Assert.True(candidate.RequiresConfirmation);
+        Assert.Equal(4, candidate.SkippedEffects.Count);
+        Assert.False(unconfirmedResult.Success);
+        Assert.Equal("该物品有部分效果无法生效，请确认后使用。", unconfirmedResult.Message);
+        Assert.False(hero.HasTalent(newTalent.Id));
+        Assert.Equal(1, entry.Quantity);
+
+        var confirmedResult = await session.ItemUseService.UseAsync(entry, hero.Id, true);
+
+        Assert.True(confirmedResult.Success);
+        Assert.True(hero.HasTalent(newTalent.Id));
+        Assert.Equal(10, hero.GetExternalSkillLevel(externalSkill.Id));
+        Assert.Equal(10, hero.GetInternalSkillLevel(internalSkill.Id));
+        Assert.Empty(state.Inventory.Entries);
+    }
+
+    [Fact]
+    public async Task Use_BookWithOnlyRedundantEffects_IsDisabledAndNotConsumed()
+    {
+        var talent = new TalentDefinition { Id = "known_talent", Name = "known_talent" };
+        var book = CreateItem(
+            "known_talent_book",
+            ItemType.TalentBook,
+            [new GrantTalentItemUseEffectDefinition(talent.Id)],
+            consumeOnUse: true);
+        var heroDefinition = TestContentFactory.CreateCharacterDefinition("hero");
+        var state = CreateStateWithHero(heroDefinition, out var hero);
+        hero.LearnTalent(talent);
+        state.Inventory.AddItem(book);
+        var repository = TestContentFactory.CreateRepository(
+            characters: [heroDefinition],
+            growTemplates: [CreateDefaultGrowTemplate()],
+            talents: [talent],
+            items: [book]);
+        var session = new GameSession(state, repository);
+        var entry = state.Inventory.GetStack(book);
+
+        var candidate = session.ItemUseService.AnalyzeTarget(entry, hero);
+        var result = await session.ItemUseService.UseAsync(entry, hero.Id, true);
+
+        Assert.False(candidate.CanUse);
+        Assert.False(candidate.RequiresConfirmation);
+        Assert.Equal("该物品已无法带来新的效果", candidate.Reason);
+        Assert.False(result.Success);
+        Assert.Equal("该物品已无法带来新的效果", result.Message);
         Assert.Equal(1, entry.Quantity);
     }
 

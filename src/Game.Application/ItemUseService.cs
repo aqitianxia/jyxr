@@ -55,21 +55,35 @@ public sealed class ItemUseService
             return ItemUseTargetCandidate.Disabled(character.Id, requirementFailure);
         }
 
-        var specificFailure = support.Kind == ItemUseKind.Effects
-            ? ValidateEffectTargets(support.Effects, character)
-            : null;
-        if (specificFailure is not null)
+        var effectAnalysis = support.Kind == ItemUseKind.Effects
+            ? AnalyzeEffectTargets(support.Effects, character)
+            : EffectTargetAnalysis.AllApplicable(support.Effects);
+        if (effectAnalysis.Failure is not null)
         {
-            return ItemUseTargetCandidate.Disabled(character.Id, specificFailure);
+            return ItemUseTargetCandidate.Disabled(character.Id, effectAnalysis.Failure);
         }
 
-        return ItemUseTargetCandidate.Enabled(character.Id);
+        return ItemUseTargetCandidate.Enabled(character.Id, effectAnalysis.SkippedEffects);
     }
 
     public async Task<ItemUseResult> UseAsync(
         InventoryEntry entry,
         string targetCharacterId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await UseAsyncCore(entry, targetCharacterId, false, cancellationToken);
+
+    public async Task<ItemUseResult> UseAsync(
+        InventoryEntry entry,
+        string targetCharacterId,
+        bool acceptPartialEffects,
+        CancellationToken cancellationToken = default) =>
+        await UseAsyncCore(entry, targetCharacterId, acceptPartialEffects, cancellationToken);
+
+    private async Task<ItemUseResult> UseAsyncCore(
+        InventoryEntry entry,
+        string targetCharacterId,
+        bool acceptPartialEffects,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetCharacterId);
@@ -84,6 +98,10 @@ public sealed class ItemUseService
         if (!candidate.CanUse)
         {
             return ItemUseResult.Failed(candidate.Reason);
+        }
+        if (candidate.RequiresConfirmation && !acceptPartialEffects)
+        {
+            return ItemUseResult.Failed("该物品有部分效果无法生效，请确认后使用。");
         }
 
         var support = ResolveSupport(entry);
@@ -104,9 +122,12 @@ public sealed class ItemUseService
             return ItemUseResult.Succeeded($"【{target.Name}】使用【{entry.Definition.Name}】");
         }
 
+        var applicableEffects = support.Kind == ItemUseKind.Effects
+            ? AnalyzeEffectTargets(support.Effects, target).ApplicableEffects
+            : support.Effects;
         var result = support.Kind == ItemUseKind.Equipment
             ? UseEquipment(entry, target)
-            : ApplyUseEffects(entry.Definition, target, support.Effects);
+            : ApplyUseEffects(entry.Definition, target, applicableEffects);
 
         if (result.Success)
         {
@@ -286,15 +307,19 @@ public sealed class ItemUseService
                 $"Unsupported item requirement stat source: {Config.ItemRequirementStatSource}"),
         };
 
-    private string? ValidateEffectTargets(
+    private EffectTargetAnalysis AnalyzeEffectTargets(
         IReadOnlyList<ItemUseEffectDefinition> effects,
         CharacterInstance target)
     {
-        var newExternalSkillIds = new HashSet<string>(StringComparer.Ordinal);
-        var newInternalSkillIds = new HashSet<string>(StringComparer.Ordinal);
+        var externalSkillIds = new HashSet<string>(StringComparer.Ordinal);
+        var internalSkillIds = new HashSet<string>(StringComparer.Ordinal);
+        var newExternalSkillCount = 0;
+        var newInternalSkillCount = 0;
         var specialSkillIds = new HashSet<string>(StringComparer.Ordinal);
         var talentIds = new HashSet<string>(StringComparer.Ordinal);
         var simulatedBaseStats = new Dictionary<StatType, long>();
+        var applicableEffects = new List<ItemUseEffectDefinition>();
+        var skippedEffects = new List<ItemUseEffectDefinition>();
         var requiredTalentPoints = 0;
 
         foreach (var effect in effects)
@@ -303,56 +328,74 @@ public sealed class ItemUseService
             {
                 case GrantExternalSkillItemUseEffectDefinition externalSkill:
                 {
+                    if (!externalSkillIds.Add(externalSkill.SkillId))
+                    {
+                        return EffectTargetAnalysis.Failed("物品包含重复的外功学习效果");
+                    }
+
                     var currentLevel = target.GetExternalSkillLevel(externalSkill.SkillId);
                     if (currentLevel is not null &&
                         currentLevel.Value >= ResolveExternalSkillBookMaxLevel(externalSkill))
                     {
-                        return "该外功已达上限";
+                        skippedEffects.Add(effect);
+                        break;
                     }
 
-                    if (currentLevel is null && !newExternalSkillIds.Add(externalSkill.SkillId))
+                    if (currentLevel is null)
                     {
-                        return "物品包含重复的外功学习效果";
+                        newExternalSkillCount++;
                     }
+                    applicableEffects.Add(effect);
                     break;
                 }
                 case GrantInternalSkillItemUseEffectDefinition internalSkill:
                 {
+                    if (!internalSkillIds.Add(internalSkill.SkillId))
+                    {
+                        return EffectTargetAnalysis.Failed("物品包含重复的内功学习效果");
+                    }
+
                     var currentLevel = target.GetInternalSkillLevel(internalSkill.SkillId);
                     if (currentLevel is not null &&
                         currentLevel.Value >= ResolveInternalSkillBookMaxLevel(internalSkill))
                     {
-                        return "该内功已达上限";
+                        skippedEffects.Add(effect);
+                        break;
                     }
 
-                    if (currentLevel is null && !newInternalSkillIds.Add(internalSkill.SkillId))
+                    if (currentLevel is null)
                     {
-                        return "物品包含重复的内功学习效果";
+                        newInternalSkillCount++;
                     }
+                    applicableEffects.Add(effect);
                     break;
                 }
                 case GrantSpecialSkillItemUseEffectDefinition specialSkill:
                     if (!specialSkillIds.Add(specialSkill.SkillId))
                     {
-                        return "物品包含重复的特技学习效果";
+                        return EffectTargetAnalysis.Failed("物品包含重复的特技学习效果");
                     }
                     if (target.GetSpecialSkills().Any(skill =>
                             string.Equals(skill.Definition.Id, specialSkill.SkillId, StringComparison.Ordinal)))
                     {
-                        return "已领悟该绝技";
+                        skippedEffects.Add(effect);
+                        break;
                     }
+                    applicableEffects.Add(effect);
                     break;
                 case GrantTalentItemUseEffectDefinition talent:
                     if (!talentIds.Add(talent.TalentId))
                     {
-                        return "物品包含重复的天赋学习效果";
+                        return EffectTargetAnalysis.Failed("物品包含重复的天赋学习效果");
                     }
                     if (target.HasTalent(talent.TalentId))
                     {
-                        return "已习得该天赋";
+                        skippedEffects.Add(effect);
+                        break;
                     }
                     requiredTalentPoints = checked(
                         requiredTalentPoints + _session.ContentRepository.GetTalent(talent.TalentId).Point);
+                    applicableEffects.Add(effect);
                     break;
                 case AddStatsItemUseEffectDefinition addStats:
                     foreach (var (statType, value) in addStats.Values)
@@ -363,15 +406,16 @@ public sealed class ItemUseService
                         var result = currentValue + value;
                         if (result < 0)
                         {
-                            return $"{FormatStatName(statType)}不能低于0";
+                            return EffectTargetAnalysis.Failed($"{FormatStatName(statType)}不能低于0");
                         }
                         if (result > int.MaxValue)
                         {
-                            return $"{FormatStatName(statType)}超出有效范围";
+                            return EffectTargetAnalysis.Failed($"{FormatStatName(statType)}超出有效范围");
                         }
 
                         simulatedBaseStats[statType] = result;
                     }
+                    applicableEffects.Add(effect);
                     break;
                 case ReduceMaxResourceRatioItemUseEffectDefinition reduction:
                 {
@@ -379,20 +423,28 @@ public sealed class ItemUseService
                         ? simulatedValue
                         : target.GetBaseStat(reduction.StatId);
                     simulatedBaseStats[reduction.StatId] = currentValue - (long)(currentValue * reduction.Ratio);
+                    applicableEffects.Add(effect);
                     break;
                 }
+                default:
+                    applicableEffects.Add(effect);
+                    break;
             }
         }
 
-        if (newExternalSkillIds.Count > 0 &&
-            target.GetExternalSkills().Count + newExternalSkillIds.Count > Config.MaxExternalSkillCount)
+        if (applicableEffects.Count == 0)
         {
-            return "外功数量已达上限";
+            return EffectTargetAnalysis.Failed("该物品已无法带来新的效果");
         }
-        if (newInternalSkillIds.Count > 0 &&
-            target.GetInternalSkills().Count + newInternalSkillIds.Count > Config.MaxInternalSkillCount)
+        if (newExternalSkillCount > 0 &&
+            target.GetExternalSkills().Count + newExternalSkillCount > Config.MaxExternalSkillCount)
         {
-            return "内功数量已达上限";
+            return EffectTargetAnalysis.Failed("外功数量已达上限");
+        }
+        if (newInternalSkillCount > 0 &&
+            target.GetInternalSkills().Count + newInternalSkillCount > Config.MaxInternalSkillCount)
+        {
+            return EffectTargetAnalysis.Failed("内功数量已达上限");
         }
         if (requiredTalentPoints > 0)
         {
@@ -400,11 +452,11 @@ public sealed class ItemUseService
             var capacity = _session.CharacterService.GetTalentPointCapacity(target);
             if (spentPoints + requiredTalentPoints > capacity)
             {
-                return $"武学常识不足，需要{requiredTalentPoints}";
+                return EffectTargetAnalysis.Failed($"武学常识不足，需要{requiredTalentPoints}");
             }
         }
 
-        return null;
+        return EffectTargetAnalysis.Succeeded(applicableEffects, skippedEffects);
     }
 
     private int ResolveExternalSkillBookMaxLevel(GrantExternalSkillItemUseEffectDefinition effect) =>
@@ -446,6 +498,23 @@ public sealed class ItemUseService
         public static ItemUseSupport Unsupported(string message) =>
             new(false, default, message, []);
     }
+
+    private sealed record EffectTargetAnalysis(
+        string? Failure,
+        IReadOnlyList<ItemUseEffectDefinition> ApplicableEffects,
+        IReadOnlyList<ItemUseEffectDefinition> SkippedEffects)
+    {
+        public static EffectTargetAnalysis AllApplicable(IReadOnlyList<ItemUseEffectDefinition> effects) =>
+            new(null, effects, []);
+
+        public static EffectTargetAnalysis Succeeded(
+            IReadOnlyList<ItemUseEffectDefinition> applicableEffects,
+            IReadOnlyList<ItemUseEffectDefinition> skippedEffects) =>
+            new(null, applicableEffects, skippedEffects);
+
+        public static EffectTargetAnalysis Failed(string failure) =>
+            new(failure, [], []);
+    }
 }
 
 public sealed record ItemUseAnalysis(
@@ -456,13 +525,18 @@ public sealed record ItemUseAnalysis(
 public sealed record ItemUseTargetCandidate(
     string CharacterId,
     bool CanUse,
-    string Reason)
+    string Reason,
+    IReadOnlyList<ItemUseEffectDefinition> SkippedEffects)
 {
-    public static ItemUseTargetCandidate Enabled(string characterId) =>
-        new(characterId, true, string.Empty);
+    public bool RequiresConfirmation => CanUse && SkippedEffects.Count > 0;
+
+    public static ItemUseTargetCandidate Enabled(
+        string characterId,
+        IReadOnlyList<ItemUseEffectDefinition>? skippedEffects = null) =>
+        new(characterId, true, string.Empty, skippedEffects ?? []);
 
     public static ItemUseTargetCandidate Disabled(string characterId, string reason) =>
-        new(characterId, false, reason);
+        new(characterId, false, reason, []);
 }
 
 public sealed record ItemUseResult(
