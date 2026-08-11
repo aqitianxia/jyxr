@@ -73,6 +73,23 @@ public sealed class GameDslExpressionTests
     }
 
     [Fact]
+    public void MapEventCompletedReadsExplicitMapEventProgressId()
+    {
+        const string eventId = "大地图-黑木崖-岳父";
+        var state = new GameState();
+        var session = new GameSession(state, TestContentFactory.CreateRepository());
+        var expression = new ExpressionParser().ParseExpression($"event_completed('{eventId}')");
+        var evaluator = new ExpressionEvaluator();
+        var environment = new GameExpressionEnvironment(session).Create();
+
+        Assert.False(evaluator.EvaluateBoolean(expression, environment, "test"));
+
+        state.MapEventProgress.MarkCompleted(eventId);
+
+        Assert.True(evaluator.EvaluateBoolean(expression, environment, "test"));
+    }
+
+    [Fact]
     public async Task ContextVariableCannotBeOverwrittenByAssignment()
     {
         const string json = """

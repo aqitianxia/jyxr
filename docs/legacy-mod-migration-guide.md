@@ -45,19 +45,35 @@ join 程英 程英.高级
 
 如果两个同名 Definition 确实表示需要同时存在、分别成长或分别参与条件判断的角色实例，则继续使用不同的 `characterId`，例如 `袁承志` 与 `儿时袁承志`。不要仅因为显示名相同就合并实例身份。
 
-随机加入写法为 `join_random(['程英', '郭襄'])`，不再注册 `random_join`。候选项的实例 ID 与 Definition ID 必须相同；需要分离两者的角色应使用明确的 `join` 或 `follow`。空列表和任意未知候选都会在消耗随机数前报错。
-
 `definitionId` 只在首次创建时生效。若业务需要把已有角色从一个模板升级或转换为另一个模板，应建立独立的“角色转化/重建”用例，不能让 `join` 隐式完成。低级程英升级为高级模板只是这一通用规则的一个例子。
 
 对话和选项的说话人属于展示解析；同一人物的不同模板共用显示身份时，也应优先写稳定 `characterId`。
 
-## 2. 学习与移除指令
+## 2. 地图剧情入口与一次性去重
 
-万能指令不再接受分类前置参数，当前签名为：
+地图事件的入口身份、`story(...)` 的 target 和 `repeatMode == "once"` 的去重身份是三个不同概念。迁移器不能机械地为每条地图事件记录分配彼此独立的 once 去重 ID，也不能仅因多个入口指向同一个 story target，就把所有入口合并成同一种重复模式。
 
-```text
-learn(character_id, target_id, level=1)
-remove(character_id, target_id)
-```
+### 同一 story 同时存在 once 与 infinite 入口
 
-它们按外功、内功、特技、天赋顺序匹配第一个 Definition。外功和内功使用 level；特技和天赋忽略 level 的具体数值。需要固定分类时使用 `learn_external/internal/special/talent` 及对应 `remove_*`。旧写法 `learn('external', '主角', '野球拳')` 和 `remove('external', '主角', '野球拳')` 不兼容。
+同一个 story target 可能同时拥有 once 入口和未声明 `repeatMode` 的 infinite 入口，而且 infinite 入口可能先于 once 入口执行。infinite 入口的执行不能消耗 once 入口的去重状态；入口顺序也不能作为迁移前提。
+
+已知案例：
+
+- 太湖的 `tlbb.dy_阿朱阿碧` 有两个 50% 概率入口。once 入口与 infinite 入口位于同一地点，非 once 入口可能先命中，之后 once 入口仍可能命中；这是确定存在的反序风险。
+- 雁门关穆人清的 `bixuejianShyou_闯王剧情2` 同时存在 once 与 infinite 入口，两个入口由不同剧情阶段控制。但这种可能是没问题的。
+- 这种组合还可能跨地图出现。`original_新手地图.送镖` 的大地图入口是 once，龙门镖局 NPC 入口是 infinite。正常路线通常先经过大地图 once，因此风险较低；但传送、MOD 修改入口或剧情跳转后仍可能反序触发。
+
+### 多个 once 入口共享 target
+
+多个 once 入口也可能有意共享同一个 story target，并依靠 target 级去重表达“同一剧情可从多个位置触发，但全局只播放一次”。如果迁移后每条入口记录都使用自己的 once 去重 ID，这些剧情会重复播放。
+
+已知案例：
+
+- `碧血剑_穆人清`：2 个 NPC 入口。
+- `笑傲江湖_昆仑山雪莲`：4 个山洞入口。
+- `original_华山论剑`：华山同一地点的两组条件入口。
+- `original_剑魔荒冢独孤求败`：大地图入口和荒冢内 NPC 入口。
+- `original_同福客栈`：4 个 NPC 入口。
+- `tlbb.dy_西夏驸马.酒楼传闻`：3 家酒楼入口。
+
+因此，迁移后的模型必须显式保留以下语义：地图事件 ID 唯一标识入口记录；story target 标识要执行的剧情；once 去重键允许多个 once 入口共享，但 infinite 入口不参与也不消耗该去重键。若未来允许作者显式配置 once 去重键，未配置时应从旧数据的 target 语义迁移，而不是默认使用入口事件 ID。

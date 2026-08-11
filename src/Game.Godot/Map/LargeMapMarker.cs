@@ -14,7 +14,7 @@ public partial class LargeMapMarker : Control
 	private Label _nameLabel = null!;
 	private TextureRect _notice = null!;
 
-	public (string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)? Location { get; private set; }
+	public (string MapId, MapLocationDefinition Location, MapEventDefinition? Event)? Location { get; private set; }
 
 	public Vector2 DesignPosition { get; private set; }
 
@@ -28,7 +28,7 @@ public partial class LargeMapMarker : Control
 	}
 
 	public void Setup(
-		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location,
+		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location,
 		Vector2 designPosition)
 	{
 		Location = location;

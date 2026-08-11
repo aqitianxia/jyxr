@@ -83,6 +83,7 @@ public sealed class GameExpressionEnvironment
             .AddLibrary(new CoreExpressionFunctions())
             .AddLibrary(new InventoryQueryFunctions(session))
             .AddLibrary(new AdventureQueryFunctions(session))
+            .AddLibrary(new MapQueryFunctions(session))
             .AddLibrary(new StoryQueryFunctions(session))
             .AddLibrary(new PartyCharacterQueryFunctions(session))
             .AddLibrary(new RandomQueryFunctions(session))
@@ -126,6 +127,15 @@ internal sealed class AdventureQueryFunctions
     [ExpressionFunction("favorability", "haogan")]
     public int Favorability(string characterId = AdventureState.DefaultFavorabilityTargetId) =>
         _session.State.Adventure.GetFavorability(characterId);
+}
+
+internal sealed class MapQueryFunctions
+{
+    private readonly GameSession _session;
+    public MapQueryFunctions(GameSession session) => _session = session;
+
+    [ExpressionFunction("event_completed")]
+    public bool EventCompleted(string id) => _session.State.MapEventProgress.IsCompleted(id);
 }
 
 internal sealed class StoryQueryFunctions

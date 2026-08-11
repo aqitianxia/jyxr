@@ -55,6 +55,112 @@ public sealed class ContentLoadingTests
         Assert.Equal(["map-marker-overflow"], repository.GetResource("city").Tags);
     }
 
+    [Fact]
+    public void JsonLoader_DeserializesMapLocationNoEventPresentation()
+    {
+        const string hiddenJson = """{"id":"hidden","hideWhenNoEvent":true}""";
+        const string customJson = """{"id":"custom","noEventImage":"icon"}""";
+
+        var hidden = JsonSerializer.Deserialize<MapLocationDefinition>(hiddenJson, GameJson.Default);
+        var custom = JsonSerializer.Deserialize<MapLocationDefinition>(customJson, GameJson.Default);
+
+        Assert.NotNull(hidden);
+        Assert.True(hidden.HideWhenNoEvent);
+        Assert.Null(hidden.NoEventImage);
+        Assert.NotNull(custom);
+        Assert.False(custom.HideWhenNoEvent);
+        Assert.Equal("icon", custom.NoEventImage);
+    }
+
+    [Fact]
+    public void JsonLoader_DefaultsMapLocationNoEventPresentation()
+    {
+        var location = JsonSerializer.Deserialize<MapLocationDefinition>(
+            """{"id":"location"}""",
+            GameJson.Default);
+
+        Assert.NotNull(location);
+        Assert.False(location.HideWhenNoEvent);
+        Assert.Null(location.NoEventImage);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void JsonLoader_RejectsEmptyNoEventImage(string image)
+    {
+        var package = CreateMapPackage(new MapLocationDefinition
+        {
+            Id = "location",
+            NoEventImage = image,
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsNoEventImageWhenLocationIsHidden()
+    {
+        var package = CreateMapPackage(new MapLocationDefinition
+        {
+            Id = "location",
+            HideWhenNoEvent = true,
+            NoEventImage = "icon",
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void JsonLoader_RejectsEmptyMapEventId(string eventId)
+    {
+        var mapEvent = JsonSerializer.Deserialize<MapEventDefinition>(
+            $$"""{"id":"{{eventId}}","action":"map('world')"}""",
+            GameJson.Default)!;
+        var package = CreateMapPackage(new MapLocationDefinition
+        {
+            Id = "location",
+            Events = [mapEvent],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsDuplicateMapEventIds()
+    {
+        var first = JsonSerializer.Deserialize<MapEventDefinition>(
+            """{"id":"world-location-event","action":"map('world')"}""",
+            GameJson.Default)!;
+        var second = JsonSerializer.Deserialize<MapEventDefinition>(
+            """{"id":"world-location-event","action":"map('world')"}""",
+            GameJson.Default)!;
+        var package = CreateMapPackage(new MapLocationDefinition
+        {
+            Id = "location",
+            Events = [first, second],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    private static ContentPackage CreateMapPackage(MapLocationDefinition location) =>
+        new()
+        {
+            Maps =
+            [
+                new MapDefinition
+                {
+                    Id = "world",
+                    Name = "World",
+                    Kind = MapKind.Large,
+                    Locations = [location],
+                },
+            ],
+        };
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
@@ -1273,6 +1379,7 @@ public sealed class ContentLoadingTests
                         "name": "Keeper",
                         "events": [
                           {
+                            "id": "sample_map-keeper-missing_story",
                             "action": "story('story_missing')"
                           }
                         ]

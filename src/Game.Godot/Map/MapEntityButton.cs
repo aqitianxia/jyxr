@@ -18,9 +18,9 @@ public partial class MapEntityButton : Button
 	private TextureRect _notice = null!;
 	private Control? _mobileTooltip;
 
-	private (string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)? _location;
+	private (string MapId, MapLocationDefinition Location, MapEventDefinition? Event)? _location;
 
-	public event Action<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)>? LocationPressed;
+	public event Action<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>? LocationPressed;
 
 	public override void _Ready()
 	{
@@ -67,7 +67,7 @@ public partial class MapEntityButton : Button
 		return new Rect2(Vector2.Zero, Size).HasPoint(localPosition);
 	}
 
-	public void Setup((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+	public void Setup((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
 	{
 		_location = location;
 		Refresh();

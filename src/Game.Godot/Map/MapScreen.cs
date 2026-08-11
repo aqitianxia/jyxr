@@ -128,7 +128,7 @@ public partial class MapScreen : Control
 
 	private MapEntityButton CreateEntityButton(
 		PackedScene scene,
-		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
 	{
 		var instance = scene.Instantiate();
 		if (instance is not MapEntityButton button)
@@ -142,7 +142,7 @@ public partial class MapScreen : Control
 		return button;
 	}
 
-	private async void OnLocationPressed((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+	private async void OnLocationPressed((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
 	{
 		if (_isHandlingInteraction)
 		{
@@ -169,7 +169,7 @@ public partial class MapScreen : Control
 		}
 	}
 
-	private async Task HandleLocationPressedAsync((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+	private async Task HandleLocationPressedAsync((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
 	{
 		BeginLargeMapTimeLightingDeferral();
 		MapInteractionResult result;
@@ -209,7 +209,7 @@ public partial class MapScreen : Control
 		await Game.StoryService.CommandDispatcher.ExecuteCallAsync(result.Command);
 		Game.MapService.CompleteInteraction(result);
 
-		if (GodotObject.IsInstanceValid(this) && ReferenceEquals(World.Instance.CurrentScene, this))
+		if (GodotObject.IsInstanceValid(World.Instance) && World.Instance.CurrentScene is MapScreen)
 		{
 			World.Instance.RefreshCurrentMap();
 		}

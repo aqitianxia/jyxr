@@ -18,7 +18,15 @@ internal static class MapEntityPresentation
 	{
 		if (mapEvent is null)
 		{
-			return new MapEntityAvatarPresentation(defaultTexture, false);
+			if (location.NoEventImage is null)
+			{
+				return new MapEntityAvatarPresentation(defaultTexture, false);
+			}
+
+			var texture = AssetResolver.LoadTextureResource(location.NoEventImage);
+			return texture is null
+				? new MapEntityAvatarPresentation(defaultTexture, false)
+				: new MapEntityAvatarPresentation(texture, HasOverflowTag(location.NoEventImage));
 		}
 
 		var image = mapEvent.Image ?? location.Picture;
@@ -44,7 +52,7 @@ internal static class MapEntityPresentation
 	}
 
 	public static string BuildTooltipText(
-		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
 	{
 		var description = !string.IsNullOrWhiteSpace(location.Event?.Description)
 			? location.Event.Description

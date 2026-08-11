@@ -46,8 +46,35 @@ public sealed partial class JsonContentLoader
         ValidateShops(repository);
         ValidateLegendSkills(repository);
         ValidateWorldTriggers(repository);
+        ValidateMaps(repository);
         ValidateTowers(repository);
         ValidateStoryContent(repository);
+    }
+
+    private static void ValidateMaps(InMemoryContentRepository repository)
+    {
+        var eventIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var map in repository.Maps.Values)
+        {
+            foreach (var location in map.Locations)
+            {
+                var owner = $"Map '{map.Id}' location '{location.Id}'";
+                if (location.NoEventImage is not null)
+                {
+                    Ensure(!string.IsNullOrWhiteSpace(location.NoEventImage),
+                        $"{owner} has an empty noEventImage.");
+                }
+
+                Ensure(!location.HideWhenNoEvent || location.NoEventImage is null,
+                    $"{owner} cannot define noEventImage when hideWhenNoEvent is true.");
+
+                foreach (var mapEvent in location.Events)
+                {
+                    Ensure(!string.IsNullOrWhiteSpace(mapEvent.Id), $"{owner} has an event with an empty id.");
+                    Ensure(eventIds.Add(mapEvent.Id), $"Map event id '{mapEvent.Id}' is duplicated.");
+                }
+            }
+        }
     }
 
     private static void ValidateResources(InMemoryContentRepository repository)

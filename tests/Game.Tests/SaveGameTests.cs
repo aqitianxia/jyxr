@@ -410,7 +410,7 @@ public sealed class SaveGameTests
         var definition = TestContentFactory.CreateCharacterDefinition("hero_knight");
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
         var mapEventProgress = new MapEventProgressState();
-        mapEventProgress.MarkCompleted("world|village|0");
+        mapEventProgress.MarkCompleted("world-village-intro");
         mapEventProgress.MarkCompleted("world|sect_gate|1");
 
         var saveGame = SaveGame.Create(
@@ -429,9 +429,9 @@ public sealed class SaveGameTests
 
         Assert.NotNull(roundTripped);
         Assert.Contains("\"MapEventProgress\"", json, StringComparison.Ordinal);
-        Assert.Contains("world|village|0", json, StringComparison.Ordinal);
+        Assert.Contains("world-village-intro", json, StringComparison.Ordinal);
         var restoredProgress = roundTripped!.RestoreMapEventProgress();
-        Assert.True(restoredProgress.IsCompleted("world|village|0"));
+        Assert.True(restoredProgress.IsCompleted("world-village-intro"));
         Assert.True(restoredProgress.IsCompleted("world|sect_gate|1"));
         Assert.False(restoredProgress.IsCompleted("world|unknown|0"));
     }

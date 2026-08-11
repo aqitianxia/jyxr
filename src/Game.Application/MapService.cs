@@ -49,7 +49,7 @@ public sealed class MapService
         };
     }
 
-    public MapInteractionResult InteractWithLocation((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+    public MapInteractionResult InteractWithLocation((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
     {
         if (location.Event is null)
         {
@@ -70,13 +70,13 @@ public sealed class MapService
             Message = location.Event.Description,
             ConsumedTimeSlots = consumedTimeSlots,
             Movement = movement.Result,
-            MapEventCompletionKey = location.Event.RepeatMode == RepeatMode.Once && location.EventIndex >= 0
-                ? BuildLocationEventKey(location.MapId, location.Location.Id, location.EventIndex)
+            MapEventCompletionKey = location.Event.RepeatMode == RepeatMode.Once
+                ? location.Event.Id
                 : null,
         };
     }
 
-    public int PreviewInteractionConsumedTimeSlots((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+    public int PreviewInteractionConsumedTimeSlots((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
     {
         if (location.Event is null)
         {
@@ -86,30 +86,31 @@ public sealed class MapService
         return CalculateMoveConsumedTimeSlots(location.MapId, location.Location) + 1;
     }
 
-    private IReadOnlyList<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)> BuildLocations(MapDefinition map)
+    private IReadOnlyList<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)> BuildLocations(MapDefinition map)
     {
-        var locations = new List<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)>(map.Locations.Count);
+        var locations = new List<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>(map.Locations.Count);
         foreach (var location in map.Locations)
         {
-            var mapEvent = FindTriggerEvent(map.Id, location);
-            if (map.Kind == MapKind.Small && mapEvent is null)
+            var mapEvent = FindTriggerEvent(location);
+            if (mapEvent is null &&
+                (map.Kind == MapKind.Small ||
+                 location.HideWhenNoEvent))
             {
                 continue;
             }
 
-            locations.Add((map.Id, location, mapEvent?.Event, mapEvent?.Index ?? -1));
+            locations.Add((map.Id, location, mapEvent));
         }
 
         return locations;
     }
 
-    private (MapEventDefinition Event, int Index)? FindTriggerEvent(string mapId, MapLocationDefinition location)
+    private MapEventDefinition? FindTriggerEvent(MapLocationDefinition location)
     {
-        for (var index = 0; index < location.Events.Count; index++)
+        foreach (var mapEvent in location.Events)
         {
-            var mapEvent = location.Events[index];
             if (mapEvent.RepeatMode == RepeatMode.Once &&
-                IsOnceEventCompleted(BuildLocationEventKey(mapId, location.Id, index)))
+                IsOnceEventCompleted(mapEvent.Id))
             {
                 continue;
             }
@@ -119,13 +120,13 @@ public sealed class MapService
                 continue;
             }
 
-            return (mapEvent, mapEvent.RepeatMode == RepeatMode.Once ? index : -1);
+            return mapEvent;
         }
 
         return null;
     }
 
-    private (int ConsumedTimeSlots, MapMovementResult? Result) MoveHeroIfNeeded((string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex) location)
+    private (int ConsumedTimeSlots, MapMovementResult? Result) MoveHeroIfNeeded((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
     {
         var consumedTimeSlots = CalculateMoveConsumedTimeSlots(location.MapId, location.Location);
         if (consumedTimeSlots > 0)
@@ -175,9 +176,6 @@ public sealed class MapService
     private bool IsOnceEventCompleted(string eventKey) =>
         State.MapEventProgress.IsCompleted(eventKey);
 
-    private static string BuildLocationEventKey(string mapId, string locationId, int eventIndex) =>
-        $"{mapId}|{locationId}|{eventIndex}";
-
 }
 
 public sealed record MapEnterResult
@@ -185,7 +183,7 @@ public sealed record MapEnterResult
     public required MapDefinition Map { get; init; }
     public required int ConsumedTimeSlots { get; init; }
     public MapInteractionResult? PendingInteraction { get; init; }
-    public IReadOnlyList<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)> Locations { get; init; } = [];
+    public IReadOnlyList<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)> Locations { get; init; } = [];
     public MapPosition? HeroPosition { get; init; }
 }
 

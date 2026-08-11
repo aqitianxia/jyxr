@@ -32,11 +32,17 @@ public sealed record MapLocationDefinition
 
     public string? Picture { get; init; }
 
+    public bool HideWhenNoEvent { get; init; }
+
+    public string? NoEventImage { get; init; }
+
     public IReadOnlyList<MapEventDefinition> Events { get; init; } = [];
 }
 
 public sealed record MapEventDefinition
 {
+    public required string Id { get; init; }
+
     [JsonConverter(typeof(Game.Core.Serialization.ParsedCallJsonConverter))]
     public required ParsedCall Action { get; init; }
 

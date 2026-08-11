@@ -57,7 +57,7 @@ public partial class LargeMapView : Control
 	[Export]
 	public PackedScene TooltipScene { get; set; } = null!;
 
-	public event Action<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event, int EventIndex)>? LocationPressed;
+	public event Action<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>? LocationPressed;
 
 	public bool HasBackground => _background.Texture is not null;
 

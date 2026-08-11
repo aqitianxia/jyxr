@@ -114,6 +114,7 @@ public sealed class UniversalLearnRemoveCommandTests
                     [
                         new MapEventDefinition
                         {
+                            Id = "inn-teacher-learn",
                             Action = new ExpressionParser().ParseCall("learn('hero', 'external', 2)", "map learn test"),
                         },
                     ],
