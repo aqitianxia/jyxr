@@ -56,7 +56,7 @@ public sealed class ExpressionParser
             Separated(Terms.Char(','), expression),
             Array.Empty<ExpressionSyntax>());
 
-        var identifier = Terms.Identifier(IsIdentifierStart, IsIdentifierPart)
+        var identifier = Terms.Identifier(ExpressionSymbol.IsIdentifierStart, ExpressionSymbol.IsIdentifierPart)
             .When((_, span) => !ReservedWords.Contains(span.Span.ToString()));
         var argumentList = Between(Terms.Char('('), arguments, Terms.Char(')'));
         var identifierOrCall = identifier
@@ -78,7 +78,7 @@ public sealed class ExpressionParser
             Terms.Keyword("false").Then((context, start, end, _) => (ExpressionSyntax)new LiteralExpressionSyntax(
                 ExpressionValue.FromBoolean(false), Span(context, start, end))));
         var number = Terms.Number<double>(NumberOptions.Float)
-            .WhenNotFollowedBy(Literals.Pattern(IsIdentifierPart, 1, 1))
+            .WhenNotFollowedBy(Literals.Pattern(ExpressionSymbol.IsIdentifierPart, 1, 1))
             .When((_, value) => double.IsFinite(value))
             .Then<ExpressionSyntax>((context, start, end, value) =>
                 new LiteralExpressionSyntax(ExpressionValue.FromNumber(value), Span(context, start, end)));
@@ -162,7 +162,7 @@ public sealed class ExpressionParser
     private static Parser<bool> NotIn()
     {
         var symbolic = Terms.Text("!in")
-            .WhenNotFollowedBy(Literals.Pattern(IsIdentifierPart, 1, 1))
+            .WhenNotFollowedBy(Literals.Pattern(ExpressionSymbol.IsIdentifierPart, 1, 1))
             .Then(true);
         var textual = Keyword("not").And(Keyword("in")).Then(true);
         return symbolic.Or(textual);
@@ -204,8 +204,4 @@ public sealed class ExpressionParser
         return new SourceSpan(start, end - start, line, column);
     }
 
-    private static bool IsIdentifierStart(char value) => value == '_' || value is >= 'a' and <= 'z';
-
-    private static bool IsIdentifierPart(char value) =>
-        value == '_' || value is >= 'a' and <= 'z' || char.IsDigit(value);
 }

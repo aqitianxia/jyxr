@@ -69,11 +69,27 @@ public sealed class ExpressionFunctionAttribute : ExpressionSymbolAttribute
 
 public static class ExpressionSymbol
 {
+    public static bool IsIdentifierStart(char character)
+    {
+        if (character == '_')
+        {
+            return true;
+        }
+
+        return character is >= 'a' and <= 'z' or
+            '\u3007' or
+            >= '\u3400' and <= '\u4dbf' or
+            >= '\u4e00' and <= '\u9fff' or
+            >= '\uf900' and <= '\ufaff';
+    }
+
+    public static bool IsIdentifierPart(char character) =>
+        IsIdentifierStart(character) || char.IsDigit(character);
+
     public static void Validate(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (name.Any(character => character != '_' && !(character is >= 'a' and <= 'z') && !char.IsDigit(character)) ||
-            !(name[0] == '_' || name[0] is >= 'a' and <= 'z'))
+        if (!IsIdentifierStart(name[0]) || name.Skip(1).Any(character => !IsIdentifierPart(character)))
         {
             throw new ArgumentException($"Invalid expression symbol name '{name}'.", nameof(name));
         }

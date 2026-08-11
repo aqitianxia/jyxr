@@ -63,6 +63,31 @@ public sealed class StoryV3Tests
     }
 
     [Fact]
+    public async Task Service_ExecutesChineseVariableIdentifiers()
+    {
+        const string json = """
+        {"version":3,"segments":[{"name":"中文变量","steps":[
+          {"kind":"set","target":"是否拜师","value":"true"},
+          {"kind":"set","target":"门派声望","value":"9"},
+          {"kind":"branch","cases":[{"when":"是否拜师 && 门派声望 >= 9","steps":[
+            {"kind":"set","target":"完成入门任务","value":"true"}
+          ]}]},
+          {"kind":"delete","target":"门派声望"}
+        ]}]}
+        """;
+        var script = StoryScriptJson.Parse(json);
+        var session = new GameSession(
+            new GameState(),
+            TestContentFactory.CreateRepository(storyScripts: [script]));
+
+        await session.StoryService.ExecuteAsync("中文变量");
+
+        Assert.True(session.State.Story.Variables["是否拜师"].AsBoolean("test"));
+        Assert.True(session.State.Story.Variables["完成入门任务"].AsBoolean("test"));
+        Assert.False(session.State.Story.TryGetVariable("门派声望", out _));
+    }
+
+    [Fact]
     public async Task Service_ExecutionContextIsIsolatedAndRequired()
     {
         const string json = """
