@@ -32,6 +32,7 @@ offset_top = 647.3161
 offset_right = 1567.6104
 offset_bottom = 985.3161
 scale = Vector2(1.1825043, 1.1825043)
+mouse_filter = 2
 
 [node name="Frame" type="TextureRect" parent="ContentRoot" unique_id=687102799]
 layout_mode = 0
@@ -51,6 +52,7 @@ offset_top = 845.00006
 offset_right = 250.0
 offset_bottom = 845.00006
 scale = Vector2(0.53212696, 0.53212696)
+mouse_filter = 2
 
 [node name="SpeakerLabel" type="Label" parent="ContentRoot" unique_id=1569061937]
 unique_name_in_owner = true
@@ -71,6 +73,7 @@ offset_top = 777.0
 offset_right = 1541.6603
 offset_bottom = 971.50244
 scale = Vector2(1.1825043, 1.1825043)
+mouse_filter = 2
 bbcode_enabled = true
 text = "对话内容"
 

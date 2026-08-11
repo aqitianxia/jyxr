@@ -27,7 +27,6 @@ public partial class StoryDialoguePanel : Control
 		_contentLabel = GetNode<RichTextLabel>("%ContentLabel");
 		_skipButton = GetNode<Button>("%SkipButton");
 
-		_contentLabel.GuiInput += OnAdvanceGuiInput;
 		_skipButton.ButtonDown += OnSkipButtonDown;
 		_skipButton.ButtonUp += OnSkipButtonUp;
 		SetProcess(false);
