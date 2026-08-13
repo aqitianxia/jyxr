@@ -350,16 +350,6 @@ public sealed class BattleUnit
         }
 
         movePower += (int)GetStat(StatType.Movement);
-        if (TryGetBuff(BattleContentIds.Slow) is { } slow)
-        {
-            movePower -= (int)(slow.Level * 1.5d);
-        }
-
-        if (TryGetBuff(BattleContentIds.LightBody) is { } lightBody)
-        {
-            movePower += lightBody.Level + 1;
-        }
-
         return Math.Clamp(movePower, 1, 5);
     }
 

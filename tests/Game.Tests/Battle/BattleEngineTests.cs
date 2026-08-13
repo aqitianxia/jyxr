@@ -1425,7 +1425,7 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
-    public void BeginAction_UsesBuffLevelMovementModifiers()
+    public void BeginAction_AppliesBuffLevelMovementModifiersOnce()
     {
         var light = new BuffDefinition
         {
@@ -1458,7 +1458,7 @@ public sealed class BattleEngineTests
 
         engine.BeginAction(state, hero.Id);
 
-        Assert.Equal(5, state.CurrentAction!.RemainingMovePower);
+        Assert.Equal(4, state.CurrentAction!.RemainingMovePower);
     }
 
     [Fact]
