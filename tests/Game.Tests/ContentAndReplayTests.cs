@@ -762,7 +762,7 @@ public sealed class ContentLoadingTests
                   }
                 ]
                 """,
-            ["story/item-effect.story.json"] = """
+            ["stories/item-effect.story.json"] = """
                 {
                   "version": 3,
                   "segments": [{ "name": "item_effect", "steps": [] }]
@@ -826,7 +826,7 @@ public sealed class ContentLoadingTests
             var directoryPath = CreateContentDirectory(new Dictionary<string, string>
             {
                 ["items.json"] = itemsJson,
-                ["story/item-effect.story.json"] = """
+                ["stories/item-effect.story.json"] = """
                     {
                       "version": 3,
                       "segments": [{ "name": "item_effect", "steps": [] }]
@@ -1211,7 +1211,7 @@ public sealed class ContentLoadingTests
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1270,7 +1270,7 @@ public sealed class ContentLoadingTests
                   }
                 ]
                 """,
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1304,7 +1304,7 @@ public sealed class ContentLoadingTests
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1335,7 +1335,7 @@ public sealed class ContentLoadingTests
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1366,7 +1366,7 @@ public sealed class ContentLoadingTests
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["maps.json"] =
+            ["maps/test.json"] =
                 """
                 [
                   {
@@ -1388,7 +1388,7 @@ public sealed class ContentLoadingTests
                   }
                 ]
                 """,
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1419,7 +1419,7 @@ public sealed class ContentLoadingTests
     {
         var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["maps.json"] =
+            ["maps/test.json"] =
                 """
                 [
                   {
@@ -1439,7 +1439,7 @@ public sealed class ContentLoadingTests
                   }
                 ]
                 """,
-            ["story/main.story.json"] =
+            ["stories/main.story.json"] =
                 """
                 {
                   "version": 3,
@@ -1578,7 +1578,7 @@ public sealed class ContentLoadingTests
             ["grow-templates.json"] = "[]",
             ["internal-skills.json"] = "[]",
             ["legend-skills.json"] = "[]",
-            ["maps.json"] = "[]",
+            ["maps/empty.json"] = "[]",
             ["world-triggers.json"] = "[]",
             ["resources.json"] = "[]",
             ["sects.json"] = "[]",

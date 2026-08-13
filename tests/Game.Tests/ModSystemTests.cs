@@ -406,6 +406,135 @@ public sealed class ModSystemTests
     }
 
     [Fact]
+    public void JsonContentLoader_LoadsMapObjectsAndArraysFromNestedDirectories()
+    {
+        var primaryDirectory = CreateTestPrimaryModDirectory();
+        var nestedDirectory = Path.Combine(primaryDirectory, "data", "maps", "regions", "north");
+        Directory.CreateDirectory(nestedDirectory);
+        File.WriteAllText(
+            Path.Combine(nestedDirectory, "single.json"),
+            """{"id":"nested_single_map","name":"Nested Single Map","locations":[]}""");
+        File.WriteAllText(
+            Path.Combine(primaryDirectory, "data", "maps", "batch.json"),
+            """[{"id":"nested_array_map","name":"Nested Array Map","locations":[]}]""");
+
+        var repository = new JsonContentLoader().LoadFromMods(
+        [
+            new ModContentInput("test-base", primaryDirectory, Required: true),
+        ]);
+
+        Assert.NotNull(repository.GetMap("nested_single_map"));
+        Assert.NotNull(repository.GetMap("nested_array_map"));
+    }
+
+    [Fact]
+    public void JsonContentLoader_AllowsEmptyPrimaryMapDirectory()
+    {
+        var primaryDirectory = CreateTestPrimaryModDirectory();
+        var mapDirectory = Path.Combine(primaryDirectory, "data", "maps");
+        foreach (var filePath in Directory.EnumerateFiles(mapDirectory, "*.json", SearchOption.AllDirectories))
+        {
+            File.Delete(filePath);
+        }
+
+        var repository = new JsonContentLoader().LoadFromMods(
+        [
+            new ModContentInput("test-base", primaryDirectory, Required: true),
+        ]);
+
+        Assert.False(repository.TryGetMap("sample_map", out _));
+    }
+
+    [Fact]
+    public void JsonContentLoader_RejectsLegacyPrimaryMapFileWithoutMapDirectory()
+    {
+        var primaryDirectory = CreateTestPrimaryModDirectory();
+        var dataDirectory = Path.Combine(primaryDirectory, "data");
+        var mapDirectory = Path.Combine(dataDirectory, "maps");
+        foreach (var filePath in Directory.EnumerateFiles(mapDirectory, "*.json", SearchOption.AllDirectories))
+        {
+            File.Delete(filePath);
+        }
+
+        Directory.Delete(mapDirectory, recursive: true);
+        File.WriteAllText(Path.Combine(dataDirectory, "maps.json"), "[]");
+
+        var exception = Assert.Throws<ContentLoadException>(() => new JsonContentLoader().LoadFromMods(
+        [
+            new ModContentInput("test-base", primaryDirectory, Required: true),
+        ]));
+
+        Assert.Contains("maps", exception.Message);
+    }
+
+    [Fact]
+    public void JsonContentLoader_LoadsMapFromSparseAddonDirectory()
+    {
+        var addonDirectory = CreateSparseAddonDirectory();
+        var mapDirectory = Path.Combine(addonDirectory, "data", "maps", "nested");
+        Directory.CreateDirectory(mapDirectory);
+        File.WriteAllText(
+            Path.Combine(mapDirectory, "addon.json"),
+            """{"id":"addon_map","name":"Addon Map","locations":[]}""");
+
+        var repository = LoadWithAddon(addonDirectory).Repository;
+
+        Assert.NotNull(repository.GetMap("addon_map"));
+    }
+
+    [Fact]
+    public void JsonContentLoader_ReportsBothFilesForDuplicateMapId()
+    {
+        var addonDirectory = CreateSparseAddonDirectory();
+        var mapDirectory = Path.Combine(addonDirectory, "data", "maps", "nested");
+        Directory.CreateDirectory(mapDirectory);
+        var duplicatePath = Path.Combine(mapDirectory, "duplicate.json");
+        File.WriteAllText(
+            duplicatePath,
+            """{"id":"sample_map","name":"Duplicate Map","locations":[]}""");
+
+        var exception = Assert.Throws<ContentLoadException>(() => LoadWithAddon(addonDirectory));
+
+        Assert.Contains("sample.json", exception.Message);
+        Assert.Contains("duplicate.json", exception.Message);
+    }
+
+    [Fact]
+    public void JsonContentLoader_ReportsBothFilesForDuplicateMapIdWithinDirectory()
+    {
+        var primaryDirectory = CreateTestPrimaryModDirectory();
+        var duplicatePath = Path.Combine(primaryDirectory, "data", "maps", "nested", "duplicate.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(duplicatePath)!);
+        File.WriteAllText(
+            duplicatePath,
+            """{"id":"sample_map","name":"Duplicate Map","locations":[]}""");
+
+        var exception = Assert.Throws<ContentLoadException>(() => new JsonContentLoader().LoadFromMods(
+        [
+            new ModContentInput("test-base", primaryDirectory, Required: true),
+        ]));
+
+        Assert.Contains("sample.json", exception.Message);
+        Assert.Contains("duplicate.json", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("{")]
+    [InlineData("true")]
+    [InlineData("[1]")]
+    public void JsonContentLoader_ReportsNestedMapSourceForInvalidDocument(string content)
+    {
+        var addonDirectory = CreateSparseAddonDirectory();
+        var invalidPath = Path.Combine(addonDirectory, "data", "maps", "nested", "invalid.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(invalidPath)!);
+        File.WriteAllText(invalidPath, content);
+
+        var exception = Assert.Throws<ContentLoadException>(() => LoadWithAddon(addonDirectory));
+
+        Assert.Contains("invalid.json", exception.Message);
+    }
+
+    [Fact]
     public void JsonContentLoader_LoadsSparseAddonAndMergesDefinitionById()
     {
         var addonDirectory = CreateSparseAddonDirectory();
@@ -778,9 +907,15 @@ public sealed class ModSystemTests
         var modDirectory = Path.Combine(root.ModsDirectoryPath, "test-base");
         var dataDirectory = Path.Combine(modDirectory, "data");
         Directory.CreateDirectory(dataDirectory);
-        foreach (var sourcePath in Directory.EnumerateFiles(SampleContentDirectoryPath, "*.json"))
+        foreach (var sourcePath in Directory.EnumerateFiles(
+                     SampleContentDirectoryPath,
+                     "*.json",
+                     SearchOption.AllDirectories))
         {
-            File.Copy(sourcePath, Path.Combine(dataDirectory, Path.GetFileName(sourcePath)));
+            var relativePath = Path.GetRelativePath(SampleContentDirectoryPath, sourcePath);
+            var targetPath = Path.Combine(dataDirectory, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+            File.Copy(sourcePath, targetPath);
         }
 
         File.WriteAllText(
@@ -796,7 +931,7 @@ public sealed class ModSystemTests
               "equipmentRandomAffixCountWeights": [{"count": 1, "weight": 1}]
             }
             """);
-        var storyDirectory = Path.Combine(dataDirectory, "story");
+        var storyDirectory = Path.Combine(dataDirectory, "stories");
         Directory.CreateDirectory(storyDirectory);
         File.WriteAllText(
             Path.Combine(storyDirectory, "test.story.json"),

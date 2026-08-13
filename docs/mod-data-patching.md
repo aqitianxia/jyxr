@@ -1,8 +1,24 @@
 # MOD 数据补丁
 
-运行时按主 MOD、依赖 addon、用户排序 addon 的顺序装配内容。每个 MOD 先注册 `data` 中的完整新定义和 story，再执行自己的 `patches/**/*.patch.json`。补丁文件按规范化相对路径排序，文件内操作按声明顺序执行。
+运行时按主 MOD、依赖 addon、用户排序 addon 的顺序装配内容。每个 MOD 先注册 `data` 中的完整新定义和 `stories/**/*.story.json`，再执行自己的 `patches/**/*.patch.json`。补丁文件按规范化相对路径排序，文件内操作按声明顺序执行。
 
 已有定义不能通过同 ID 的完整 JSON 覆盖；这种情况会中止加载。新增内容继续写入对应的普通数据文件，修改已有内容使用补丁。
+
+## Map 数据目录
+
+Map 定义使用 `data/maps/**/*.json` 目录协议，不读取旧的 `data/maps.json`。主 MOD 必须提供 `data/maps` 目录，目录可以为空；addon 可以省略该目录。
+
+目录会递归扫描，文件按规范化相对路径排序。每个 JSON 文件可以保存单个 Map 对象，也可以保存 Map 数组：
+
+```text
+data/maps/large.json
+data/maps/small.json
+data/maps/sects/wudang.json
+```
+
+文件路径只用于内容组织和错误诊断，不参与 Map ID。所有文件中的 `MapDefinition.id` 仍然全局唯一；addon 若要修改已有 Map，必须使用 `map` 补丁目标。
+
+剧情脚本使用 `data/stories/**/*.story.json`，目录同样支持任意层级嵌套。脚本 ID 是相对于 `stories` 目录的路径去掉 `.story.json` 后缀；目录名称不进入脚本 ID。
 
 ## 文件格式
 

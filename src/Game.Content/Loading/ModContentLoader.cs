@@ -22,7 +22,7 @@ internal static class ModContentLoader
 {
     private const string GameConfigFileName = "game-config.json";
     private const string PatchFilePattern = "*.patch.json";
-    private const string StoryDirectoryName = "story";
+    private const string StoryDirectoryName = "stories";
     private const string StoryFilePattern = "*.story.json";
 
     public static LoadedModContent Load(IReadOnlyList<ModContentInput> inputs)
@@ -79,27 +79,15 @@ internal static class ModContentLoader
     {
         foreach (var spec in ContentTypeCatalog.All)
         {
-            var filePath = Path.Combine(input.DataDirectoryPath, spec.FileName);
-            if (!File.Exists(filePath))
+            foreach (var entry in DefinitionSourceReader.Read(input.DataDirectoryPath, spec, input.Required))
             {
-                JsonContentLoader.Ensure(!input.Required, $"Content file '{spec.FileName}' was not found in '{input.DataDirectoryPath}'.");
-                continue;
-            }
-
-            var root = ParseNode(filePath);
-            var definitions = root switch
-            {
-                JsonArray array => array,
-                JsonObject definition => new JsonArray(definition),
-                _ => throw new ContentLoadException($"Content file '{filePath}' must be a JSON object or array."),
-            };
-
-            foreach (var definitionNode in definitions)
-            {
-                var definition = definitionNode as JsonObject
-                    ?? throw new ContentLoadException($"Every entry in '{filePath}' must be a JSON object.");
-                var id = GetRequiredString(definition, "id", filePath);
-                catalog.AddDefinition(spec.Kind, id, definition.DeepClone().AsObject(), input.ModId, filePath);
+                var id = GetRequiredString(entry.Definition, "id", entry.FilePath);
+                catalog.AddDefinition(
+                    spec.Kind,
+                    id,
+                    entry.Definition.DeepClone().AsObject(),
+                    input.ModId,
+                    entry.FilePath);
             }
         }
 
@@ -812,6 +800,8 @@ internal static class ModContentLoader
     {
         private readonly Dictionary<string, OrderedDictionary<string, JsonObject>> _definitions =
             ContentTypeCatalog.All.ToDictionary(static spec => spec.Kind, static _ => new OrderedDictionary<string, JsonObject>(StringComparer.Ordinal), StringComparer.Ordinal);
+        private readonly Dictionary<string, Dictionary<string, string>> _definitionSources =
+            ContentTypeCatalog.All.ToDictionary(static spec => spec.Kind, static _ => new Dictionary<string, string>(StringComparer.Ordinal), StringComparer.Ordinal);
         private readonly Dictionary<string, StoryDocument> _stories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _segmentOwners = new(StringComparer.Ordinal);
         private readonly Dictionary<string, PatchWrite> _writes = new(StringComparer.Ordinal);
@@ -828,9 +818,12 @@ internal static class ModContentLoader
 
             if (!definitions.TryAdd(id, value))
             {
+                var previousFilePath = _definitionSources[kind][id];
                 throw new ContentLoadException(
-                    $"Definition '{kind}:{id}' from mod '{modId}' in '{filePath}' conflicts with an existing definition. Use a patch to modify existing content.");
+                    $"Definition '{kind}:{id}' from mod '{modId}' in '{filePath}' conflicts with the definition loaded from '{previousFilePath}'. Use a patch to modify existing content.");
             }
+
+            _definitionSources[kind].Add(id, filePath);
         }
 
         public void AddStoryScript(string scriptId, JsonObject script, string modId, string filePath)
@@ -941,6 +934,7 @@ internal static class ModContentLoader
             }
 
             _definitions[target.Kind].Remove(target.Id!);
+            _definitionSources[target.Kind].Remove(target.Id!);
         }
 
         public JsonArray GetDefinitions(string kind)

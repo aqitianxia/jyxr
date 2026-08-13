@@ -6,7 +6,7 @@ namespace Game.Content.Loading;
 
 public sealed partial class JsonContentLoader
 {
-    private const string StoryDirectoryName = "story";
+    private const string StoryDirectoryName = "stories";
     private const string StoryFilePattern = "*.story.json";
 
     private static ContentPackage LoadPackageFromDirectory(string directoryPath, bool required = true)
@@ -24,7 +24,7 @@ public sealed partial class JsonContentLoader
         var packageNode = new JsonObject();
         foreach (var spec in ContentTypeCatalog.All)
         {
-            packageNode[spec.PackagePropertyName] = LoadDefinitionArray(directoryPath, spec.FileName, required);
+            packageNode[spec.PackagePropertyName] = LoadDefinitionArray(directoryPath, spec, required);
         }
 
         var package = packageNode.Deserialize<ContentPackage>(ContentJson)
@@ -33,31 +33,15 @@ public sealed partial class JsonContentLoader
         return package;
     }
 
-    private static JsonArray LoadDefinitionArray(string directoryPath, string fileName, bool required)
+    private static JsonArray LoadDefinitionArray(string directoryPath, ContentTypeSpec spec, bool required)
     {
-        var filePath = Path.Combine(directoryPath, fileName);
-        if (!File.Exists(filePath))
+        var definitions = new JsonArray();
+        foreach (var entry in DefinitionSourceReader.Read(directoryPath, spec, required))
         {
-            if (!required)
-            {
-                return [];
-            }
-
-            throw new FileNotFoundException($"Content file '{fileName}' was not found in '{directoryPath}'.", filePath);
+            definitions.Add(entry.Definition.DeepClone());
         }
 
-        var json = File.ReadAllText(filePath);
-        var node = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        });
-        return node switch
-        {
-            JsonArray array => array,
-            JsonObject definition => new JsonArray(definition),
-            _ => throw new InvalidOperationException($"Content file '{fileName}' must be a JSON object or array."),
-        };
+        return definitions;
     }
 
     private static Dictionary<string, StoryScript> LoadStoryScripts(string directoryPath)
