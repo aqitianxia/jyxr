@@ -10,16 +10,18 @@ public partial class LargeMapMarker : Control
 	public Texture2D? DefaultTexture { get; set; }
 
 	private TextureRect _avatar = null!;
+	private Control _visual = null!;
 	private OverflowTextureRect _overflowAvatar = null!;
 	private Label _nameLabel = null!;
 	private TextureRect _notice = null!;
 
 	public (string MapId, MapLocationDefinition Location, MapEventDefinition? Event)? Location { get; private set; }
 
-	public Vector2 DesignPosition { get; private set; }
+	public Vector2 LogicalPosition { get; private set; }
 
 	public override void _Ready()
 	{
+		_visual = GetNode<Control>("%Visual");
 		_avatar = GetNode<TextureRect>("%Avatar");
 		_overflowAvatar = GetNode<OverflowTextureRect>("%OverflowAvatar");
 		_nameLabel = GetNode<Label>("%NameLabel");
@@ -29,12 +31,16 @@ public partial class LargeMapMarker : Control
 
 	public void Setup(
 		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location,
-		Vector2 designPosition)
+		Vector2 logicalPosition)
 	{
 		Location = location;
-		DesignPosition = designPosition;
+		LogicalPosition = logicalPosition;
 		Refresh();
 	}
+
+	public Rect2 GetScreenBounds() => new(
+		Position + _visual.Position * Scale,
+		_visual.Size * Scale);
 
 	private void Refresh()
 	{

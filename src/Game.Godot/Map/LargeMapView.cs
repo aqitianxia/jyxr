@@ -9,12 +9,6 @@ namespace Game.Godot.Map;
 
 public partial class LargeMapView : Control
 {
-	private const float CanvasWidth = 1920f;
-	private const float CanvasHeight = 1080f;
-	private const float SourceWidth = 800f;
-	private const float SourceHeight = 600f;
-	private const float DesignOffsetX = -15f;
-	private const float DesignOffsetY = -52f;
 	private const float MinimumZoom = 1f;
 	private const float MaximumZoom = 3f;
 	private const float MobileDefaultZoom = 1.5f;
@@ -24,7 +18,9 @@ public partial class LargeMapView : Control
 	private const float PinMovePixelsPerSecond = 900f;
 	private const float PinMoveMinDuration = 0.25f;
 	private const float PinMoveMaxDuration = 1.2f;
-	private static readonly Vector2 CanvasSize = new(CanvasWidth, CanvasHeight);
+	private static readonly Vector2 CanvasSize = new(
+		LargeMapCoordinateSpace.Width,
+		LargeMapCoordinateSpace.Height);
 
 	private readonly Dictionary<int, Vector2> _touches = new();
 	private readonly LargeMapTransform _transform = new(CanvasSize, MinimumZoom, MaximumZoom);
@@ -37,7 +33,7 @@ public partial class LargeMapView : Control
 	private TextureRect _heroAvatar = null!;
 	private global::Godot.Timer _zoomSaveTimer = null!;
 	private UserSettingsRecord _settings = UserSettingsRecord.Default;
-	private Vector2 _heroDesignPosition;
+	private Vector2 _heroLogicalPosition;
 	private bool _mousePressed;
 	private bool _mouseDragging;
 	private Vector2 _mousePressPosition;
@@ -69,6 +65,7 @@ public partial class LargeMapView : Control
 		_locations = GetNode<Control>("%MapEntitySlots");
 		_heroPin = GetNode<Control>("%MapPin");
 		_heroAvatar = GetNode<TextureRect>("%PinAvatar");
+		_mapSurface.Size = CanvasSize;
 		_settings = _settingsStore.LoadOrDefault();
 		_zoomSaveTimer = new global::Godot.Timer
 		{
@@ -140,18 +137,18 @@ public partial class LargeMapView : Control
 				throw new InvalidOperationException("Large-map marker scene root must be LargeMapMarker.");
 			}
 
-			var designPosition = location.Location.Position is { } position
-				? ProjectToDesign(position)
+			var logicalPosition = location.Location.Position is { } position
+				? new Vector2(position.X, position.Y)
 				: Vector2.Zero;
-			marker.Setup(location, designPosition);
+			marker.Setup(location, logicalPosition);
 			_locations.AddChild(marker);
 		}
 
-		Vector2? heroDesignPosition = result.HeroPosition is { } heroPosition
-			? ProjectToDesign(heroPosition)
+		Vector2? heroLogicalPosition = result.HeroPosition is { } heroPosition
+			? new Vector2(heroPosition.X, heroPosition.Y)
 			: null;
-		_heroDesignPosition = heroDesignPosition ?? Vector2.Zero;
-		ResetView(heroDesignPosition);
+		_heroLogicalPosition = heroLogicalPosition ?? Vector2.Zero;
+		ResetView(heroLogicalPosition);
 	}
 
 	public void SetTimeDim(float alpha)
@@ -163,19 +160,19 @@ public partial class LargeMapView : Control
 	public async Task PlayHeroMovementAsync(MapMovementResult movement, bool animated)
 	{
 		ArgumentNullException.ThrowIfNull(movement);
-		var from = ProjectToDesign(movement.From);
-		var to = ProjectToDesign(movement.To);
+		var from = new Vector2(movement.From.X, movement.From.Y);
+		var to = new Vector2(movement.To.X, movement.To.Y);
 
 		ResetInputState();
 		if (!animated || from.IsEqualApprox(to))
 		{
-			_heroDesignPosition = to;
+			_heroLogicalPosition = to;
 			ApplyHeroLayout();
 			return;
 		}
 
 		_interactionEnabled = false;
-		_heroDesignPosition = from;
+		_heroLogicalPosition = from;
 		ApplyHeroLayout();
 		var screenDistance = _transform.Project(from).DistanceTo(_transform.Project(to));
 		var duration = Mathf.Clamp(
@@ -186,7 +183,7 @@ public partial class LargeMapView : Control
 		tween.TweenMethod(
 			Callable.From<float>(progress =>
 			{
-				_heroDesignPosition = from.Lerp(to, progress);
+				_heroLogicalPosition = from.Lerp(to, progress);
 				ApplyHeroLayout();
 			}),
 			0f,
@@ -209,7 +206,7 @@ public partial class LargeMapView : Control
 
 		if (GodotObject.IsInstanceValid(this))
 		{
-			_heroDesignPosition = to;
+			_heroLogicalPosition = to;
 			ApplyHeroLayout();
 		}
 	}
@@ -249,12 +246,12 @@ public partial class LargeMapView : Control
 		ApplyVisualTransform();
 	}
 
-	private void ResetView(Vector2? centerDesignPosition = null)
+	private void ResetView(Vector2? centerLogicalPosition = null)
 	{
 		var initialZoom = _settings.LargeMapZoom > 0f
 			? _settings.LargeMapZoom
 			: Game.IsMobilePlatform ? MobileDefaultZoom : MinimumZoom;
-		_transform.Reset(Size, initialZoom, centerDesignPosition);
+		_transform.Reset(Size, initialZoom, centerLogicalPosition);
 		ApplyVisualTransform();
 	}
 
@@ -272,7 +269,7 @@ public partial class LargeMapView : Control
 		{
 			if (child is LargeMapMarker marker)
 			{
-				marker.Position = _transform.Project(marker.DesignPosition);
+				marker.Position = _transform.Project(marker.LogicalPosition);
 				marker.Scale = markerScale;
 			}
 		}
@@ -288,7 +285,7 @@ public partial class LargeMapView : Control
 
 	private void ApplyHeroLayout(Vector2 markerScale)
 	{
-		_heroPin.Position = _transform.Project(_heroDesignPosition);
+		_heroPin.Position = _transform.Project(_heroLogicalPosition);
 		_heroPin.Scale = markerScale;
 	}
 
@@ -570,7 +567,7 @@ public partial class LargeMapView : Control
 	{
 		DismissMobileTooltip();
 		_mobileTooltipMarker = marker;
-		var markerRect = new Rect2(marker.Position, marker.Size * marker.Scale);
+		var markerRect = marker.GetScreenBounds();
 		_mobileTooltip = MapEntityTooltip.Show(
 			this,
 			TooltipScene,
@@ -596,7 +593,7 @@ public partial class LargeMapView : Control
 		{
 			if (_locations.GetChild(index) is LargeMapMarker marker &&
 				marker.Visible &&
-				new Rect2(marker.Position, marker.Size * marker.Scale).HasPoint(screenPosition))
+				marker.GetScreenBounds().HasPoint(screenPosition))
 			{
 				return marker;
 			}
@@ -604,10 +601,6 @@ public partial class LargeMapView : Control
 
 		return null;
 	}
-
-	private static Vector2 ProjectToDesign(MapPosition sourcePosition) => new(
-		sourcePosition.X / SourceWidth * CanvasWidth + DesignOffsetX,
-		sourcePosition.Y / SourceHeight * CanvasHeight + DesignOffsetY);
 
 	private static void ClearChildren(Node node)
 	{

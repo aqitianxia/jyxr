@@ -15,7 +15,7 @@ length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Notice:position")
+tracks/0/path = NodePath("Visual/Notice:position")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -33,7 +33,7 @@ step = 0.2
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Notice:position")
+tracks/0/path = NodePath("Visual/Notice:position")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -50,14 +50,19 @@ _data = {
 }
 
 [node name="MapEntitySlot" type="Control" unique_id=1781355164]
-custom_minimum_size = Vector2(80, 80)
-offset_right = 80.0
-offset_bottom = 80.0
 mouse_filter = 2
 script = ExtResource("1_script")
 DefaultTexture = ExtResource("2_noevent")
 
-[node name="Avatar" type="TextureRect" parent="." unique_id=1516912145]
+[node name="Visual" type="Control" parent="." unique_id=1959128841]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -40.0
+offset_top = -80.0
+offset_right = 40.0
+mouse_filter = 2
+
+[node name="Avatar" type="TextureRect" parent="Visual" unique_id=1516912145]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -70,7 +75,7 @@ texture = ExtResource("2_noevent")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="OverflowAvatar" type="Control" parent="."]
+[node name="OverflowAvatar" type="Control" parent="Visual"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -82,7 +87,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_overflow")
 
-[node name="NameLabel" type="Label" parent="." unique_id=184962917]
+[node name="NameLabel" type="Label" parent="Visual" unique_id=184962917]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = -35.0
@@ -95,7 +100,7 @@ label_settings = SubResource("LabelSettings_name")
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Notice" type="TextureRect" parent="." unique_id=402496180]
+[node name="Notice" type="TextureRect" parent="Visual" unique_id=402496180]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0

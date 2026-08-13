@@ -11,6 +11,8 @@ public sealed record MapDefinition
 
     public MapKind Kind { get; init; } = MapKind.Small;
 
+    public double TravelSpeed { get; init; }
+
     public string? Description { get; init; }
 
     public string? Picture { get; init; }

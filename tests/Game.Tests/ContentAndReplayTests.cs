@@ -156,10 +156,92 @@ public sealed class ContentLoadingTests
                     Id = "world",
                     Name = "World",
                     Kind = MapKind.Large,
-                    Locations = [location],
+                    TravelSpeed = 10d,
+                    Locations = [location with { Position = new MapPosition(10, 20) }],
                 },
             ],
         };
+
+    [Theory]
+    [InlineData(0d)]
+    [InlineData(-1d)]
+    public void JsonLoader_RejectsLargeMapWithoutPositiveTravelSpeed(double travelSpeed)
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "world",
+            Name = "World",
+            Kind = MapKind.Large,
+            TravelSpeed = travelSpeed,
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsNonFiniteLargeMapTravelSpeed()
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "world",
+            Name = "World",
+            Kind = MapKind.Large,
+            TravelSpeed = double.NaN,
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsTravelSpeedOnSmallMap()
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "town",
+            Name = "Town",
+            Kind = MapKind.Small,
+            TravelSpeed = 22d,
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsLargeMapLocationWithoutPosition()
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "world",
+            Name = "World",
+            Kind = MapKind.Large,
+            TravelSpeed = 22d,
+            Locations = [new MapLocationDefinition { Id = "town" }],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(1921, 0)]
+    [InlineData(0, -1)]
+    [InlineData(0, 1081)]
+    public void JsonLoader_RejectsLargeMapLocationOutsideLogicalSpace(int x, int y)
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "world",
+            Name = "World",
+            Kind = MapKind.Large,
+            TravelSpeed = 22d,
+            Locations = [new MapLocationDefinition { Id = "town", Position = new MapPosition(x, y) }],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    private static ContentPackage CreateSingleMapPackage(MapDefinition map) =>
+        new() { Maps = [map] };
 
     [Theory]
     [InlineData("")]
@@ -1426,6 +1508,7 @@ public sealed class ContentLoadingTests
                     "id": "world_map",
                     "name": "World Map",
                     "kind": "large",
+                    "travelSpeed": 10,
                     "locations": []
                   }
                 ]

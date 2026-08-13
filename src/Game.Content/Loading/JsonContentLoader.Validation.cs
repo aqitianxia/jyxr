@@ -57,9 +57,31 @@ public sealed partial class JsonContentLoader
         var eventIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var map in repository.Maps.Values)
         {
+            if (map.Kind == MapKind.Large)
+            {
+                Ensure(double.IsFinite(map.TravelSpeed) && map.TravelSpeed > 0d,
+                    $"Large map '{map.Id}' must have a positive finite travelSpeed.");
+            }
+            else
+            {
+                Ensure(map.TravelSpeed == 0d,
+                    $"Small map '{map.Id}' cannot define travelSpeed.");
+            }
+
             foreach (var location in map.Locations)
             {
                 var owner = $"Map '{map.Id}' location '{location.Id}'";
+                if (map.Kind == MapKind.Large)
+                {
+                    Ensure(location.Position is not null, $"{owner} must define a position.");
+                    var position = location.Position!.Value;
+                    Ensure(
+                        position.X >= 0 && position.X <= LargeMapCoordinateSpace.Width &&
+                        position.Y >= 0 && position.Y <= LargeMapCoordinateSpace.Height,
+                        $"{owner} position ({position.X}, {position.Y}) exceeds large-map coordinate space " +
+                        $"{LargeMapCoordinateSpace.Width}x{LargeMapCoordinateSpace.Height}.");
+                }
+
                 if (location.NoEventImage is not null)
                 {
                     Ensure(!string.IsNullOrWhiteSpace(location.NoEventImage),

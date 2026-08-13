@@ -9,6 +9,36 @@ namespace Game.Tests;
 public sealed class MapServiceTests
 {
     private const string WorldVillageEventId = "world-village-intro";
+
+    [Fact]
+    public void InteractWithLocation_UsesMapTravelSpeedForPreviewAndMovement()
+    {
+        var target = CreateLocation(
+            "village",
+            position: new MapPosition(44, 0),
+            events:
+            [
+                new MapEventDefinition
+                {
+                    Id = WorldVillageEventId,
+                    Action = Call("story('story_intro')"),
+                },
+            ]);
+        var worldMap = CreateMap("world", MapKind.Large, target) with { TravelSpeed = 22d };
+        var session = new GameSession(
+            new GameState(),
+            TestContentFactory.CreateRepository(maps: [worldMap]));
+        var location = Assert.Single(session.MapService.EnterMap("world").Locations);
+
+        Assert.Equal(3, session.MapService.PreviewInteractionConsumedTimeSlots(location));
+
+        var result = session.MapService.InteractWithLocation(location);
+
+        Assert.Equal(3, result.ConsumedTimeSlots);
+        Assert.Equal(new MapPosition(44, 0), session.State.Location.GetLargeMapPosition("world"));
+        Assert.Equal(TimeSlot.Wei, session.State.Clock.TimeSlot);
+    }
+
     [Fact]
     public void EnterMap_LargeMap_UsesRememberedPositionWithoutConsumingTime()
     {
@@ -597,6 +627,7 @@ public sealed class MapServiceTests
             Id = id,
             Name = id,
             Kind = kind,
+            TravelSpeed = kind == MapKind.Large ? 10d : 0d,
             Locations = locations,
         };
 

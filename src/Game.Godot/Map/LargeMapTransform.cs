@@ -4,18 +4,18 @@ namespace Game.Godot.Map;
 
 internal sealed class LargeMapTransform
 {
-	private readonly Vector2 _designSize;
+	private readonly Vector2 _logicalSize;
 	private readonly float _minimumZoom;
 	private readonly float _maximumZoom;
 
-	public LargeMapTransform(Vector2 designSize, float minimumZoom, float maximumZoom)
+	public LargeMapTransform(Vector2 logicalSize, float minimumZoom, float maximumZoom)
 	{
-		if (designSize.X <= 0f || designSize.Y <= 0f)
+		if (logicalSize.X <= 0f || logicalSize.Y <= 0f)
 		{
-			throw new ArgumentOutOfRangeException(nameof(designSize));
+			throw new ArgumentOutOfRangeException(nameof(logicalSize));
 		}
 
-		_designSize = designSize;
+		_logicalSize = logicalSize;
 		_minimumZoom = minimumZoom;
 		_maximumZoom = maximumZoom;
 	}
@@ -25,18 +25,18 @@ internal sealed class LargeMapTransform
 	public Vector2 Translation { get; private set; }
 
 	public Vector2 BaseScale => new(
-		ViewportSize.X > 0f ? ViewportSize.X / _designSize.X : 1f,
-		ViewportSize.Y > 0f ? ViewportSize.Y / _designSize.Y : 1f);
+		ViewportSize.X > 0f ? ViewportSize.X / _logicalSize.X : 1f,
+		ViewportSize.Y > 0f ? ViewportSize.Y / _logicalSize.Y : 1f);
 
 	public Vector2 SurfaceScale => BaseScale * Zoom;
 
 	public float MarkerScale => BaseScale.Y * Zoom;
 
-	public void Reset(Vector2 viewportSize, float zoom = 1f, Vector2? centerDesignPosition = null)
+	public void Reset(Vector2 viewportSize, float zoom = 1f, Vector2? centerLogicalPosition = null)
 	{
 		ViewportSize = viewportSize;
 		Zoom = Mathf.Clamp(zoom, _minimumZoom, _maximumZoom);
-		var center = centerDesignPosition ?? _designSize * 0.5f;
+		var center = centerLogicalPosition ?? _logicalSize * 0.5f;
 		Translation = viewportSize * 0.5f - center * SurfaceScale;
 		ClampTranslation();
 	}
@@ -54,9 +54,9 @@ internal sealed class LargeMapTransform
 			return;
 		}
 
-		var centerDesignPosition = Unproject(ViewportSize * 0.5f);
+		var centerLogicalPosition = Unproject(ViewportSize * 0.5f);
 		ViewportSize = viewportSize;
-		Translation = viewportSize * 0.5f - centerDesignPosition * SurfaceScale;
+		Translation = viewportSize * 0.5f - centerLogicalPosition * SurfaceScale;
 		ClampTranslation();
 	}
 
@@ -68,14 +68,14 @@ internal sealed class LargeMapTransform
 
 	public void ZoomAround(float factor, Vector2 previousScreenPosition, Vector2 currentScreenPosition)
 	{
-		var anchorDesignPosition = Unproject(previousScreenPosition);
+		var anchorLogicalPosition = Unproject(previousScreenPosition);
 		Zoom = Mathf.Clamp(Zoom * factor, _minimumZoom, _maximumZoom);
-		Translation = currentScreenPosition - anchorDesignPosition * SurfaceScale;
+		Translation = currentScreenPosition - anchorLogicalPosition * SurfaceScale;
 		ClampTranslation();
 	}
 
-	public Vector2 Project(Vector2 designPosition) =>
-		Translation + designPosition * SurfaceScale;
+	public Vector2 Project(Vector2 logicalPosition) =>
+		Translation + logicalPosition * SurfaceScale;
 
 	public Vector2 Unproject(Vector2 screenPosition)
 	{
@@ -87,7 +87,7 @@ internal sealed class LargeMapTransform
 
 	private void ClampTranslation()
 	{
-		var surfaceSize = _designSize * SurfaceScale;
+		var surfaceSize = _logicalSize * SurfaceScale;
 		Translation = new Vector2(
 			ClampAxis(Translation.X, surfaceSize.X, ViewportSize.X),
 			ClampAxis(Translation.Y, surfaceSize.Y, ViewportSize.Y));

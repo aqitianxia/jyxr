@@ -18,6 +18,20 @@ data/maps/sects/wudang.json
 
 文件路径只用于内容组织和错误诊断，不参与 Map ID。所有文件中的 `MapDefinition.id` 仍然全局唯一；addon 若要修改已有 Map，必须使用 `map` 补丁目标。
 
+大地图使用固定的 `1920×1080` 逻辑坐标空间，不接受旧的 `800×600` 坐标，也暂不支持自定义逻辑尺寸。地点的 `position` 表示图标下方中点所落在地图上的地理锚点，不是图片左上角；坐标必须落在逻辑范围内。大地图还必须声明正数 `travelSpeed`，表示每个时辰可移动的逻辑距离；小地图必须省略该字段或写为 `0`。移动耗时按 `floor(distance / travelSpeed)` 计算。
+
+```json
+{
+  "id": "world",
+  "name": "World",
+  "kind": "large",
+  "travelSpeed": 22,
+  "locations": [
+    {"id": "town", "position": {"x": 1098, "y": 717}, "events": []}
+  ]
+}
+```
+
 剧情脚本使用 `data/stories/**/*.story.json`，目录同样支持任意层级嵌套。脚本 ID 是相对于 `stories` 目录的路径去掉 `.story.json` 后缀；目录名称不进入脚本 ID。
 
 ## 文件格式

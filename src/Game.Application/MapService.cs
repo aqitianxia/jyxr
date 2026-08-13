@@ -152,16 +152,21 @@ public sealed class MapService
 
     private int CalculateMoveConsumedTimeSlots(string mapId, MapLocationDefinition location)
     {
-        if (location.Position is not { } targetPosition ||
-            ContentRepository.GetMap(mapId).Kind != MapKind.Large)
+        var map = ContentRepository.GetMap(mapId);
+        if (location.Position is not { } targetPosition || map.Kind != MapKind.Large)
         {
             return 0;
+        }
+
+        if (!double.IsFinite(map.TravelSpeed) || map.TravelSpeed <= 0d)
+        {
+            throw new InvalidOperationException($"Large map '{map.Id}' must have a positive travel speed.");
         }
 
         var currentPosition = State.Location.TryGetLargeMapPosition(mapId, out var position)
             ? position
             : MapPosition.Zero;
-        return (int)(currentPosition.DistanceTo(targetPosition) / 10d);
+        return (int)Math.Floor(currentPosition.DistanceTo(targetPosition) / map.TravelSpeed);
     }
 
     public void CompleteInteraction(MapInteractionResult interaction)
