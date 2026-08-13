@@ -75,7 +75,7 @@ public partial class InventoryItemBox : TextureButton
 			return;
 		}
 
-		_avatar.Texture = AssetResolver.LoadTextureResource(_entry.Definition.Picture);
+		_avatar.Texture = AssetResolver.LoadTexture(_entry.Definition.Picture);
 		_nameLabel.Text = _entry.Definition.Name;
 		_rarityBandStyle.BgColor = ItemRarityBandColorResolver.Resolve(_entry);
 		var quantity = _entry is StackInventoryEntry stack ? stack.Quantity : 1;

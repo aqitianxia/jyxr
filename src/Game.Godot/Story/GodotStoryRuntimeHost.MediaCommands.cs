@@ -29,7 +29,7 @@ public sealed partial class GodotStoryRuntimeHost
 	[StoryCommand("video", "movie")]
 	private async ValueTask ExecuteVideoAsync(string videoId, CancellationToken cancellationToken)
 	{
-		var stream = AssetResolver.LoadVideoResource(videoId)
+		var stream = AssetResolver.LoadVideo(videoId)
 			?? throw new InvalidOperationException(
 				$"Video resource '{videoId}' could not be loaded. Expected an Ogg Theora .ogv file.");
 		using var bgmSuspension = Game.Audio.SuspendBgm();

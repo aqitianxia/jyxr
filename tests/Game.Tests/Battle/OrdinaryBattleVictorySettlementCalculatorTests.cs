@@ -141,7 +141,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
         {
             Id = "training_battle",
             Name = "training_battle",
-            MapId = "test",
+            Background = "battle_bg/test",
             ExperienceMultiplier = 8d,
         };
         var repository = TestContentFactory.CreateRepository(
@@ -593,7 +593,7 @@ public sealed class OrdinaryBattleVictorySettlementCalculatorTests
             new OrdinaryBattleRequest("settlement", []));
 
     private static BattleDefinition CreateSettlementBattle() =>
-        new() { Id = "settlement", Name = "settlement", MapId = "test" };
+        new() { Id = "settlement", Name = "settlement", Background = "battle_bg/test" };
 
     private static ParsedExpression Expr(string source) => new ExpressionParser().ParseExpression(source);
 

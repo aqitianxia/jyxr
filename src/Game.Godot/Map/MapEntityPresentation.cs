@@ -23,7 +23,7 @@ internal static class MapEntityPresentation
 				return new MapEntityAvatarPresentation(defaultTexture, false);
 			}
 
-			var texture = AssetResolver.LoadTextureResource(location.NoEventImage);
+			var texture = AssetResolver.LoadTexture(location.NoEventImage);
 			return texture is null
 				? new MapEntityAvatarPresentation(defaultTexture, false)
 				: new MapEntityAvatarPresentation(texture, HasOverflowTag(location.NoEventImage));
@@ -32,21 +32,22 @@ internal static class MapEntityPresentation
 		var image = mapEvent.Image ?? location.Picture;
 		if (image is not null)
 		{
-			var texture = AssetResolver.LoadTextureResource(image);
+			var texture = AssetResolver.LoadTexture(image);
 			return texture is null
 				? new MapEntityAvatarPresentation(defaultTexture, false)
 				: new MapEntityAvatarPresentation(texture, HasOverflowTag(image));
 		}
 
+		var portraitReference = AssetResolver.ResolveCharacterPortraitReferenceByCharacterId(location.Id);
 		return new MapEntityAvatarPresentation(
-			AssetResolver.LoadCharacterPortraitByCharacterId(location.Id) ?? defaultTexture,
+			AssetResolver.LoadTexture(portraitReference) ?? defaultTexture,
 			false);
 	}
 
 	private static bool HasOverflowTag(string resourceId)
 	{
 		var normalizedResourceId = resourceId.Trim();
-		return !normalizedResourceId.StartsWith("res://", StringComparison.Ordinal) &&
+		return !normalizedResourceId.Contains('/') &&
 			Game.ContentRepository.TryGetResource(normalizedResourceId, out var resource) &&
 			resource.Tags.Contains(OverflowResourceTag, StringComparer.Ordinal);
 	}

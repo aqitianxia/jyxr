@@ -228,7 +228,7 @@ public partial class LargeMapView : Control
 
 	private void SetBackground(string? resourceId)
 	{
-		var texture = AssetResolver.LoadTextureResource(resourceId);
+		var texture = AssetResolver.LoadTexture(resourceId);
 		_background.Texture = texture;
 		_background.Visible = texture is not null;
 		if (texture is null)
@@ -240,7 +240,7 @@ public partial class LargeMapView : Control
 	private void SetHeroPortrait()
 	{
 		var hero = Game.State.Party.GetMember(Party.HeroCharacterId);
-		_heroAvatar.Texture = AssetResolver.LoadCharacterPortrait(hero);
+		_heroAvatar.Texture = AssetResolver.LoadTexture(hero.Portrait);
 	}
 
 	private void OnResized()

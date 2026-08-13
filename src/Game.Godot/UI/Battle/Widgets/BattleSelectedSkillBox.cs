@@ -112,7 +112,7 @@ public partial class BattleSelectedSkillBox : JyButton
 			return;
 		}
 
-		_avatar.Texture = AssetResolver.LoadSkillIconResource(_skill.Icon);
+		_avatar.Texture = AssetResolver.LoadTexture(_skill.Icon);
 		ApplySplitName(_skill.Name);
 	}
 

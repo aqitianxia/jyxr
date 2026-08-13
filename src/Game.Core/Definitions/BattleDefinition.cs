@@ -8,7 +8,7 @@ public sealed record BattleDefinition
 
     public required string Name { get; init; }
 
-    public required string MapId { get; init; }
+    public required string Background { get; init; }
 
     public string? Music { get; init; }
 

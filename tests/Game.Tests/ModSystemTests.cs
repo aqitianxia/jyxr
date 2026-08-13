@@ -789,7 +789,10 @@ public sealed class ModSystemTests
             {
               "initialStorySegmentId": "test_story",
               "initialPartyCharacterIds": ["ally_warrior"],
-              "selectablePortraitIds": ["test_portrait"],
+              "mainMenuMusic": "audio/test_theme",
+              "mainMenuBackground": "map/test_background",
+              "selectablePortraitIds": ["head/test_portrait"],
+              "randomBattleMusics": ["audio/test_battle"],
               "equipmentRandomAffixCountWeights": [{"count": 1, "weight": 1}]
             }
             """);

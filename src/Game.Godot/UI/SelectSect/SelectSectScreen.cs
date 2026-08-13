@@ -109,20 +109,20 @@ public partial class SelectSectScreen : Control
 		_majorLabel.Text = string.IsNullOrWhiteSpace(sect.PrimaryFocus) ? "未知" : sect.PrimaryFocus;
 		_featureLabel.Text = FormatList(sect.TraitTags, "无");
 		_descLabel.Text = sect.Description;
-		_background.Texture = AssetResolver.LoadTextureResource(sect.Background);
+		_background.Texture = AssetResolver.LoadTexture(sect.Background);
 		_masterAvatarBox.SetAvatarTexture(ResolveMasterPortrait(sect));
 	}
 
 	private static Texture2D? ResolveMasterPortrait(SectDefinition sect)
 	{
-		var portrait = AssetResolver.LoadTextureResource(sect.Portrait);
+		var portrait = AssetResolver.LoadTexture(sect.Portrait);
 		if (portrait is not null)
 		{
 			return portrait;
 		}
 
 		return Game.State.Party.Members.FirstOrDefault() is { } hero
-			? AssetResolver.LoadCharacterPortrait(hero)
+			? AssetResolver.LoadTexture(hero.Portrait)
 			: null;
 	}
 

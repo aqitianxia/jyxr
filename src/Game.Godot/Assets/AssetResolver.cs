@@ -1,5 +1,5 @@
-using Game.Content.Loading;
 using Game.Application;
+using Game.Content.Loading;
 using Game.Core.Definitions;
 using Game.Core.Model.Character;
 using Godot;
@@ -10,49 +10,18 @@ namespace Game.Godot.Assets;
 public static class AssetResolver
 {
 	private const string AssetsDirectoryPath = "res://assets";
-	private const string ArtDirectoryPath = "res://assets/art";
 	private const string AnimationDirectoryPath = "res://assets/animation";
-	private const string IconDirectoryPath = "res://assets/art/icon";
-	private const string AudioDirectoryPath = "res://assets/audio";
-	private const string VideoDirectoryPath = "res://assets/video";
 
-	private static readonly string[] TextureExtensions = [".png", ".jpg", ".jpeg", ".webp"];
-	private static readonly string[] AudioExtensions = [".ogg", ".mp3", ".wav", ".flac"];
-	private static readonly string[] VideoExtensions = [".ogv"];
+	public static Texture2D? LoadTexture(string? reference) =>
+		LoadMedia<Texture2D>(reference, MediaAssetKind.Texture);
 
-	public static Texture2D? LoadTextureResource(string? resourceId) =>
-		LoadAsset<Texture2D>(ResolveAssetPath(resourceId, ArtDirectoryPath, TextureExtensions, "Texture"), "Texture");
+	public static AudioStream? LoadAudio(string? reference) =>
+		LoadMedia<AudioStream>(reference, MediaAssetKind.Audio);
 
-	public static Texture2D? LoadSkillIconResource(string? resourceId)
-	{
-		var texture = LoadAsset<Texture2D>(ResolveConventionalTexturePath(resourceId, IconDirectoryPath), "Texture");
-		if (texture is not null)
-		{
-			return texture;
-		}
+	public static VideoStream? LoadVideo(string? reference) =>
+		LoadMedia<VideoStream>(reference, MediaAssetKind.Video);
 
-		return LoadTextureResource(resourceId);
-	}
-
-	public static Texture2D? LoadBattleBackgroundResource(string? mapId) =>
-		LoadAsset<Texture2D>(ResolveConventionalTexturePath(mapId, $"{ArtDirectoryPath}/battle_bg"), "Texture");
-
-	public static AudioStream? LoadAudioResource(string? resourceId) =>
-		LoadAsset<AudioStream>(ResolveAssetPath(resourceId, AudioDirectoryPath, AudioExtensions, "Audio"), "Audio");
-
-	public static VideoStream? LoadVideoResource(string? resourceId) =>
-		LoadAsset<VideoStream>(ResolveVideoAssetPath(resourceId), "Video");
-
-	public static Texture2D? LoadCharacterPortrait(string? portrait) =>
-		LoadTextureResource(portrait);
-
-	public static Texture2D? LoadCharacterPortrait(CharacterDefinition definition)
-	{
-		ArgumentNullException.ThrowIfNull(definition);
-		return LoadCharacterPortrait(definition.Portrait);
-	}
-
-	public static Texture2D? LoadCharacterPortraitByCharacterId(string? characterId)
+	public static string? ResolveCharacterPortraitReferenceByCharacterId(string? characterId)
 	{
 		if (string.IsNullOrWhiteSpace(characterId))
 		{
@@ -60,14 +29,8 @@ public static class AssetResolver
 		}
 
 		return TryGetCharacterById(characterId.Trim(), out var definition)
-			? LoadCharacterPortrait(definition)
+			? definition.Portrait
 			: null;
-	}
-
-	public static Texture2D? LoadCharacterPortrait(CharacterInstance character)
-	{
-		ArgumentNullException.ThrowIfNull(character);
-		return LoadCharacterPortrait(character.Portrait);
 	}
 
 	public static string? ResolveCharacterModelId(CharacterInstance character)
@@ -113,173 +76,65 @@ public static class AssetResolver
 
 		if (Game.PartyService.TryFindAllMember(normalizedSpeaker, out var character))
 		{
-			return (character.Name, LoadCharacterPortrait(character));
+			return (character.Name, LoadTexture(character.Portrait));
 		}
 
 		if (TryGetCharacterByIdOrName(normalizedSpeaker, out var definition))
 		{
-			return (definition.Name, LoadCharacterPortrait(definition));
+			return (definition.Name, LoadTexture(definition.Portrait));
 		}
 
 		return (normalizedSpeaker, null);
 	}
 
-	private static T? LoadAsset<T>(string? resourcePath, string assetKind)
+	private static T? LoadMedia<T>(
+		string? reference,
+		MediaAssetKind assetKind)
 		where T : Resource
 	{
+		if (string.IsNullOrWhiteSpace(reference))
+		{
+			return null;
+		}
+
+		var resolution = MediaReferenceResolver.Resolve(reference, assetKind, Game.ContentRepository);
+		if (!resolution.IsSuccess)
+		{
+			Game.Logger.Warning(
+				$"{assetKind} reference could not be resolved: '{reference}'. {resolution.Error}");
+			return null;
+		}
+
+		var candidatePaths = MediaReferenceResolver
+			.GetCandidateAssetPaths(resolution.AssetPath!, assetKind)
+			.Select(path => $"{AssetsDirectoryPath}/{path}")
+			.ToArray();
+		var resourcePath = candidatePaths.FirstOrDefault(static path => ResourceLoader.Exists(path));
 		if (resourcePath is null)
 		{
+			Game.Logger.Warning(
+				$"{assetKind} {resolution.ReferenceKind} reference '{reference}' does not exist. Candidate paths: {string.Join(", ", candidatePaths)}");
 			return null;
 		}
 
-		if (!ResourceLoader.Exists(resourcePath))
-		{
-			Game.Logger.Warning($"{assetKind} resource does not exist: {resourcePath}");
-			return null;
-		}
-
-		return ResourceLoader.Load<T>(resourcePath);
-	}
-
-	private static string? ResolveAssetPath(
-		string? resourceId,
-		string baseDirectoryPath,
-		IReadOnlyList<string> extensions,
-		string assetKind)
-	{
-		if (string.IsNullOrWhiteSpace(resourceId))
-		{
-			return null;
-		}
-
-		var normalizedResourceId = resourceId.Trim();
-		if (normalizedResourceId.StartsWith("res://", StringComparison.Ordinal))
-		{
-			return ResolveExistingPath(normalizedResourceId, extensions);
-		}
-
-		var resource = TryGetResource(normalizedResourceId, assetKind);
+		var resource = ResourceLoader.Load<T>(resourcePath);
 		if (resource is null)
 		{
-			return null;
+			Game.Logger.Warning(
+				$"{assetKind} {resolution.ReferenceKind} reference '{reference}' could not be loaded as {typeof(T).Name}. Resolved path: {resourcePath}");
 		}
 
-		var relativePath = NormalizeResourceValue(resource.Value, normalizedResourceId, assetKind);
-		return relativePath is null
-			? null
-			: ResolveExistingPath(BuildAssetPath(baseDirectoryPath, relativePath), extensions);
+		return resource;
 	}
 
-	private static string? ResolveVideoAssetPath(string? resourceId)
+	private static string? ResolveAnimationPath(string path)
 	{
-		if (string.IsNullOrWhiteSpace(resourceId))
+		if (Path.HasExtension(path))
 		{
-			return null;
+			return ResourceLoader.Exists(path) ? path : null;
 		}
 
-		var normalizedResourceId = resourceId.Trim();
-		string? path;
-		if (normalizedResourceId.StartsWith("res://", StringComparison.Ordinal))
-		{
-			path = normalizedResourceId;
-		}
-		else
-		{
-			var resource = TryGetResource(normalizedResourceId, "Video");
-			if (resource is null)
-			{
-				return null;
-			}
-
-			var relativePath = NormalizeResourceValue(resource.Value, normalizedResourceId, "Video");
-			path = relativePath is null ? null : BuildAssetPath(VideoDirectoryPath, relativePath);
-		}
-
-		if (path is null)
-		{
-			return null;
-		}
-
-		if (!Path.HasExtension(path))
-		{
-			return $"{path}{VideoExtensions[0]}";
-		}
-
-		if (!string.Equals(Path.GetExtension(path), VideoExtensions[0], StringComparison.OrdinalIgnoreCase))
-		{
-			Game.Logger.Warning($"Video resource uses unsupported format: {path}. Expected an Ogg Theora .ogv file.");
-			return null;
-		}
-
-		return path;
-	}
-
-	private static ResourceDefinition? TryGetResource(string resourceId, string assetKind)
-	{
-		if (Game.ContentRepository.TryGetResource(resourceId, out var resource))
-		{
-			return resource;
-		}
-
-		Game.Logger.Warning($"{assetKind} resource is missing: {resourceId}");
-		return null;
-	}
-
-	private static string? NormalizeResourceValue(string value, string resourceId, string assetKind)
-	{
-		var relativePath = value.Trim().Replace('\\', '/');
-		if (!string.IsNullOrWhiteSpace(relativePath))
-		{
-			return relativePath;
-		}
-
-		Game.Logger.Warning($"{assetKind} resource value is empty: {resourceId}");
-		return null;
-	}
-
-	private static string BuildAssetPath(string baseDirectoryPath, string relativePath)
-	{
-		if (relativePath.StartsWith("res://", StringComparison.Ordinal))
-		{
-			return relativePath;
-		}
-
-		if (relativePath.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
-		{
-			return $"res://{relativePath}";
-		}
-
-		if (relativePath.StartsWith("art/", StringComparison.OrdinalIgnoreCase) ||
-			relativePath.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
-			relativePath.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
-		{
-			return $"{AssetsDirectoryPath}/{relativePath}";
-		}
-
-		return $"{baseDirectoryPath}/{relativePath}";
-	}
-
-	private static string ResolveExistingPath(string path, IReadOnlyList<string> extensions)
-	{
-		if (!Path.HasExtension(path))
-		{
-			return ResolveExtensionlessPath(path, extensions) ?? $"{path}{extensions[0]}";
-		}
-
-		if (ResourceLoader.Exists(path))
-		{
-			return path;
-		}
-
-		var extensionlessPath = Path.ChangeExtension(path, null)?.Replace('\\', '/').TrimEnd('.');
-		return string.IsNullOrWhiteSpace(extensionlessPath)
-			? path
-			: ResolveExtensionlessPath(extensionlessPath, extensions) ?? path;
-	}
-
-	private static string? ResolveExtensionlessPath(string path, IReadOnlyList<string> extensions)
-	{
-		foreach (var extension in extensions)
+		foreach (var extension in new[] { ".tres", ".res" })
 		{
 			var candidate = $"{path}{extension}";
 			if (ResourceLoader.Exists(candidate))
@@ -291,22 +146,6 @@ public static class AssetResolver
 		return null;
 	}
 
-	private static string? ResolveConventionalTexturePath(string? resourceId, string baseDirectoryPath)
-	{
-		if (string.IsNullOrWhiteSpace(resourceId))
-		{
-			return null;
-		}
-
-		var normalizedResourceId = resourceId.Trim();
-		if (normalizedResourceId.StartsWith("res://", StringComparison.Ordinal))
-		{
-			return ResolveExistingPath(normalizedResourceId, TextureExtensions);
-		}
-
-		return ResolveExistingPath($"{baseDirectoryPath}/{normalizedResourceId}", TextureExtensions);
-	}
-
 	private static AnimationLibrary? LoadAnimationLibrary(string? resourceId, string category)
 	{
 		if (string.IsNullOrWhiteSpace(resourceId))
@@ -316,9 +155,15 @@ public static class AssetResolver
 
 		var normalizedResourceId = resourceId.Trim();
 		var resourcePath = normalizedResourceId.StartsWith("res://", StringComparison.Ordinal)
-			? ResolveExistingPath(normalizedResourceId, [".tres", ".res"])
-			: ResolveExistingPath($"{AnimationDirectoryPath}/{category}/{normalizedResourceId}", [".tres", ".res"]);
-		return LoadAsset<AnimationLibrary>(resourcePath, "AnimationLibrary");
+			? ResolveAnimationPath(normalizedResourceId)
+			: ResolveAnimationPath($"{AnimationDirectoryPath}/{category}/{normalizedResourceId}");
+		if (resourcePath is null)
+		{
+			Game.Logger.Warning($"AnimationLibrary resource does not exist: {normalizedResourceId}");
+			return null;
+		}
+
+		return ResourceLoader.Load<AnimationLibrary>(resourcePath);
 	}
 
 	private static bool TryGetCharacterById(string characterId, out CharacterDefinition definition)

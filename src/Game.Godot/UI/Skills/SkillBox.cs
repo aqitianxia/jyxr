@@ -155,7 +155,7 @@ public partial class SkillBox : Button
 
 	private static Texture2D? ResolveTexture(SkillInstance skill)
 	{
-		var texture = AssetResolver.LoadSkillIconResource(skill.Icon);
+		var texture = AssetResolver.LoadTexture(skill.Icon);
 		if (texture is not null)
 		{
 			return texture;
@@ -163,7 +163,7 @@ public partial class SkillBox : Button
 
 		if (skill is FormSkillInstance formSkill)
 		{
-			return AssetResolver.LoadSkillIconResource(formSkill.Parent.Icon);
+			return AssetResolver.LoadTexture(formSkill.Parent.Icon);
 		}
 
 		return null;

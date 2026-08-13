@@ -302,7 +302,7 @@ public sealed class BattleServiceTests
         {
             Id = "fixed_player",
             Name = "fixed_player",
-            MapId = "test",
+            Background = "battle_bg/test",
             Participants =
             [
                 CreateParticipant(team: 1, x: 1, y: 1, characterId: "shadow"),
@@ -315,7 +315,7 @@ public sealed class BattleServiceTests
         {
             Id = "enemy_only",
             Name = "enemy_only",
-            MapId = "test",
+            Background = "battle_bg/test",
             Participants =
             [
                 CreateParticipant(team: 2, x: 2, y: 1, characterId: "enemy"),
@@ -327,7 +327,7 @@ public sealed class BattleServiceTests
         {
             Id = "kill_stats",
             Name = "kill_stats",
-            MapId = "test",
+            Background = "battle_bg/test",
             Participants =
             [
                 CreateParticipant(team: 1, x: 1, y: 1, characterId: "shadow"),

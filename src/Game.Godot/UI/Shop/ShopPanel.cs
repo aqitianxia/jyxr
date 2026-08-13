@@ -93,7 +93,7 @@ public partial class ShopPanel : JyPanel
 	{
 		_shop = Game.ShopService.Open(_shopId);
 		_titleLabel.Text = _shop.Definition.Name;
-		_backgroundTexture.Texture = AssetResolver.LoadTextureResource(_shop.Definition.Background);
+		_backgroundTexture.Texture = AssetResolver.LoadTexture(_shop.Definition.Background);
 		if (!string.IsNullOrWhiteSpace(_shop.Definition.Music))
 		{
 			Game.Audio.PlayBgm(_shop.Definition.Music);

@@ -55,7 +55,7 @@ public partial class ItemTargetCharacterBox : Button
 		_attackLabel.Text = $"攻:{combatStats.Attack}";
 		_defenceLabel.Text = $"防:{combatStats.Defence}";
 
-		var portrait = AssetResolver.LoadCharacterPortrait(_character);
+		var portrait = AssetResolver.LoadTexture(_character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

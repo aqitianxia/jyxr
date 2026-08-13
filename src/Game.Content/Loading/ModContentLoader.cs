@@ -51,6 +51,7 @@ internal static class ModContentLoader
         ValidateConfig(config);
         var package = BuildPackage(catalog);
         var repository = new JsonContentLoader().LoadFromPackage(package);
+        JsonContentLoader.ValidateGameConfigMediaReferences(config, repository);
         return new LoadedModContent(config, repository, new ContentLoadReport(catalog.Warnings.ToArray()));
     }
 

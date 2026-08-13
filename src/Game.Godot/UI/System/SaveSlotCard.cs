@@ -92,7 +92,7 @@ public partial class SaveSlotCard : Button
 			return;
 		}
 
-		_portrait.Texture = AssetResolver.LoadCharacterPortrait(summary.LeaderPortrait);
+		_portrait.Texture = AssetResolver.LoadTexture(summary.LeaderPortrait);
 		_nameLabel.Text = summary.LeaderName ?? "无名侠客";
 		_partyCountLabel.Text = $"队伍 {summary.PartyMemberCount}";
 		_playTimeLabel.Text = $"游玩 {PlayTimeFormatter.FormatHoursAndMinutes(summary.PlayTimeSeconds)}";

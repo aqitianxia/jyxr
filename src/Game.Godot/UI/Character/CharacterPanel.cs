@@ -137,7 +137,7 @@ public partial class CharacterPanel : JyPanel
 			throw new InvalidOperationException("CharacterPanel.CharacterId is required.");
 		}
 
-		var portrait = AssetResolver.LoadCharacterPortrait(character);
+		var portrait = AssetResolver.LoadTexture(character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

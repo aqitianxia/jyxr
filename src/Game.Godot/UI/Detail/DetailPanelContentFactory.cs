@@ -46,8 +46,8 @@ public static class DetailPanelContentFactory
 		if (product.Item is null)
 		{
 			var texture = product.Definition.Reward is SkillMaxLevelRewardDefinition
-				? AssetResolver.LoadSkillIconResource(product.Picture)
-				: AssetResolver.LoadTextureResource(product.Picture);
+				? AssetResolver.LoadTexture(product.Picture)
+				: AssetResolver.LoadTexture(product.Picture);
 			return new DetailPanelContent(
 				product.DisplayName,
 				"特殊商品",
@@ -61,7 +61,7 @@ public static class DetailPanelContentFactory
 		return new DetailPanelContent(
 			product.DisplayName,
 			ItemCatalogPresentation.FormatCategory(item),
-			AssetResolver.LoadTextureResource(product.Picture),
+			AssetResolver.LoadTexture(product.Picture),
 			ItemDescriptionFormatter.FormatBbCodeCn(item, Game.ContentRepository),
 			ResolveItemTitleColor(item),
 			action);
@@ -76,7 +76,7 @@ public static class DetailPanelContentFactory
 		return new DetailPanelContent(
 			item.Name,
 			ItemCatalogPresentation.FormatCategory(item),
-			AssetResolver.LoadTextureResource(item.Picture),
+			AssetResolver.LoadTexture(item.Picture),
 			ItemDescriptionFormatter.FormatBbCodeCn(item, Game.ContentRepository),
 			ResolveItemTitleColor(item),
 			action);
@@ -91,7 +91,7 @@ public static class DetailPanelContentFactory
 		return new DetailPanelContent(
 			equipment.Definition.Name,
 			ItemCatalogPresentation.FormatCategory(equipment.Definition),
-			AssetResolver.LoadTextureResource(equipment.Definition.Picture),
+			AssetResolver.LoadTexture(equipment.Definition.Picture),
 			ItemDescriptionFormatter.FormatBbCodeCn(equipment, Game.ContentRepository),
 			ResolveEquipmentTitleColor(equipment),
 			action);
@@ -110,14 +110,14 @@ public static class DetailPanelContentFactory
 
 	private static Texture2D? ResolveSkillIcon(SkillInstance skill)
 	{
-		var icon = AssetResolver.LoadSkillIconResource(skill.Icon);
+		var icon = AssetResolver.LoadTexture(skill.Icon);
 		if (icon is not null)
 		{
 			return icon;
 		}
 
 		return skill is FormSkillInstance formSkill
-			? AssetResolver.LoadSkillIconResource(formSkill.Parent.Icon)
+			? AssetResolver.LoadTexture(formSkill.Parent.Icon)
 			: null;
 	}
 

@@ -136,7 +136,7 @@ public partial class PartyCharacterBox : Button
 		_lockLabel.Visible = IsHeroLocked;
 		TooltipText = string.Empty;
 
-		var portrait = AssetResolver.LoadCharacterPortrait(_character);
+		var portrait = AssetResolver.LoadTexture(_character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

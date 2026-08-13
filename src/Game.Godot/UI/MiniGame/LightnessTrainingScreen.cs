@@ -33,7 +33,7 @@ public partial class LightnessTrainingScreen : Control
 		_hintLabel = GetNode<Label>("%HintLabel");
 		_startButton = GetNode<Button>("%StartButton");
 
-		_hero.Texture = AssetResolver.LoadTextureResource(HeroPortraitId);
+		_hero.Texture = AssetResolver.LoadTexture(HeroPortraitId);
 		_obstacles.Add(CreateObstacle("%EastObstacle", EastPortraitId));
 		_obstacles.Add(CreateObstacle("%SouthObstacle", SouthPortraitId));
 		_obstacles.Add(CreateObstacle("%WestObstacle", WestPortraitId));
@@ -117,7 +117,7 @@ public partial class LightnessTrainingScreen : Control
 	private ObstacleState CreateObstacle(string nodePath, string portraitId)
 	{
 		var obstacle = GetNode<TextureRect>(nodePath);
-		obstacle.Texture = AssetResolver.LoadTextureResource(portraitId);
+		obstacle.Texture = AssetResolver.LoadTexture(portraitId);
 		return new ObstacleState(obstacle, Vector2.Zero);
 	}
 

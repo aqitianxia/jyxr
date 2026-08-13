@@ -79,7 +79,7 @@ internal sealed class BattleSkillPresentationController(
             unit.Id,
             unit.Character.Name,
             unit.Character.Gender,
-            AssetResolver.LoadCharacterPortrait(unit.Character),
+            AssetResolver.LoadTexture(unit.Character.Portrait),
             action.SkillCast ?? BattleSkillCastInfo.Create(skill, skill),
             action.ImpactedPositions);
         var presentationTask = _active.RunAsync();

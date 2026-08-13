@@ -29,7 +29,7 @@ public partial class MainMenu : Control
 		_loadButton.Pressed += OnLoadPressed;
 		_musicButton.Pressed += OnMusicPressed;
 
-		_background.Texture = AssetResolver.LoadTextureResource(Game.Config.MainMenuBackground);
+		_background.Texture = AssetResolver.LoadTexture(Game.Config.MainMenuBackground);
 		UIRoot.Instance.SetHudSuppressed(true);
 		Game.Audio.PlayBgm(Game.Config.MainMenuMusic);
 	}

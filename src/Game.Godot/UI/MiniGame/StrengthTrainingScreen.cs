@@ -46,7 +46,7 @@ public partial class StrengthTrainingScreen : Control
 		_hitEffect = GetNode<TextureRect>("%HitEffect");
 		_timeLabel = GetNode<Label>("%TimeLabel");
 		_scoreLabel = GetNode<Label>("%ScoreLabel");
-		_hitEffect.Texture = AssetResolver.LoadTextureResource(HitEffectTextureId);
+		_hitEffect.Texture = AssetResolver.LoadTexture(HitEffectTextureId);
 		_hitEffect.Hide();
 
 		_targets.Add(CreatePointTarget("%BadTarget", -2, BadHitSfxId, BadTargetPortraitId));
@@ -131,7 +131,7 @@ public partial class StrengthTrainingScreen : Control
 	private TargetState CreatePointTarget(string nodePath, int point, string audioId, string portraitId)
 	{
 		var node = GetNode<TextureButton>(nodePath);
-		node.TextureNormal = AssetResolver.LoadTextureResource(portraitId);
+		node.TextureNormal = AssetResolver.LoadTexture(portraitId);
 		var target = new TargetState(node, point, audioId, IsItem: false);
 		node.Pressed += () => HitTarget(target);
 		return target;
@@ -249,7 +249,7 @@ public partial class StrengthTrainingScreen : Control
 			return null;
 		}
 
-		return AssetResolver.LoadTextureResource(item.Picture);
+		return AssetResolver.LoadTexture(item.Picture);
 	}
 
 	private sealed class TargetState

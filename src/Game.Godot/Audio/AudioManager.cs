@@ -13,7 +13,7 @@ public partial class AudioManager : Node
 	private AudioStreamPlayer _bgmPlayer = null!;
 	private AudioStreamPlayer _sfxPlayer = null!;
 	private AudioStreamPlaybackPolyphonic _sfxPlayback = null!;
-	private string? _currentBgmResourceId;
+	private string? _currentBgmReference;
 	private string[] _bgmPlaylist = [];
 	private int _lastPlaylistIndex = -1;
 	private int _bgmSuspensionCount;
@@ -28,39 +28,39 @@ public partial class AudioManager : Node
 		Instance = this;
 	}
 
-	public void PlayBgm(string? resourceId)
+	public void PlayBgm(string? reference)
 	{
-		if (string.IsNullOrWhiteSpace(resourceId))
+		if (string.IsNullOrWhiteSpace(reference))
 		{
 			return;
 		}
 
 		_bgmPlaylist = [];
 		_lastPlaylistIndex = -1;
-		PlayResolvedBgm(resourceId.Trim());
+		PlayResolvedBgm(reference.Trim());
 	}
 
-	public void PlayBgm(IReadOnlyList<string> resourceIds)
+	public void PlayBgm(IReadOnlyList<string> references)
 	{
-		ArgumentNullException.ThrowIfNull(resourceIds);
+		ArgumentNullException.ThrowIfNull(references);
 
-		var normalizedIds = resourceIds
-			.Where(static id => !string.IsNullOrWhiteSpace(id))
-			.Select(static id => id.Trim())
+		var normalizedReferences = references
+			.Where(static reference => !string.IsNullOrWhiteSpace(reference))
+			.Select(static reference => reference.Trim())
 			.ToArray();
 
-		if (normalizedIds.Length == 0)
+		if (normalizedReferences.Length == 0)
 		{
 			return;
 		}
 
-		if (normalizedIds.Length == 1)
+		if (normalizedReferences.Length == 1)
 		{
-			PlayBgm(normalizedIds[0]);
+			PlayBgm(normalizedReferences[0]);
 			return;
 		}
 
-		_bgmPlaylist = normalizedIds;
+		_bgmPlaylist = normalizedReferences;
 		PlayPlaylistIndex(PickNextPlaylistIndex());
 	}
 
@@ -68,7 +68,7 @@ public partial class AudioManager : Node
 	{
 		_bgmPlaylist = [];
 		_lastPlaylistIndex = -1;
-		_currentBgmResourceId = null;
+		_currentBgmReference = null;
 		_bgmPlayer.Stop();
 		_bgmPlayer.Stream = null;
 	}
@@ -85,14 +85,14 @@ public partial class AudioManager : Node
 		return new BgmSuspension(this);
 	}
 
-	public void PlaySfx(string? resourceId)
+	public void PlaySfx(string? reference)
 	{
-		if (string.IsNullOrWhiteSpace(resourceId))
+		if (string.IsNullOrWhiteSpace(reference))
 		{
 			return;
 		}
 
-		var stream = AssetResolver.LoadAudioResource(resourceId);
+		var stream = AssetResolver.LoadAudio(reference);
 		if (stream is null)
 		{
 			return;
@@ -101,7 +101,7 @@ public partial class AudioManager : Node
 		var playbackId = _sfxPlayback.PlayStream(stream, bus: SfxBusName);
 		if (playbackId == AudioStreamPlaybackPolyphonic.InvalidId)
 		{
-			Game.Logger.Warning($"SFX polyphony exhausted, dropped sound: {resourceId}");
+			Game.Logger.Warning($"SFX polyphony exhausted, dropped sound: {reference}");
 		}
 	}
 
@@ -113,9 +113,9 @@ public partial class AudioManager : Node
 			return;
 		}
 
-		if (!string.IsNullOrWhiteSpace(_currentBgmResourceId))
+		if (!string.IsNullOrWhiteSpace(_currentBgmReference))
 		{
-			PlayResolvedBgm(_currentBgmResourceId);
+			PlayResolvedBgm(_currentBgmReference);
 		}
 	}
 
@@ -141,24 +141,24 @@ public partial class AudioManager : Node
 		return nextIndex;
 	}
 
-	private void PlayResolvedBgm(string resourceId)
+	private void PlayResolvedBgm(string reference)
 	{
-		if (_currentBgmResourceId == resourceId && _bgmPlayer.Playing)
+		if (_currentBgmReference == reference && _bgmPlayer.Playing)
 		{
 			return;
 		}
 
-		var stream = AssetResolver.LoadAudioResource(resourceId);
+		var stream = AssetResolver.LoadAudio(reference);
 		if (stream is null)
 		{
 			return;
 		}
 
-		_currentBgmResourceId = resourceId;
+		_currentBgmReference = reference;
 		_bgmPlayer.Stream = stream;
 		_bgmPlayer.Play();
 		_bgmPlayer.StreamPaused = _bgmSuspensionCount > 0;
-		Game.Logger.Info($"Playing BGM: {resourceId}");
+		Game.Logger.Info($"Playing BGM: {reference}");
 	}
 
 	private void ResumeBgm(BgmSuspension suspension)

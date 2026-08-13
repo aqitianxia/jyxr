@@ -162,7 +162,7 @@ internal sealed class BattleActionPanelController(
 		var state = getState();
 		var actingUnit = state is null ? null : BattlePresenter.TryGetActingUnit(state);
 		view.ActionDrawer.SetAvatar(
-			actingUnit is null ? null : AssetResolver.LoadCharacterPortrait(actingUnit.Character));
+			actingUnit is null ? null : AssetResolver.LoadTexture(actingUnit.Character.Portrait));
 	}
 
 	private SkillInstance? ResolvePreviewSkill(BattleUnit? actingUnit, SkillInstance? selectedSkill)

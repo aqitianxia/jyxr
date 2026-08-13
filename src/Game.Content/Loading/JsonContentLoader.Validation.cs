@@ -34,6 +34,7 @@ public sealed partial class JsonContentLoader
     private static void ValidateRepository(InMemoryContentRepository repository)
     {
         ValidateResources(repository);
+        ValidateMediaReferences(repository);
         ValidateCharacters(repository);
         ValidateBattles(repository);
         ValidateBattleHookAffixes(repository);
@@ -81,6 +82,8 @@ public sealed partial class JsonContentLoader
     {
         foreach (var resource in repository.Resources.Values)
         {
+            Ensure(!resource.Id.Contains('/'),
+                $"Resource ID '{resource.Id}' cannot contain '/'.");
             Ensure(resource.Tags is not null, $"Resource '{resource.Id}' has null tags.");
             var tags = new HashSet<string>(StringComparer.Ordinal);
             foreach (var tag in resource.Tags!)
@@ -89,6 +92,153 @@ public sealed partial class JsonContentLoader
                 Ensure(tags.Add(tag), $"Resource '{resource.Id}' contains tag '{tag}' more than once.");
             }
         }
+    }
+
+    private static void ValidateMediaReferences(InMemoryContentRepository repository)
+    {
+        foreach (var character in repository.Characters.Values)
+        {
+            ValidateOptionalMediaReference(character.Portrait, MediaAssetKind.Texture,
+                $"Character '{character.Id}' portrait", repository);
+        }
+
+        foreach (var item in repository.Items.Values)
+        {
+            ValidateOptionalMediaReference(item.Picture, MediaAssetKind.Texture,
+                $"Item '{item.Id}' picture", repository);
+        }
+
+        foreach (var skill in repository.ExternalSkills.Values)
+        {
+            ValidateSkillMediaReferences(skill.Id, skill.Icon, skill.Audio, skill.FormSkills, repository);
+        }
+
+        foreach (var skill in repository.InternalSkills.Values)
+        {
+            ValidateSkillMediaReferences(skill.Id, skill.Icon, null, skill.FormSkills, repository);
+        }
+
+        foreach (var skill in repository.SpecialSkills.Values)
+        {
+            ValidateOptionalMediaReference(skill.Icon, MediaAssetKind.Texture,
+                $"SpecialSkill '{skill.Id}' icon", repository);
+            ValidateOptionalMediaReference(skill.Audio, MediaAssetKind.Audio,
+                $"SpecialSkill '{skill.Id}' audio", repository);
+        }
+
+        foreach (var battle in repository.Battles.Values)
+        {
+            ValidateRequiredMediaReference(battle.Background, MediaAssetKind.Texture,
+                $"Battle '{battle.Id}' background", repository);
+            ValidateOptionalMediaReference(battle.Music, MediaAssetKind.Audio,
+                $"Battle '{battle.Id}' music", repository);
+        }
+
+        foreach (var map in repository.Maps.Values)
+        {
+            ValidateOptionalMediaReference(map.Picture, MediaAssetKind.Texture,
+                $"Map '{map.Id}' picture", repository);
+            foreach (var music in map.Musics)
+            {
+                ValidateRequiredMediaReference(music, MediaAssetKind.Audio,
+                    $"Map '{map.Id}' music", repository);
+            }
+
+            foreach (var location in map.Locations)
+            {
+                var owner = $"Map '{map.Id}' location '{location.Id}'";
+                ValidateOptionalMediaReference(location.Picture, MediaAssetKind.Texture,
+                    $"{owner} picture", repository);
+                ValidateOptionalMediaReference(location.NoEventImage, MediaAssetKind.Texture,
+                    $"{owner} noEventImage", repository);
+                foreach (var mapEvent in location.Events)
+                {
+                    ValidateOptionalMediaReference(mapEvent.Image, MediaAssetKind.Texture,
+                        $"{owner} event '{mapEvent.Id}' image", repository);
+                }
+            }
+        }
+
+        foreach (var shop in repository.Shops.Values)
+        {
+            ValidateOptionalMediaReference(shop.Background, MediaAssetKind.Texture,
+                $"Shop '{shop.Id}' background", repository);
+            ValidateOptionalMediaReference(shop.Music, MediaAssetKind.Audio,
+                $"Shop '{shop.Id}' music", repository);
+        }
+
+        foreach (var sect in repository.Sects.Values)
+        {
+            ValidateOptionalMediaReference(sect.Portrait, MediaAssetKind.Texture,
+                $"Sect '{sect.Id}' portrait", repository);
+            ValidateOptionalMediaReference(sect.Background, MediaAssetKind.Texture,
+                $"Sect '{sect.Id}' background", repository);
+        }
+    }
+
+    private static void ValidateSkillMediaReferences(
+        string skillId,
+        string? icon,
+        string? audio,
+        IReadOnlyList<FormSkillDefinition> forms,
+        InMemoryContentRepository repository)
+    {
+        ValidateOptionalMediaReference(icon, MediaAssetKind.Texture,
+            $"Skill '{skillId}' icon", repository);
+        ValidateOptionalMediaReference(audio, MediaAssetKind.Audio,
+            $"Skill '{skillId}' audio", repository);
+        foreach (var form in forms)
+        {
+            ValidateOptionalMediaReference(form.Icon, MediaAssetKind.Texture,
+                $"Skill '{skillId}' form '{form.Id}' icon", repository);
+            ValidateOptionalMediaReference(form.Audio, MediaAssetKind.Audio,
+                $"Skill '{skillId}' form '{form.Id}' audio", repository);
+        }
+    }
+
+    internal static void ValidateGameConfigMediaReferences(
+        Game.Core.Model.GameConfig config,
+        InMemoryContentRepository repository)
+    {
+        ValidateRequiredMediaReference(config.MainMenuBackground, MediaAssetKind.Texture,
+            "Game config mainMenuBackground", repository);
+        ValidateRequiredMediaReference(config.MainMenuMusic, MediaAssetKind.Audio,
+            "Game config mainMenuMusic", repository);
+        foreach (var portrait in config.SelectablePortraitIds)
+        {
+            ValidateRequiredMediaReference(portrait, MediaAssetKind.Texture,
+                "Game config selectablePortraitIds", repository);
+        }
+
+        foreach (var music in config.RandomBattleMusics)
+        {
+            ValidateRequiredMediaReference(music, MediaAssetKind.Audio,
+                "Game config randomBattleMusics", repository);
+        }
+    }
+
+    private static void ValidateOptionalMediaReference(
+        string? reference,
+        MediaAssetKind assetKind,
+        string owner,
+        InMemoryContentRepository repository)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            return;
+        }
+
+        ValidateRequiredMediaReference(reference, assetKind, owner, repository);
+    }
+
+    private static void ValidateRequiredMediaReference(
+        string? reference,
+        MediaAssetKind assetKind,
+        string owner,
+        InMemoryContentRepository repository)
+    {
+        var resolution = MediaReferenceResolver.Resolve(reference, assetKind, repository);
+        Ensure(resolution.IsSuccess, $"{owner} is invalid: {resolution.Error}");
     }
 
     private static void ValidateItemTags(InMemoryContentRepository repository)
@@ -1248,9 +1398,11 @@ public sealed partial class JsonContentLoader
             switch (step)
             {
                 case DialogueStep:
-                case CommandStep:
                 case SetVariableStep:
                 case DeleteVariableStep:
+                    break;
+                case CommandStep command:
+                    ValidateStoryMediaCommand(command.Call, repository, ownerName);
                     break;
                 case JumpStep jump:
                     Ensure(repository.StorySegments.ContainsKey(jump.Target),
@@ -1316,6 +1468,49 @@ public sealed partial class JsonContentLoader
                     throw new InvalidOperationException($"Unsupported story step type '{step.GetType().Name}'.");
             }
         }
+    }
+
+    private static void ValidateStoryMediaCommand(
+        ParsedCall call,
+        InMemoryContentRepository repository,
+        string ownerName)
+    {
+        var (assetKind, argumentIndexes) = call.Root.Name switch
+        {
+            "background" => (MediaAssetKind.Texture, Enumerable.Range(0, Math.Min(1, call.Root.Arguments.Count))),
+            "music" => (MediaAssetKind.Audio, Enumerable.Range(0, call.Root.Arguments.Count)),
+            "sound" or "effect" => (MediaAssetKind.Audio, Enumerable.Range(0, Math.Min(1, call.Root.Arguments.Count))),
+            "video" or "movie" => (MediaAssetKind.Video, Enumerable.Range(0, Math.Min(1, call.Root.Arguments.Count))),
+            "set_portrait" or "head" when call.Root.Arguments.Count > 1 =>
+                (MediaAssetKind.Texture, new[] { 1 }.AsEnumerable()),
+            _ => (MediaAssetKind.Texture, Enumerable.Empty<int>()),
+        };
+
+        foreach (var argumentIndex in argumentIndexes)
+        {
+            if (!TryGetLiteralString(call.Root.Arguments[argumentIndex], out var reference))
+            {
+                continue;
+            }
+
+            ValidateRequiredMediaReference(
+                reference,
+                assetKind,
+                $"{ownerName} command '{call.Root.Name}' argument {argumentIndex}",
+                repository);
+        }
+    }
+
+    private static bool TryGetLiteralString(ExpressionSyntax expression, out string value)
+    {
+        value = string.Empty;
+        if (expression is not LiteralExpressionSyntax { Value.Kind: ExpressionValueKind.String } literal)
+        {
+            return false;
+        }
+
+        value = literal.Value.AsString("media reference");
+        return true;
     }
 
     private static void ValidateChoiceOptions(

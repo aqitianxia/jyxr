@@ -860,7 +860,7 @@ public sealed class ContentLoadingTests
                   "internalSkills": [],
                   "talentIds": [],
                   "equipmentIds": [],
-                  "portrait": "portrait.hero_knight",
+                  "portrait": "head/hero_knight",
                   "model": "hero_knight_model"
                 }
               ],
@@ -911,7 +911,7 @@ public sealed class ContentLoadingTests
                   "id": "huagong",
                   "name": "化功大法",
                   "description": "星宿老仙丁春秋为武林所不齿的内功绝技",
-                  "icon": "icon_neigong_011",
+                  "icon": "icon/icon_neigong_011",
                   "yin": 50,
                   "yang": 0,
                   "attackScale": 0.2,
@@ -923,7 +923,7 @@ public sealed class ContentLoadingTests
                       "id": "huagong_fushi_du",
                       "name": "化功大法.腐尸毒",
                       "description": "用自身带毒的内力散去敌方内功",
-                      "icon": "icon-huagongdafa",
+                      "icon": "icon/icon-huagongdafa",
                       "unlockLevel": 5,
                       "cooldown": 4,
                       "cost": {
@@ -938,7 +938,7 @@ public sealed class ContentLoadingTests
                       },
                       "powerExtra": 4,
                       "animation": "ball_purple",
-                      "audio": "音效.暗器2",
+                      "audio": "audio/Atk12",
                       "buffs": []
                     }
                   ],
@@ -963,7 +963,7 @@ public sealed class ContentLoadingTests
         var internalSkill = repository.GetInternalSkill("huagong");
 
         Assert.Equal("星宿老仙丁春秋为武林所不齿的内功绝技", internalSkill.Description);
-        Assert.Equal("icon_neigong_011", internalSkill.Icon);
+        Assert.Equal("icon/icon_neigong_011", internalSkill.Icon);
         Assert.Equal(50, internalSkill.Yin);
         Assert.Equal(0, internalSkill.Yang);
         Assert.Equal(0.2d, internalSkill.AttackScale, 6);
@@ -974,13 +974,13 @@ public sealed class ContentLoadingTests
 
         var form = internalSkill.FormSkills[0];
         Assert.Equal("用自身带毒的内力散去敌方内功", form.Description);
-        Assert.Equal("icon-huagongdafa", form.Icon);
+        Assert.Equal("icon/icon-huagongdafa", form.Icon);
         Assert.Equal(SkillImpactType.Fan, form.Targeting!.ImpactType);
         Assert.Equal(3, form.Targeting.ImpactSize);
         Assert.Equal(1, form.Targeting.CastSize);
         Assert.Equal(4d, form.PowerExtra, 6);
         Assert.Equal("ball_purple", form.Animation);
-        Assert.Equal("音效.暗器2", form.Audio);
+        Assert.Equal("audio/Atk12", form.Audio);
         Assert.Equal(2, form.Cost.Rage);
         Assert.Equal(5, form.UnlockLevel);
     }
@@ -996,7 +996,7 @@ public sealed class ContentLoadingTests
                   "id": "songfeng",
                   "name": "松风剑法",
                   "description": "入门剑法",
-                  "icon": "icon_waigong_003",
+                  "icon": "icon/icon_waigong_003",
                   "type": "jianfa",
                   "isHarmony": false,
                   "affinity": 0,
@@ -1014,7 +1014,7 @@ public sealed class ContentLoadingTests
                   },
                   "powerBase": 3,
                   "powerStep": 0.55,
-                  "audio": "音效.剑",
+                  "audio": "audio/sword",
                   "animation": "baozha_cheng",
                   "buffs": [],
                   "levelOverrides": [
@@ -1053,7 +1053,7 @@ public sealed class ContentLoadingTests
                   "id": "huatuo",
                   "name": "华佗再世",
                   "description": "治疗一个角色",
-                  "icon": "icon_teji_001",
+                  "icon": "icon/icon_teji_001",
                   "cooldown": 1,
                   "cost": {
                     "mp": 200,
@@ -1068,7 +1068,7 @@ public sealed class ContentLoadingTests
                     "impactSize": 1
                   },
                   "animation": "guanghuan_yellow3",
-                  "audio": "音效.恢复类物品",
+                  "audio": "audio/a_recover2",
                   "buffs": [
                     { "id": "regeneration", "level": 2, "duration": 3, "chance": 100 }
                   ]
@@ -1095,14 +1095,14 @@ public sealed class ContentLoadingTests
         Assert.Equal("入门剑法", externalSkill.Description);
         Assert.Equal(3d, externalSkill.PowerBase, 6);
         Assert.Equal(0.55d, externalSkill.PowerStep, 6);
-        Assert.Equal("icon_waigong_003", externalSkill.Icon);
+        Assert.Equal("icon/icon_waigong_003", externalSkill.Icon);
         Assert.Equal(WeaponType.Jianfa, externalSkill.Type);
         Assert.False(externalSkill.IsHarmony);
         Assert.Equal(1d, externalSkill.Hard, 6);
         Assert.Equal(SkillImpactType.Star, externalSkill.Targeting!.ImpactType);
         Assert.Equal(3, externalSkill.Targeting.ImpactSize);
         Assert.Equal(1, externalSkill.Targeting.CastSize);
-        Assert.Equal("音效.剑", externalSkill.Audio);
+        Assert.Equal("audio/sword", externalSkill.Audio);
         Assert.Equal("baozha_cheng", externalSkill.Animation);
         Assert.NotNull(externalSkill.LevelOverrides);
         Assert.True(externalSkill.LevelOverrides!.TryGetValue(10, out var level));
@@ -1118,10 +1118,10 @@ public sealed class ContentLoadingTests
         Assert.Equal("huatuo", specialSkillCondition.TargetId);
 
         Assert.Equal("治疗一个角色", specialSkill.Description);
-        Assert.Equal("icon_teji_001", specialSkill.Icon);
+        Assert.Equal("icon/icon_teji_001", specialSkill.Icon);
         Assert.Equal(10, specialSkill.Targeting!.CastSize);
         Assert.Equal(1, specialSkill.Targeting.ImpactSize);
-        Assert.Equal("音效.恢复类物品", specialSkill.Audio);
+        Assert.Equal("audio/a_recover2", specialSkill.Audio);
         Assert.Equal(SkillImpactType.Single, specialSkill.Targeting.ImpactType);
         Assert.Equal("guanghuan_yellow3", specialSkill.Animation);
         Assert.Equal(1, specialSkill.Cooldown);
@@ -1266,7 +1266,7 @@ public sealed class ContentLoadingTests
                   {
                     "id": "training",
                     "name": "Training",
-                    "mapId": "training_map"
+                    "background": "battle_bg/training_map"
                   }
                 ]
                 """,

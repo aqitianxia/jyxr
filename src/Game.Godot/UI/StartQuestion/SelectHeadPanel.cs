@@ -60,7 +60,7 @@ public partial class SelectHeadPanel : Control
 			}
 
 			_headContainer.AddChild(slot);
-			slot.SetTexture(AssetResolver.LoadTextureResource(head));
+			slot.SetTexture(AssetResolver.LoadTexture(head));
 			slot.Pressed += () => SelectHead(slot, head);
 		}
 	}

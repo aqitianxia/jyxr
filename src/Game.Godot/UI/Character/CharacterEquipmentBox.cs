@@ -63,7 +63,7 @@ public partial class CharacterEquipmentBox : Control
 			return;
 		}
 
-		_avatar.Texture = AssetResolver.LoadTextureResource(_equipment.Definition.Picture);
+		_avatar.Texture = AssetResolver.LoadTexture(_equipment.Definition.Picture);
 		_nameLabel.Text = _equipment.Definition.Name;
 	}
 

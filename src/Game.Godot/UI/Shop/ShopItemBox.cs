@@ -134,8 +134,8 @@ public partial class ShopItemBox : TextureButton
 		}
 
 		_avatar.Texture = _product?.Definition.Reward is SkillMaxLevelRewardDefinition
-			? AssetResolver.LoadSkillIconResource(_product.Picture)
-			: AssetResolver.LoadTextureResource(_product?.Picture ?? _item?.Picture);
+			? AssetResolver.LoadTexture(_product.Picture)
+			: AssetResolver.LoadTexture(_product?.Picture ?? _item?.Picture);
 		_nameLabel.Text = _product?.DisplayName ?? _item!.Name;
 		Modulate = _canAct ? Colors.White : new Color(0.65f, 0.65f, 0.65f, 1f);
 		_rarityBandStyle.BgColor = ResolveBandColor();

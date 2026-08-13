@@ -2,7 +2,7 @@
   {
     "id": "sample_battle",
     "name": "Sample Battle",
-    "mapId": "sample_map",
+    "background": "battle_bg/sample_map",
     "participants": [],
     "randomParticipants": []
   }

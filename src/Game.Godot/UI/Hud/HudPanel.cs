@@ -84,7 +84,7 @@ public partial class HudPanel : Control
 		var hero = TryGetHero();
 		return hero is null
 			? null
-			: AssetResolver.LoadCharacterPortrait(hero);
+			: AssetResolver.LoadTexture(hero.Portrait);
 	}
 
 	private static CharacterInstance? TryGetHero()

@@ -72,7 +72,7 @@ public partial class BattleSkillBox : Button
 		Modulate = available
 			? Colors.White
 			: DisabledModulate;
-		_avatar.Texture = AssetResolver.LoadSkillIconResource(_skill.Icon);
+		_avatar.Texture = AssetResolver.LoadTexture(_skill.Icon);
 		_sealOverlay.Visible = _availability?.IsSealed == true;
 		ApplySplitName(_skill.Name);
 	}

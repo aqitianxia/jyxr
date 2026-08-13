@@ -53,7 +53,7 @@ public partial class BattleStatusUnitButton : Button
 		_selectedFrame.Visible = _isSelected;
 		Modulate = _unit.IsAlive ? Colors.White : new Color(0.55f, 0.55f, 0.55f, 0.85f);
 
-		var portrait = AssetResolver.LoadCharacterPortrait(_unit.Character);
+		var portrait = AssetResolver.LoadTexture(_unit.Character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

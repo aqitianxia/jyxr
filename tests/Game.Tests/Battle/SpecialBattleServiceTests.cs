@@ -204,7 +204,7 @@ public sealed class SpecialBattleServiceTests
         {
             Id = id,
             Name = id,
-            MapId = "map",
+            Background = "battle_bg/map",
         };
 
     private static NormalItemDefinition CreateItem(string id) =>

@@ -50,7 +50,7 @@ public partial class World : Control
 
 	public void SetBackground(string? resourceId)
 	{
-		_background.Texture = AssetResolver.LoadTextureResource(resourceId);
+		_background.Texture = AssetResolver.LoadTexture(resourceId);
 		_background.Visible = _background.Texture is not null;
 	}
 

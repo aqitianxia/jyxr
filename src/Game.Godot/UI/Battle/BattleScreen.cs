@@ -214,7 +214,7 @@ public partial class BattleScreen : Control
 
 	private void ApplyBattlePresentation(BattleDefinition battle)
 	{
-		_background.Texture = AssetResolver.LoadBattleBackgroundResource(battle.MapId);
+		_background.Texture = AssetResolver.LoadTexture(battle.Background);
 		if (!string.IsNullOrWhiteSpace(battle.Music))
 		{
 			GameRoot.Audio.PlayBgm(battle.Music);

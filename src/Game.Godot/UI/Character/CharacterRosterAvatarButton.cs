@@ -43,7 +43,7 @@ public partial class CharacterRosterAvatarButton : Button
 		_nameLabel.Text = _character.Name;
 		_selectedFrame.Visible = _isSelected;
 
-		var portrait = AssetResolver.LoadCharacterPortrait(_character);
+		var portrait = AssetResolver.LoadTexture(_character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

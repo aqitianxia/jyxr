@@ -88,7 +88,7 @@ public partial class CombatantSelectCard : Button
 				? "剧情要求出战"
 				: _character.Name;
 
-		var portrait = AssetResolver.LoadCharacterPortrait(_character);
+		var portrait = AssetResolver.LoadTexture(_character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

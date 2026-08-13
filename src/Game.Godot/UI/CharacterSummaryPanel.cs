@@ -45,7 +45,7 @@ public partial class CharacterSummaryPanel : Control
 		}
 
 		var character = Game.State.Party.GetMember(CharacterId);
-		var portrait = AssetResolver.LoadCharacterPortrait(character);
+		var portrait = AssetResolver.LoadTexture(character.Portrait);
 		if (portrait is not null)
 		{
 			_avatar.Texture = portrait;

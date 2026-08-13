@@ -255,7 +255,7 @@ public partial class MapScreen : Control
 
 	private void SetSmallMapBackground(string? resourceId)
 	{
-		var texture = AssetResolver.LoadTextureResource(resourceId);
+		var texture = AssetResolver.LoadTexture(resourceId);
 		_smallMapBackground.Texture = texture;
 		_smallMapBackground.Visible = texture is not null && !_isStoryPresentationActive;
 

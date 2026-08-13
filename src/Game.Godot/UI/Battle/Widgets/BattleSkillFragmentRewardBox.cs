@@ -55,9 +55,9 @@ public partial class BattleSkillFragmentRewardBox : Panel
 		reward.Kind switch
 		{
 			SkillFragmentKind.External when Game.ContentRepository.TryGetExternalSkill(reward.SkillId, out var skill) =>
-				AssetResolver.LoadSkillIconResource(skill.Icon),
+				AssetResolver.LoadTexture(skill.Icon),
 			SkillFragmentKind.Internal when Game.ContentRepository.TryGetInternalSkill(reward.SkillId, out var skill) =>
-				AssetResolver.LoadSkillIconResource(skill.Icon),
+				AssetResolver.LoadTexture(skill.Icon),
 			_ => null,
 		};
 }
