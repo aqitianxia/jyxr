@@ -224,7 +224,7 @@ public sealed class BattleFlowStateMachineTests
 		public Task<bool> ExecuteMoveAsync(BattleUnit actingUnit, GridPosition destination) => throw new NotSupportedException();
 		public Task<bool> ExecuteSkillAsync(BattleUnit actingUnit, SkillInstance skill, GridPosition target) => throw new NotSupportedException();
 		public bool ExecuteItem(BattleUnit actingUnit, InventoryEntry item, string targetUnitId) => throw new NotSupportedException();
-		public bool ExecuteRest(BattleUnit actingUnit) => throw new NotSupportedException();
+		public Task<bool> ExecuteRestAsync(BattleUnit actingUnit) => throw new NotSupportedException();
 		public bool ExecuteEndAction(BattleUnit actingUnit) => throw new NotSupportedException();
 		public Task<bool> RollbackMoveAsync(BattleUnit actingUnit) => throw new NotSupportedException();
 		public Task RollbackPlayerMoveForAutoBattleAsync() => Task.CompletedTask;

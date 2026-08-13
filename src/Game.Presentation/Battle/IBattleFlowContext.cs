@@ -23,7 +23,7 @@ public interface IBattleFlowContext
 	Task<bool> ExecuteMoveAsync(BattleUnit actingUnit, GridPosition destination);
 	Task<bool> ExecuteSkillAsync(BattleUnit actingUnit, SkillInstance skill, GridPosition target);
 	bool ExecuteItem(BattleUnit actingUnit, InventoryEntry item, string targetUnitId);
-	bool ExecuteRest(BattleUnit actingUnit);
+	Task<bool> ExecuteRestAsync(BattleUnit actingUnit);
 	bool ExecuteEndAction(BattleUnit actingUnit);
 	Task<bool> RollbackMoveAsync(BattleUnit actingUnit);
 	SkillInstance? ResolveDefaultSkill(BattleUnit actingUnit);

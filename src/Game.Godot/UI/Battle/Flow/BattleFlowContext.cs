@@ -3,12 +3,14 @@ using Game.Core.Model;
 using Game.Core.Model.Character;
 using Game.Core.Model.Skills;
 using Game.Presentation.Battle;
+using Godot;
 using GameRoot = Game.Godot.Game;
 
 namespace Game.Godot.UI.Battle;
 
 internal sealed class BattleFlowContext : IBattleFlowContext
 {
+	private const double RestPresentationDelaySeconds = 0.2d;
 	private readonly BattleScreen _screen;
 	private readonly IBattleAgent _battleAgent;
 	private bool _autoBattleEnabled;
@@ -154,11 +156,19 @@ internal sealed class BattleFlowContext : IBattleFlowContext
 		return true;
 	}
 
-	public bool ExecuteRest(BattleUnit actingUnit)
+	public async Task<bool> ExecuteRestAsync(BattleUnit actingUnit)
 	{
 		var result = Engine.Rest(State, actingUnit.Id);
 		_screen.PresentCommandResult(result);
-		return result.Success;
+		if (!result.Success)
+		{
+			return false;
+		}
+
+		await _screen.ToSignal(
+			_screen.GetTree().CreateTimer(RestPresentationDelaySeconds),
+			SceneTreeTimer.SignalName.Timeout);
+		return true;
 	}
 
 	public bool ExecuteEndAction(BattleUnit actingUnit)

@@ -97,14 +97,10 @@ public abstract class InteractiveBattleFlowState : BattleFlowState
 				context.ShowStatusPanel();
 				break;
 			case BattleUiIntent.Rest:
-				if (context.ExecuteRest(actingUnit))
-				{
-					await machine.TransitionAsync(new WaitingTimelineState());
-				}
-				else
-				{
-					context.CommitBattleStateToView(Interaction);
-				}
+				await machine.TransitionAsync(new PresentingActionState(
+					this,
+					flow => flow.ExecuteRestAsync(actingUnit),
+					_ => Task.FromResult<IBattleFlowState>(new WaitingTimelineState())));
 				break;
 			case BattleUiIntent.EndAction:
 				if (context.ExecuteEndAction(actingUnit))
@@ -393,8 +389,10 @@ public sealed class AutomatedTurnState(
 			return;
 		}
 
-		context.ExecuteRest(actingUnit);
-		await machine.TransitionAsync(new WaitingTimelineState());
+		await machine.TransitionAsync(new PresentingActionState(
+			new WaitingTimelineState(),
+			flow => flow.ExecuteRestAsync(actingUnit),
+			_ => Task.FromResult<IBattleFlowState>(new WaitingTimelineState())));
 	}
 
 	private static IBattleFlowState ResolveAfterAutomatedMove(
