@@ -8,4 +8,5 @@ public sealed record BattleTurnCandidate(
     int EnemyKills,
     int AllyKills,
     int EnemyHitCount,
-    int DistanceToNearestEnemy);
+    int DistanceToNearestEnemy,
+    int MoveCost);

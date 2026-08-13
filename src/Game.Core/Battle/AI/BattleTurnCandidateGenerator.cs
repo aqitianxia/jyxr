@@ -27,52 +27,37 @@ public sealed class BattleTurnCandidateGenerator
 
         options ??= BattleTurnCandidateGenerationOptions.Default;
         var unit = state.GetUnit(unitId);
-        var reachablePositions = options.AllowMovement
-            ? _engine.GetReachablePositions(state, unitId).Keys
-                .Append(unit.Position)
-                .Distinct()
-                .ToArray()
-            : [unit.Position];
+        IReadOnlyDictionary<GridPosition, int> reachablePositions = options.AllowMovement
+            ? _engine.GetReachablePositions(state, unitId)
+            : new Dictionary<GridPosition, int> { [unit.Position] = 0 };
+        var preparedSkills = options.AllowSkillCandidates
+            ? PrepareSkills(state, unit, options.SkillFilter)
+            : [];
+        var enemyPositions = state.Units
+            .Where(other => other.IsAlive && state.AreEnemies(unit, other))
+            .Select(static other => other.Position)
+            .ToArray();
         var candidates = new List<BattleTurnCandidate>();
 
-        foreach (var destination in reachablePositions)
+        foreach (var (destination, moveCost) in reachablePositions)
         {
+            var distanceToNearestEnemy = GetDistanceToNearestEnemy(enemyPositions, destination);
             if (options.AllowSkillCandidates)
             {
-                foreach (var skill in BattleSkillCatalog.CollectSelectableSkills(unit))
+                foreach (var preparedSkill in preparedSkills)
                 {
-                    if (options.SkillFilter is not null && !options.SkillFilter(skill))
-                    {
-                        continue;
-                    }
-
-                    if (skill is SpecialSkillInstance specialSkill &&
-                        specialSkill.Definition.Intent != SpecialSkillIntent.Offensive)
-                    {
-                        continue;
-                    }
-
-                    var availability = _engine.EvaluateSkillAvailability(state, unit.Id, skill);
-                    if (!availability.IsAvailable)
-                    {
-                        continue;
-                    }
-
-                    var scorer = _skillScorers.FirstOrDefault(candidateScorer => candidateScorer.CanScore(skill));
-                    if (scorer is null)
-                    {
-                        continue;
-                    }
-
-                    var castSize = BattleSkillTargeting.ResolveEffectiveCastSize(unit, skill);
-                    var impactSize = BattleSkillTargeting.ResolveEffectiveImpactSize(unit, skill);
+                    var skill = preparedSkill.Skill;
                     foreach (var target in BattleSkillTargeting.EnumerateCastTargets(
                                  destination,
-                                 castSize,
+                                 preparedSkill.CastSize,
                                  skill.CanCastAtSelf,
                                  state.Grid))
                     {
-                        var impactedPositions = BattleEngine.GetImpactPositions(destination, target, skill.ImpactType, impactSize)
+                        var impactedPositions = BattleEngine.GetImpactPositions(
+                                destination,
+                                target,
+                                skill.ImpactType,
+                                preparedSkill.ImpactSize)
                             .Where(state.Grid.Contains)
                             .ToHashSet();
 						var targets = BattleSkillTargeting.ResolveEffectiveTargets(
@@ -85,7 +70,7 @@ public sealed class BattleTurnCandidateGenerator
                             continue;
                         }
 
-                        var evaluation = scorer.Score(new BattleSkillAiContext(
+                        var evaluation = preparedSkill.Scorer.Score(new BattleSkillAiContext(
                             state,
                             unit,
                             skill,
@@ -104,7 +89,8 @@ public sealed class BattleTurnCandidateGenerator
                             evaluation.EnemyKills,
                             evaluation.AllyKills,
                             evaluation.EnemyHitCount,
-                            DistanceToNearestEnemy: GetDistanceToNearestEnemy(state, unit, destination)));
+                            DistanceToNearestEnemy: distanceToNearestEnemy,
+                            MoveCost: moveCost));
                     }
                 }
             }
@@ -119,7 +105,8 @@ public sealed class BattleTurnCandidateGenerator
                     EnemyKills: 0,
                     AllyKills: 0,
                     EnemyHitCount: 0,
-                    DistanceToNearestEnemy: GetDistanceToNearestEnemy(state, unit, destination)));
+                    DistanceToNearestEnemy: distanceToNearestEnemy,
+                    MoveCost: moveCost));
             }
         }
 
@@ -147,20 +134,66 @@ public sealed class BattleTurnCandidateGenerator
             return null;
         }
 
-        var skill = skills[Random.Shared.Next(skills.Length)];
+        var skill = skills[_engine.RandomService.Next(0, skills.Length)];
         return new BattleTurnPlan(
             unit.Id,
             destination,
             BattleMainActionPlan.CastSkill(skill.Id, destination));
     }
 
-    private static int GetDistanceToNearestEnemy(BattleState state, BattleUnit unit, GridPosition destination)
+    internal bool ShouldUseSupportSpecialSkill() =>
+        _engine.RandomService.Next(0, 2) == 0;
+
+    private IReadOnlyList<PreparedSkill> PrepareSkills(
+        BattleState state,
+        BattleUnit unit,
+        Func<SkillInstance, bool>? skillFilter)
     {
-        var nearestEnemyDistance = state.GetLivingUnits()
-            .Where(other => state.AreEnemies(unit, other))
-            .Select(other => destination.ManhattanDistanceTo(other.Position))
-            .DefaultIfEmpty(0)
-            .Min();
-        return nearestEnemyDistance;
+        var preparedSkills = new List<PreparedSkill>();
+        foreach (var skill in BattleSkillCatalog.CollectSelectableSkills(unit))
+        {
+            if (skillFilter is not null && !skillFilter(skill))
+            {
+                continue;
+            }
+
+            if (skill is SpecialSkillInstance specialSkill &&
+                specialSkill.Definition.Intent != SpecialSkillIntent.Offensive)
+            {
+                continue;
+            }
+
+            if (!_engine.EvaluateSkillAvailability(state, unit.Id, skill).IsAvailable)
+            {
+                continue;
+            }
+
+            var scorer = _skillScorers.FirstOrDefault(candidateScorer => candidateScorer.CanScore(skill));
+            if (scorer is null)
+            {
+                continue;
+            }
+
+            preparedSkills.Add(new PreparedSkill(
+                skill,
+                scorer,
+                BattleSkillTargeting.ResolveEffectiveCastSize(unit, skill),
+                BattleSkillTargeting.ResolveEffectiveImpactSize(unit, skill)));
+        }
+
+        return preparedSkills;
     }
+
+    private static int GetDistanceToNearestEnemy(
+        IReadOnlyList<GridPosition> enemyPositions,
+        GridPosition destination) =>
+        enemyPositions.Count == 0
+            ? 0
+            : enemyPositions.Min(destination.ManhattanDistanceTo);
+
+    private sealed record PreparedSkill(
+        SkillInstance Skill,
+        IBattleSkillAiScorer Scorer,
+        int CastSize,
+        int ImpactSize);
 }

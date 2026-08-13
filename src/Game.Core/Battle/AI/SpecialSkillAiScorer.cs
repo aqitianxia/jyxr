@@ -19,10 +19,6 @@ public sealed class SpecialSkillAiScorer : IBattleSkillAiScorer
 
         var skill = context.Skill as SpecialSkillInstance
             ?? throw new InvalidOperationException("Special skill scorer requires a special skill.");
-        var effects = (skill.Definition.Effects ?? [])
-            .OfType<CustomAbilityBattleEffectDefinition>()
-            .Where(effect => effect.Target is TargetBattleUnitSelectorDefinition)
-            .ToArray();
         var enemyDamage = 0;
         var allyDamage = 0;
         var enemyKills = 0;
@@ -31,13 +27,25 @@ public sealed class SpecialSkillAiScorer : IBattleSkillAiScorer
 
         foreach (var target in context.Targets)
         {
-            var damage = effects.Sum(effect =>
-                effect.EstimateAbilityDamage(new BattleAbilityDamageEstimateContext(
+            var damage = 0;
+            foreach (var effect in skill.Definition.Effects ?? [])
+            {
+                if (effect is not CustomAbilityBattleEffectDefinition
+                    {
+                        Target: TargetBattleUnitSelectorDefinition,
+                    } customAbility)
+                {
+                    continue;
+                }
+
+                damage += customAbility.EstimateAbilityDamage(new BattleAbilityDamageEstimateContext(
                     context.State,
                     context.Source,
                     target,
                     skill,
-                    context.MoveDestination)) ?? 0);
+                    context.MoveDestination)) ?? 0;
+            }
+
             if (context.State.AreEnemies(context.Source, target))
             {
                 enemyDamage += damage;
