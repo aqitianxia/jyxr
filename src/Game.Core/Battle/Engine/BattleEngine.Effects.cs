@@ -298,6 +298,15 @@ public sealed partial class BattleEngine
                         addBuff.Duration);
                     break;
                 }
+                case DetoxifyItemUseEffectDefinition detoxify:
+                    _battleBuffResolver.Reduce(
+                        state,
+                        source,
+                        target,
+                        BattleContentIds.Poison,
+                        detoxify.Values![0],
+                        detoxify.Values[1]);
+                    break;
             }
         }
     }

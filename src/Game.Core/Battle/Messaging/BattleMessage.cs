@@ -18,7 +18,8 @@ public sealed record BattleFact : BattleMessage
         BattleRestRecovery? rest = null,
         BattleSkillExperienceEvent? skillExperience = null,
         BattleCharacterExperienceEvent? characterExperience = null,
-        BattleLifestealEvent? lifesteal = null)
+        BattleLifestealEvent? lifesteal = null,
+        BattleBuffReductionEvent? buffReduction = null)
         : base(unitId, timing)
     {
         Kind = kind;
@@ -29,6 +30,7 @@ public sealed record BattleFact : BattleMessage
         SkillExperience = skillExperience;
         CharacterExperience = characterExperience;
         Lifesteal = lifesteal;
+        BuffReduction = buffReduction;
     }
 
     public BattleFactKind Kind { get; }
@@ -39,6 +41,7 @@ public sealed record BattleFact : BattleMessage
     public BattleSkillExperienceEvent? SkillExperience { get; }
     public BattleCharacterExperienceEvent? CharacterExperience { get; }
     public BattleLifestealEvent? Lifesteal { get; }
+    public BattleBuffReductionEvent? BuffReduction { get; }
 }
 
 public sealed record BattleCue : BattleMessage
@@ -96,6 +99,7 @@ public enum BattleFactKind
     BuffApplied,
     BuffResisted,
     BuffRemoved,
+    BuffReduced,
     Healed,
     Lifesteal,
     MpDamaged,
@@ -122,6 +126,12 @@ public enum BattleTraceKind
 }
 
 public sealed record BattleSpeechCue(string Text);
+public sealed record BattleBuffReductionEvent(
+    string BuffId,
+    int LevelReduction,
+    int DurationReduction,
+    int RemainingLevel,
+    int RemainingDuration);
 public enum BattleFloatTextTarget
 {
     [JsonStringEnumMemberName("owner")]

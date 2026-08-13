@@ -65,6 +65,20 @@ internal sealed class BattleEventPresenter(
             case BattleFactKind.BuffRemoved:
                 board.PlayFloatText(fact.UnitId, $"{ResolveBuffName(fact.Detail)}解除", BattleFloatTextStyle.Beneficial);
                 break;
+            case BattleFactKind.BuffReduced when fact.BuffReduction is { } reduction:
+                var reducedBuff = ResolveBuffName(reduction.BuffId);
+                var reductions = new List<string>();
+                if (reduction.LevelReduction > 0)
+                    reductions.Add($"等级 -{reduction.LevelReduction}");
+                if (reduction.DurationReduction > 0)
+                    reductions.Add($"回合 -{reduction.DurationReduction}");
+                var reductionText = string.Join("，", reductions);
+                board.PlayFloatText(
+                    fact.UnitId,
+                    $"{reducedBuff}：{reductionText}",
+                    BattleFloatTextStyle.Beneficial);
+                AppendLog($"{unitName} 的【{reducedBuff}】减弱：{reductionText}。");
+                break;
             case BattleFactKind.Healed:
                 PresentResourceChange(fact, BattleFloatTextStyle.Recovery, "+");
                 break;

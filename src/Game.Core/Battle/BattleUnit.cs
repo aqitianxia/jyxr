@@ -264,6 +264,19 @@ public sealed class BattleUnit
             .ToList();
     }
 
+    internal bool RemoveBuff(BattleBuffInstance buff)
+    {
+        ArgumentNullException.ThrowIfNull(buff);
+        if (!_buffs.Remove(buff))
+        {
+            return false;
+        }
+
+        _localProjection = null;
+        ClampResourcesToLimits();
+        return true;
+    }
+
     public double GetStat(StatType statType) =>
         _projectionResolver is null
             ? GetBucket(DetachedProjection.StatModifierBuckets, statType).Evaluate(Character.GetBaseStat(statType))

@@ -3913,6 +3913,175 @@ public sealed class BattleEngineTests
         Assert.Equal(3, buff.RemainingTurns);
     }
 
+    [Fact]
+    public void UseItem_DetoxifyPartiallyReducesPoisonAndReportsActualChanges()
+    {
+        var poison = new BuffDefinition { Id = "中毒", Name = "中毒", IsDebuff = true };
+        var removedRageHook = new HookAffix
+        {
+            Timing = HookTiming.OnBuffRemoved,
+            Conditions = [new ContextBuffIdBattleHookConditionDefinition(poison.Id)],
+            Effects =
+            [
+                new AddRageBattleEffectDefinition(
+                    new SelfBattleUnitSelectorDefinition(),
+                    Value: 2),
+            ],
+        };
+        var hero = CreateUnit(
+            "hero",
+            team: 1,
+            new GridPosition(0, 0),
+            talents: [CreateDamageContextTalent("去毒回怒", removedRageHook)]);
+        hero.TryApplyBuff(new BattleBuffInstance(poison, level: 8, remainingTurns: 9, "enemy", 1));
+        hero.ActionGauge = 100;
+        var item = CreateDetoxifyItem(5, 5);
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.UseItem(state, hero.Id, item, hero.Id);
+
+        Assert.True(result.Success);
+        var remaining = Assert.Single(hero.Buffs);
+        Assert.Equal(3, remaining.Level);
+        Assert.Equal(4, remaining.RemainingTurns);
+        var fact = Assert.Single(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffReduced);
+        Assert.Equal(hero.Id, fact.UnitId);
+        Assert.Equal("中毒", fact.Detail);
+        Assert.Equal(
+            new BattleBuffReductionEvent("中毒", 5, 5, 3, 4),
+            fact.BuffReduction);
+        Assert.DoesNotContain(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffRemoved);
+        Assert.DoesNotContain(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.RageChanged);
+    }
+
+    [Fact]
+    public void UseItem_DetoxifyRemovesPoisonWhenEitherValueReachesZeroAndRunsRemovalHookOnce()
+    {
+        var poison = new BuffDefinition { Id = "中毒", Name = "中毒", IsDebuff = true };
+        var removedRageHook = new HookAffix
+        {
+            Timing = HookTiming.OnBuffRemoved,
+            Conditions = [new ContextBuffIdBattleHookConditionDefinition(poison.Id)],
+            Effects =
+            [
+                new AddRageBattleEffectDefinition(
+                    new SelfBattleUnitSelectorDefinition(),
+                    Value: 2),
+            ],
+        };
+        var hero = CreateUnit(
+            "hero",
+            team: 1,
+            new GridPosition(0, 0),
+            talents: [CreateDamageContextTalent("去毒回怒", removedRageHook)]);
+        hero.TryApplyBuff(new BattleBuffInstance(poison, level: 3, remainingTurns: 9, "enemy", 1));
+        hero.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.UseItem(state, hero.Id, CreateDetoxifyItem(5, 1), hero.Id);
+
+        Assert.True(result.Success);
+        Assert.Empty(hero.Buffs);
+        Assert.Equal(2, hero.Rage);
+        Assert.Single(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffRemoved &&
+            fact.UnitId == hero.Id &&
+            fact.Detail == "中毒");
+        Assert.Single(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.RageChanged &&
+            fact.Timing == HookTiming.OnBuffRemoved);
+        Assert.DoesNotContain(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffReduced);
+    }
+
+    [Fact]
+    public void UseItem_DetoxifyRemovesPoisonWhenDurationReachesZero()
+    {
+        var poison = new BuffDefinition { Id = "中毒", Name = "中毒", IsDebuff = true };
+        var hero = CreateUnit("hero", team: 1, new GridPosition(0, 0));
+        hero.TryApplyBuff(new BattleBuffInstance(poison, level: 8, remainingTurns: 3, "enemy", 1));
+        hero.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.UseItem(state, hero.Id, CreateDetoxifyItem(1, 10), hero.Id);
+
+        Assert.True(result.Success);
+        Assert.Empty(hero.Buffs);
+        Assert.Single(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffRemoved && fact.Detail == "中毒");
+        Assert.DoesNotContain(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind == BattleFactKind.BuffReduced);
+    }
+
+    [Fact]
+    public void UseItem_DetoxifyWithoutPoisonStillSucceedsWithoutBuffFacts()
+    {
+        var hero = CreateUnit("hero", team: 1, new GridPosition(0, 0));
+        hero.ActionGauge = 100;
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.UseItem(state, hero.Id, CreateDetoxifyItem(5, 5), hero.Id);
+
+        Assert.True(result.Success);
+        Assert.Contains(result.Messages.OfType<BattleFact>(), fact => fact.Kind == BattleFactKind.ItemUsed);
+        Assert.DoesNotContain(result.Messages.OfType<BattleFact>(), fact =>
+            fact.Kind is BattleFactKind.BuffReduced or BattleFactKind.BuffRemoved);
+    }
+
+    [Fact]
+    public void UseItem_DetoxifyCombinedWithRecoveryAppliesAllEffects()
+    {
+        var poison = new BuffDefinition { Id = "中毒", Name = "中毒", IsDebuff = true };
+        var hero = CreateUnit("hero", team: 1, new GridPosition(0, 0), maxHp: 100, hp: 20, maxMp: 100, mp: 30);
+        hero.TryApplyBuff(new BattleBuffInstance(poison, level: 25, remainingTurns: 20, "enemy", 1));
+        hero.ActionGauge = 100;
+        var item = CreateDetoxifyItem(
+            20,
+            10,
+            new AddHpItemUseEffectDefinition(50),
+            new AddMpItemUseEffectDefinition(40));
+        var state = new BattleState(new BattleGrid(4, 4), [hero]);
+        var engine = new BattleEngine();
+        engine.BeginAction(state, hero.Id);
+
+        var result = engine.UseItem(state, hero.Id, item, hero.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(70, hero.Hp);
+        Assert.Equal(70, hero.Mp);
+        var remaining = Assert.Single(hero.Buffs);
+        Assert.Equal(5, remaining.Level);
+        Assert.Equal(10, remaining.RemainingTurns);
+    }
+
+    private static NormalItemDefinition CreateDetoxifyItem(
+        int levelReduction,
+        int durationReduction,
+        params ItemUseEffectDefinition[] additionalEffects) =>
+        new()
+        {
+            Id = "detoxifier",
+            Name = "detoxifier",
+            Type = ItemType.Consumable,
+            ConsumeOnUse = true,
+            UseEffects =
+            [
+                .. additionalEffects,
+                new DetoxifyItemUseEffectDefinition([levelReduction, durationReduction]),
+            ],
+        };
+
     private static HookAffix CreateInternalInjuryCostHook() =>
         new()
         {

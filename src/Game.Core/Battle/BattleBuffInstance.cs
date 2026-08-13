@@ -56,6 +56,15 @@ public sealed class BattleBuffInstance
         RemainingTurns = checked(RemainingTurns + turnDelta);
     }
 
+    internal void Reduce(int levelReduction, int turnReduction)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(levelReduction);
+        ArgumentOutOfRangeException.ThrowIfNegative(turnReduction);
+
+        Level = Math.Max(0, Level - levelReduction);
+        RemainingTurns = Math.Max(0, RemainingTurns - turnReduction);
+    }
+
     internal bool AdvanceTimeline()
     {
         TicksUntilRound--;

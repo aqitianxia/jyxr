@@ -1121,6 +1121,15 @@ public sealed partial class JsonContentLoader
                         Ensure(addBuff.Duration >= 1, $"Item '{item.Id}' add_buff effect has invalid duration '{addBuff.Duration}'.");
                         break;
 
+                    case DetoxifyItemUseEffectDefinition detoxify:
+                        Ensure(detoxify.Values is { Count: 2 },
+                            $"Item '{item.Id}' detoxify effect must contain exactly two values.");
+                        Ensure(detoxify.Values!.All(static value => value >= 0),
+                            $"Item '{item.Id}' detoxify effect contains a negative reduction.");
+                        Ensure(detoxify.Values!.Any(static value => value > 0),
+                            $"Item '{item.Id}' detoxify effect must contain a positive reduction.");
+                        break;
+
                     case GrantExternalSkillItemUseEffectDefinition externalSkill:
                         Ensure(!string.IsNullOrWhiteSpace(externalSkill.SkillId), $"Item '{item.Id}' external_skill effect is missing skillId.");
                         Ensure(externalSkillIds.Contains(externalSkill.SkillId), $"Item '{item.Id}' references missing external skill '{externalSkill.SkillId}'.");

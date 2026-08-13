@@ -55,6 +55,44 @@ public sealed class ContentLoadingTests
         Assert.Equal(["map-marker-overflow"], repository.GetResource("city").Tags);
     }
 
+    public static TheoryData<IReadOnlyList<int>?> InvalidDetoxifyValues
+    {
+        get
+        {
+            var data = new TheoryData<IReadOnlyList<int>?>();
+            data.Add(null);
+            data.Add([]);
+            data.Add([1]);
+            data.Add([1, 2, 3]);
+            data.Add([-1, 2]);
+            data.Add([1, -2]);
+            data.Add([0, 0]);
+            return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidDetoxifyValues))]
+    public void JsonLoader_RejectsInvalidDetoxifyValues(IReadOnlyList<int>? values)
+    {
+        var package = new ContentPackage
+        {
+            Items =
+            [
+                new NormalItemDefinition
+                {
+                    Id = "detoxifier",
+                    Name = "detoxifier",
+                    Type = ItemType.Consumable,
+                    ConsumeOnUse = true,
+                    UseEffects = [new DetoxifyItemUseEffectDefinition(values)],
+                },
+            ],
+        };
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
     [Fact]
     public void JsonLoader_DeserializesMapLocationNoEventPresentation()
     {

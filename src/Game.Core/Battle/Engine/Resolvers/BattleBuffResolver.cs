@@ -77,6 +77,61 @@ internal sealed class BattleBuffResolver(
         return removedBuffs;
     }
 
+    public BattleBuffReductionEvent? Reduce(
+        BattleState state,
+        BattleUnit source,
+        BattleUnit target,
+        string buffId,
+        int levelReduction,
+        int durationReduction,
+        HookTiming? timing = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(buffId);
+        ArgumentOutOfRangeException.ThrowIfNegative(levelReduction);
+        ArgumentOutOfRangeException.ThrowIfNegative(durationReduction);
+        if (levelReduction == 0 && durationReduction == 0)
+        {
+            throw new ArgumentException("At least one buff reduction must be positive.");
+        }
+
+        var buff = target.TryGetBuff(buffId);
+        if (buff is null)
+        {
+            return null;
+        }
+
+        var remainingLevel = Math.Max(0, buff.Level - levelReduction);
+        var remainingDuration = Math.Max(0, buff.RemainingTurns - durationReduction);
+        var reduction = new BattleBuffReductionEvent(
+            buff.Definition.Id,
+            buff.Level - remainingLevel,
+            buff.RemainingTurns - remainingDuration,
+            remainingLevel,
+            remainingDuration);
+
+        if (remainingLevel == 0 || remainingDuration == 0)
+        {
+            if (!target.RemoveBuff(buff))
+            {
+                throw new InvalidOperationException($"Buff '{buff.Definition.Id}' is no longer attached to unit '{target.Id}'.");
+            }
+
+            NotifyRemoved(state, source, target, buff, timing);
+            return reduction;
+        }
+
+        buff.Reduce(levelReduction, durationReduction);
+        target.InvalidateLocalBattleProjection();
+        target.ClampResourcesToLimits();
+        state.AddMessage(new BattleFact(
+            BattleFactKind.BuffReduced,
+            target.Id,
+            timing,
+            detail: buff.Definition.Id,
+            buffReduction: reduction));
+        return reduction;
+    }
+
     public void NotifyRemoved(
         BattleState state,
         BattleUnit source,

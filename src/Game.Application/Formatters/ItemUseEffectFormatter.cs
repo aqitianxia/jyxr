@@ -58,19 +58,7 @@ public static class ItemUseEffectFormatter
     }
 
     private static string FormatDetoxifyCn(DetoxifyItemUseEffectDefinition detoxify)
-    {
-        if (detoxify.Values is null || detoxify.Values.Count == 0)
-        {
-            return "解毒";
-        }
-
-        if (detoxify.Values.Count == 1)
-        {
-            return $"解毒等级 {detoxify.Values[0]}";
-        }
-
-        return $"解毒：等级 {detoxify.Values[0]}，持续 {detoxify.Values[1]}";
-    }
+        => $"解毒：降低中毒等级 {detoxify.Values![0]}，缩短持续时间 {detoxify.Values[1]} 回合";
 
     private static string FormatGrantTalentCn(
         GrantTalentItemUseEffectDefinition grantTalent,
