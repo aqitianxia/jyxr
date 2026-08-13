@@ -192,7 +192,7 @@ public sealed class ExpressionCommandEventTests
     }
 
     [Fact]
-    public async Task MaxLevelSupportsOnceKeyDefaultsRoundBonusAndApprovedAlias()
+    public async Task MaxLevelSupportsOnceKeyDefaultLevelAndApprovedAlias()
     {
         var skill = TestContentFactory.CreateExternalSkill("starter_sword");
         var session = new GameSession(
@@ -219,7 +219,7 @@ public sealed class ExpressionCommandEventTests
     }
 
     [Fact]
-    public async Task MaxLevelAppliesDefaultLevelAndConfiguredRoundBonus()
+    public async Task MaxLevelDefaultIncreaseIsIndependentOfRoundBonus()
     {
         var skill = TestContentFactory.CreateInternalSkill("starter_internal");
         var state = new GameState();
@@ -227,12 +227,13 @@ public sealed class ExpressionCommandEventTests
         var session = new GameSession(
             state,
             TestContentFactory.CreateRepository(internalSkills: [skill]),
-            config: new GameConfig { RoundsPerMaxLevelCommandIncrease = 3 });
+            config: new GameConfig { RoundsPerMaxSkillLevelIncrease = 2 });
 
         await session.StoryService.CommandDispatcher.ExecuteCallAsync(
             new ExpressionParser().ParseCall("maxlevel('starter_internal')"));
 
-        Assert.Equal(2, session.Profile.GetSkillMaxLevelBonus("starter_internal"));
+        Assert.Equal(1, session.Profile.GetSkillMaxLevelBonus("starter_internal"));
+        Assert.Equal(13, session.SkillMaxLevelPolicy.GetMaxLevel(skill));
     }
 
     [Theory]

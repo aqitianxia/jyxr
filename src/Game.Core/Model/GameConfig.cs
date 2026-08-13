@@ -9,7 +9,6 @@ public sealed class GameConfig
 	public double RoundEnemyHpAddRatio { get; init; } = 0.15d;
 	public double RoundEnemyMpAddRatio { get; init; } = 0.15d;
 	public int RoundsPerMaxSkillLevelIncrease { get; init; } = 2;
-	public int RoundsPerMaxLevelCommandIncrease { get; init; } = 2;
 	public int RoundsPerNpcSkillLevelIncrease { get; init; } = 2;
 	public int DefaultMaxBattleSpTime { get; init; } = 3000;
 	public bool ConsoleEnabled { get; init; } = true;

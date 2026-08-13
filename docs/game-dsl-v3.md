@@ -228,7 +228,7 @@ world_triggers(false)
 | `upgrade_external(character_id, skill_id, levels=1)` | 明确升级外功。 | — |
 | `upgrade_internal(character_id, skill_id, levels=1)` | 明确升级内功。 | — |
 | `upgrade_skill(character_id, skill_id, levels=1)` | 按外功、内功顺序自动分类升级。 | — |
-| `maxlevel(skill_id, levels=1, once_key='')` | 增加武学等级上限；同一非空 once key 只生效一次。实际增量会叠加周目加成。once key如果为空，DSL编译时候会自动生成。 | `max_skill_level` |
+| `maxlevel(skill_id, levels=1, once_key='')` | 永久增加指定数值的武学等级上限；同一非空 once key 只生效一次。周目加成只影响当前有效上限，不改变本指令的永久增量。once key如果为空，DSL编译时候会自动生成。 | `max_skill_level` |
 
 属性名支持中文显示名或 code：`拳掌/quanzhang`、`剑法/jianfa`、`刀法/daofa`、`奇门/qimen`、`臂力/bili`、`身法/shenfa`、`悟性/wuxing`、`福缘/fuyuan`、`根骨/gengu`、`定力/dingli`、`武学点/wuxue`、`气血上限/max_hp/maxhp`、`内力上限/max_mp/maxmp`、`攻击力/attack`、`防御力/defence`、`闪避率/evasion`、`命中率/accuracy`、`暴击率/crit_chance`、`暴击伤害/crit_mult`、`抗暴率/anti_crit_chance`、`吸血/lifesteal`、`抗异常/anti_debuff`、`集气速度/speed`、`移动力/movement`。
 

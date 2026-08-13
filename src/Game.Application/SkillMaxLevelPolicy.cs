@@ -65,12 +65,6 @@ public sealed class SkillMaxLevelPolicy
     public int GetInternalSkillMaxLevelWithoutRoundBonus(string skillId) =>
         ResolveMaxLevelWithoutRoundBonus(_configProvider().BaseInternalSkillMaxLevel, skillId);
 
-    public int GetMaxLevelCommandRoundBonus()
-    {
-        var config = _configProvider();
-        return CalculateRoundBonus(_roundProvider(), config.RoundsPerMaxLevelCommandIncrease);
-    }
-
     private int ResolveMaxLevel(int baseMaxLevel, string skillId)
     {
         var config = _configProvider();

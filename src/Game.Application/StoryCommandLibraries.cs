@@ -233,15 +233,14 @@ internal sealed class CharacterGrowthStoryCommands
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(levels);
         var skillName = ResolveSkillName(skillId);
-        var bonus = checked(levels + _session.SkillMaxLevelPolicy.GetMaxLevelCommandRoundBonus());
-        if (!_session.ProfileService.TryAddSkillMaxLevelBonusOnce(skillId, bonus, onceKey))
+        if (!_session.ProfileService.TryAddSkillMaxLevelBonusOnce(skillId, levels, onceKey))
         {
             return;
         }
 
         _session.Events.Publish(new ProfileChangedEvent());
         _session.Events.Publish(new ToastRequestedEvent(
-            $"武学精通【{skillName}】+ {bonus}",
+            $"武学精通【{skillName}】+ {levels}",
             ToastTone.Important));
     }
 

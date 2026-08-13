@@ -76,17 +76,4 @@ public sealed class SkillMaxLevelPolicyTests
         Assert.Equal(12, new SkillMaxLevelPolicy(config, round: 5).GetMaxLevel(externalSkill));
         Assert.Equal(15, new SkillMaxLevelPolicy(config, profile, round: 5).GetMaxLevel(externalSkill));
     }
-
-    [Fact]
-    public void GetMaxLevelCommandRoundBonus_UsesSeparateRoundInterval()
-    {
-        var config = new GameConfig
-        {
-            RoundsPerMaxSkillLevelIncrease = 2,
-            RoundsPerMaxLevelCommandIncrease = 3,
-        };
-        var policy = new SkillMaxLevelPolicy(config, round: 5);
-
-        Assert.Equal(1, policy.GetMaxLevelCommandRoundBonus());
-    }
 }
