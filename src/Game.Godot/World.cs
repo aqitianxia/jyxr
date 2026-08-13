@@ -38,6 +38,9 @@ public partial class World : Control
 	public MapScreen EnterMap(string mapId) =>
 		ShowMap(Game.MapService.EnterMap(mapId));
 
+	public MapScreen EnterMap(string mapId, string locationId) =>
+		ShowMap(Game.MapService.EnterMap(mapId, locationId));
+
 	public void ShowStoryAnimation(string animationId)
 	{
 		if (string.IsNullOrWhiteSpace(animationId))

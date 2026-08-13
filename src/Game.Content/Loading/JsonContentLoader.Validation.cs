@@ -57,15 +57,28 @@ public sealed partial class JsonContentLoader
         var eventIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var map in repository.Maps.Values)
         {
+            var locationsById = new Dictionary<string, MapLocationDefinition>(StringComparer.Ordinal);
+            foreach (var location in map.Locations)
+            {
+                Ensure(locationsById.TryAdd(location.Id, location),
+                    $"Map '{map.Id}' contains duplicate location id '{location.Id}'.");
+            }
+
             if (map.Kind == MapKind.Large)
             {
                 Ensure(double.IsFinite(map.TravelSpeed) && map.TravelSpeed > 0d,
                     $"Large map '{map.Id}' must have a positive finite travelSpeed.");
+                Ensure(!string.IsNullOrWhiteSpace(map.DefaultLocation),
+                    $"Large map '{map.Id}' must define defaultLocation.");
+                Ensure(locationsById.ContainsKey(map.DefaultLocation!),
+                    $"Large map '{map.Id}' defaultLocation '{map.DefaultLocation}' does not reference one of its locations.");
             }
             else
             {
                 Ensure(map.TravelSpeed == 0d,
                     $"Small map '{map.Id}' cannot define travelSpeed.");
+                Ensure(map.DefaultLocation is null,
+                    $"Small map '{map.Id}' cannot define defaultLocation.");
             }
 
             foreach (var location in map.Locations)
@@ -1425,6 +1438,7 @@ public sealed partial class JsonContentLoader
                     break;
                 case CommandStep command:
                     ValidateStoryMediaCommand(command.Call, repository, ownerName);
+                    ValidateMapCommandReference(repository, command.Call, ownerName);
                     break;
                 case JumpStep jump:
                     Ensure(repository.StorySegments.ContainsKey(jump.Target),
@@ -1571,6 +1585,12 @@ public sealed partial class JsonContentLoader
         ParsedCall action,
         string owner)
     {
+        ValidateMapCommandReference(repository, action, owner);
+        if (IsMapCommand(action.Root.Name))
+        {
+            return;
+        }
+
         if (!TryGetLiteralActionId(action, out var targetId))
         {
             return;
@@ -1579,13 +1599,49 @@ public sealed partial class JsonContentLoader
         var exists = action.Root.Name switch
         {
             "story" => repository.StorySegments.ContainsKey(targetId),
-            "map" => repository.Maps.ContainsKey(targetId),
             "shop" => repository.Shops.ContainsKey(targetId),
             "battle" => repository.Battles.ContainsKey(targetId),
             _ => true,
         };
         Ensure(exists, $"{owner} action '{action.Root.Name}' references missing target '{targetId}'.");
     }
+
+    private static void ValidateMapCommandReference(
+        InMemoryContentRepository repository,
+        ParsedCall action,
+        string owner)
+    {
+        if (!IsMapCommand(action.Root.Name) ||
+            action.Root.Arguments.Count == 0)
+        {
+            return;
+        }
+
+        Ensure(action.Root.Arguments.Count <= 2,
+            $"{owner} action '{action.Root.Name}' accepts at most a map id and location id.");
+        if (!TryGetLiteralString(action.Root.Arguments[0], out var mapId))
+        {
+            return;
+        }
+
+        Ensure(repository.Maps.TryGetValue(mapId, out var map),
+            $"{owner} action '{action.Root.Name}' references missing map '{mapId}'.");
+        if (action.Root.Arguments.Count < 2 ||
+            !TryGetLiteralString(action.Root.Arguments[1], out var locationId))
+        {
+            return;
+        }
+
+        Ensure(map!.Kind == MapKind.Large,
+            $"{owner} action '{action.Root.Name}' cannot specify location '{locationId}' for small map '{mapId}'.");
+        Ensure(!string.IsNullOrWhiteSpace(locationId),
+            $"{owner} action '{action.Root.Name}' has an empty location id.");
+        Ensure(map.Locations.Any(location => string.Equals(location.Id, locationId, StringComparison.Ordinal)),
+            $"{owner} action '{action.Root.Name}' references missing location '{locationId}' in map '{mapId}'.");
+    }
+
+    private static bool IsMapCommand(string name) =>
+        name is "map" or "set_map" or "tutorial";
 
     private static bool TryGetLiteralActionId(ParsedCall action, out string targetId)
     {

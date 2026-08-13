@@ -37,7 +37,6 @@ public sealed class GameConfig
 	public double CanzhangMaxHardInternalSkill { get; init; } = 8d;
 	public double CanzhangDropRateInternalRate { get; init; } = 2d;
 	public List<EquipmentRandomAffixCountWeight> EquipmentRandomAffixCountWeights { get; init; } = [];
-	public MapPosition DefaultLargeMapPosition { get; init; } = new(1098, 717);
 	public string InitialStorySegmentId { get; init; } = "开局答题";
 	public List<string> SelectablePortraitIds { get; init; } = [
 		"头像.主角", "头像.主角3", "头像.主角4", "头像.魔君", "头像.全冠清",

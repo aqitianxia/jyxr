@@ -11,6 +11,102 @@ public sealed class MapServiceTests
     private const string WorldVillageEventId = "world-village-intro";
 
     [Fact]
+    public void EnterMap_LargeMap_FirstVisitUsesDefaultLocation()
+    {
+        var worldMap = CreateMap(
+            "world",
+            MapKind.Large,
+            CreateLocation("start", position: new MapPosition(12, 34)),
+            CreateLocation("gate", position: new MapPosition(56, 78)));
+        var session = new GameSession(
+            new GameState(),
+            TestContentFactory.CreateRepository(maps: [worldMap]));
+
+        var result = session.MapService.EnterMap("world");
+
+        Assert.Equal(new MapPosition(12, 34), result.HeroPosition);
+        Assert.Equal(new MapPosition(12, 34), session.State.Location.GetLargeMapPosition("world"));
+    }
+
+    [Fact]
+    public void EnterMap_LargeMap_ExplicitLocationOverridesAndRemembersPosition()
+    {
+        var worldMap = CreateMap(
+            "world",
+            MapKind.Large,
+            CreateLocation("start", position: new MapPosition(12, 34)),
+            CreateLocation(
+                "hidden_gate",
+                position: new MapPosition(56, 78),
+                hideWhenNoEvent: true));
+        var state = new GameState();
+        state.Location.SetLargeMapPosition("world", new MapPosition(90, 100));
+        var session = new GameSession(state, TestContentFactory.CreateRepository(maps: [worldMap]));
+
+        var result = session.MapService.EnterMap("world", "hidden_gate");
+
+        Assert.Equal(new MapPosition(56, 78), result.HeroPosition);
+        Assert.Equal(new MapPosition(56, 78), state.Location.GetLargeMapPosition("world"));
+        Assert.Equal(new MapPosition(56, 78), session.MapService.EnterMap("world").HeroPosition);
+    }
+
+    [Fact]
+    public void EnterMap_MultipleLargeMapsRememberPositionsIndependently()
+    {
+        var world = CreateMap(
+            "world",
+            MapKind.Large,
+            CreateLocation("start", position: new MapPosition(10, 20)),
+            CreateLocation("gate", position: new MapPosition(30, 40)));
+        var islands = CreateMap(
+            "islands",
+            MapKind.Large,
+            CreateLocation("port", position: new MapPosition(100, 200)),
+            CreateLocation("dock", position: new MapPosition(300, 400)));
+        var session = new GameSession(
+            new GameState(),
+            TestContentFactory.CreateRepository(maps: [world, islands]));
+
+        session.MapService.EnterMap("world", "gate");
+        session.MapService.EnterMap("islands", "dock");
+
+        Assert.Equal(new MapPosition(30, 40), session.MapService.EnterMap("world").HeroPosition);
+        Assert.Equal(new MapPosition(300, 400), session.MapService.EnterMap("islands").HeroPosition);
+    }
+
+    [Fact]
+    public void EnterMap_InvalidExplicitLocationDoesNotChangeLocationState()
+    {
+        var worldMap = CreateMap(
+            "world",
+            MapKind.Large,
+            CreateLocation("start", position: new MapPosition(12, 34)));
+        var state = new GameState();
+        state.Location.ChangeMap("inn");
+        state.Location.SetLargeMapPosition("world", new MapPosition(90, 100));
+        var session = new GameSession(state, TestContentFactory.CreateRepository(maps: [worldMap]));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            session.MapService.EnterMap("world", "missing"));
+
+        Assert.Equal("inn", state.Location.CurrentMapId);
+        Assert.Equal(new MapPosition(90, 100), state.Location.GetLargeMapPosition("world"));
+    }
+
+    [Fact]
+    public void EnterMap_RejectsExplicitLocationForSmallMapWithoutChangingCurrentMap()
+    {
+        var inn = CreateMap("inn", MapKind.Small, CreateLocation("door"));
+        var state = new GameState();
+        state.Location.ChangeMap("world");
+        var session = new GameSession(state, TestContentFactory.CreateRepository(maps: [inn]));
+
+        Assert.Throws<InvalidOperationException>(() => session.MapService.EnterMap("inn", "door"));
+
+        Assert.Equal("world", state.Location.CurrentMapId);
+    }
+
+    [Fact]
     public void InteractWithLocation_UsesMapTravelSpeedForPreviewAndMovement()
     {
         var target = CreateLocation(
@@ -29,6 +125,7 @@ public sealed class MapServiceTests
             new GameState(),
             TestContentFactory.CreateRepository(maps: [worldMap]));
         var location = Assert.Single(session.MapService.EnterMap("world").Locations);
+        session.State.Location.SetLargeMapPosition("world", MapPosition.Zero);
 
         Assert.Equal(3, session.MapService.PreviewInteractionConsumedTimeSlots(location));
 
@@ -628,7 +725,12 @@ public sealed class MapServiceTests
             Name = id,
             Kind = kind,
             TravelSpeed = kind == MapKind.Large ? 10d : 0d,
-            Locations = locations,
+            DefaultLocation = kind == MapKind.Large ? locations[0].Id : null,
+            Locations = kind == MapKind.Large
+                ? locations.Select(location => location.Position is null
+                    ? location with { Position = MapPosition.Zero }
+                    : location).ToArray()
+                : locations,
         };
 
     private static MapLocationDefinition CreateLocation(

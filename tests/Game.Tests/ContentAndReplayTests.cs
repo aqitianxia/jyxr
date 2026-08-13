@@ -157,6 +157,7 @@ public sealed class ContentLoadingTests
                     Name = "World",
                     Kind = MapKind.Large,
                     TravelSpeed = 10d,
+                    DefaultLocation = location.Id,
                     Locations = [location with { Position = new MapPosition(10, 20) }],
                 },
             ],
@@ -215,6 +216,7 @@ public sealed class ContentLoadingTests
             Name = "World",
             Kind = MapKind.Large,
             TravelSpeed = 22d,
+            DefaultLocation = "town",
             Locations = [new MapLocationDefinition { Id = "town" }],
         });
 
@@ -234,6 +236,7 @@ public sealed class ContentLoadingTests
             Name = "World",
             Kind = MapKind.Large,
             TravelSpeed = 22d,
+            DefaultLocation = "town",
             Locations = [new MapLocationDefinition { Id = "town", Position = new MapPosition(x, y) }],
         });
 
@@ -242,6 +245,64 @@ public sealed class ContentLoadingTests
 
     private static ContentPackage CreateSingleMapPackage(MapDefinition map) =>
         new() { Maps = [map] };
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("missing")]
+    public void JsonLoader_RejectsLargeMapWithoutExistingDefaultLocation(string? defaultLocation)
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "world",
+            Name = "World",
+            Kind = MapKind.Large,
+            TravelSpeed = 22d,
+            DefaultLocation = defaultLocation,
+            Locations =
+            [
+                new MapLocationDefinition
+                {
+                    Id = "start",
+                    Position = new MapPosition(10, 20),
+                },
+            ],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsDefaultLocationOnSmallMap()
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "town",
+            Name = "Town",
+            DefaultLocation = "start",
+            Locations = [new MapLocationDefinition { Id = "start" }],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_RejectsDuplicateMapLocationIds()
+    {
+        var package = CreateSingleMapPackage(new MapDefinition
+        {
+            Id = "town",
+            Name = "Town",
+            Locations =
+            [
+                new MapLocationDefinition { Id = "shop" },
+                new MapLocationDefinition { Id = "shop" },
+            ],
+        });
+
+        Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
 
     [Theory]
     [InlineData("")]
@@ -1496,6 +1557,109 @@ public sealed class ContentLoadingTests
         }
     }
 
+    [Theory]
+    [InlineData("map('world_map', 'missing')")]
+    [InlineData("set_map('world_map', '')")]
+    [InlineData("tutorial('small_map', 'door')")]
+    public void JsonLoader_RejectsInvalidLiteralMapCommandLocation(string call)
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["maps/test.json"] =
+                """
+                [
+                  {
+                    "id": "world_map",
+                    "name": "World Map",
+                    "kind": "large",
+                    "travelSpeed": 10,
+                    "defaultLocation": "start",
+                    "locations": [
+                      {"id":"start","position":{"x":0,"y":0}}
+                    ]
+                  },
+                  {
+                    "id": "small_map",
+                    "name": "Small Map",
+                    "locations": [
+                      {"id":"door"}
+                    ]
+                  }
+                ]
+                """,
+            ["stories/main.story.json"] =
+                $$"""
+                {
+                  "version": 3,
+                  "segments": [
+                    {
+                      "name": "story_intro",
+                      "steps": [
+                        {"kind":"command","call":{{JsonSerializer.Serialize(call)}}}
+                      ]
+                    }
+                  ]
+                }
+                """,
+        });
+
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromDirectory(directoryPath));
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void JsonLoader_AcceptsLiteralMapCommandLocation()
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["maps/test.json"] =
+                """
+                [
+                  {
+                    "id": "world_map",
+                    "name": "World Map",
+                    "kind": "large",
+                    "travelSpeed": 10,
+                    "defaultLocation": "start",
+                    "locations": [
+                      {"id":"start","position":{"x":0,"y":0}},
+                      {"id":"gate","position":{"x":10,"y":20}}
+                    ]
+                  }
+                ]
+                """,
+            ["stories/main.story.json"] =
+                """
+                {
+                  "version": 3,
+                  "segments": [
+                    {
+                      "name": "story_intro",
+                      "steps": [
+                        {"kind":"command","call":"map('world_map', 'gate')"}
+                      ]
+                    }
+                  ]
+                }
+                """,
+        });
+
+        try
+        {
+            Assert.NotNull(new JsonContentLoader().LoadFromDirectory(directoryPath));
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
     [Fact]
     public void JsonLoader_RejectsMissingStoryReferencedByWorldTrigger()
     {
@@ -1509,7 +1673,10 @@ public sealed class ContentLoadingTests
                     "name": "World Map",
                     "kind": "large",
                     "travelSpeed": 10,
-                    "locations": []
+                    "defaultLocation": "start",
+                    "locations": [
+                      {"id":"start","position":{"x":0,"y":0}}
+                    ]
                   }
                 ]
                 """,

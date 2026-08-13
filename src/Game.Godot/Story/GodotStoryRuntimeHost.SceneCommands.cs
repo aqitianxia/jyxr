@@ -32,9 +32,22 @@ public sealed partial class GodotStoryRuntimeHost
 	}
 
 	[StoryCommand("map", "set_map", "tutorial")]
-	private ValueTask ExecuteMapAsync(string mapId)
+	private ValueTask ExecuteMapAsync(string mapId, params string[] locationIds)
 	{
-		World.Instance.EnterMap(mapId);
+		if (locationIds.Length > 1)
+		{
+			throw new InvalidOperationException("Map command accepts at most one location id.");
+		}
+
+		if (locationIds.Length == 0)
+		{
+			World.Instance.EnterMap(mapId);
+		}
+		else
+		{
+			World.Instance.EnterMap(mapId, locationIds[0]);
+		}
+
 		return ValueTask.CompletedTask;
 	}
 

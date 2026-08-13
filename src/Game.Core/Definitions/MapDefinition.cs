@@ -13,6 +13,8 @@ public sealed record MapDefinition
 
     public double TravelSpeed { get; init; }
 
+    public string? DefaultLocation { get; init; }
+
     public string? Description { get; init; }
 
     public string? Picture { get; init; }

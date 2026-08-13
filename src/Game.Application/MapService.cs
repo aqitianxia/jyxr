@@ -20,24 +20,45 @@ public sealed class MapService
     private GameState State => _session.State;
     private IContentRepository ContentRepository => _session.ContentRepository;
 
-    public MapEnterResult EnterMap(string mapId)
+    public MapEnterResult EnterMap(string mapId) => EnterMapCore(mapId, null);
+
+    public MapEnterResult EnterMap(string mapId, string locationId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(locationId);
+        return EnterMapCore(mapId, locationId);
+    }
+
+    private MapEnterResult EnterMapCore(string mapId, string? locationId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
 
-        _session.BattleService.RestorePartyBattleResources();
-
         var map = ContentRepository.GetMap(mapId);
-        State.Location.ChangeMap(map.Id);
-        _session.Events.Publish(new MapChangedEvent(map.Id));
-
         MapPosition? currentPosition = null;
-        if (map.Kind == MapKind.Large)
+        if (locationId is not null)
+        {
+            if (map.Kind != MapKind.Large)
+            {
+                throw new InvalidOperationException(
+                    $"Map '{map.Id}' is not a large map and cannot be entered at location '{locationId}'.");
+            }
+
+            currentPosition = ResolveLocationPosition(map, locationId);
+        }
+        else if (map.Kind == MapKind.Large)
         {
             currentPosition = State.Location.TryGetLargeMapPosition(map.Id, out var rememberedPosition)
                 ? rememberedPosition
-                : MapPosition.Zero;
+                : ResolveDefaultPosition(map);
+        }
+
+        _session.BattleService.RestorePartyBattleResources();
+        State.Location.ChangeMap(map.Id);
+        if (currentPosition is not null)
+        {
             State.Location.SetLargeMapPosition(map.Id, currentPosition.Value);
         }
+
+        _session.Events.Publish(new MapChangedEvent(map.Id));
 
         return new MapEnterResult
         {
@@ -47,6 +68,27 @@ public sealed class MapService
             PendingInteraction = _session.WorldTriggerService.ResolvePendingTrigger(),
             Locations = BuildLocations(map),
         };
+    }
+
+    private static MapPosition ResolveDefaultPosition(MapDefinition map)
+    {
+        if (string.IsNullOrWhiteSpace(map.DefaultLocation))
+        {
+            throw new InvalidOperationException($"Large map '{map.Id}' does not define a default location.");
+        }
+
+        return ResolveLocationPosition(map, map.DefaultLocation);
+    }
+
+    private static MapPosition ResolveLocationPosition(MapDefinition map, string locationId)
+    {
+        var location = map.Locations.SingleOrDefault(candidate =>
+            string.Equals(candidate.Id, locationId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException(
+                $"Large map '{map.Id}' does not contain location '{locationId}'.");
+        return location.Position
+            ?? throw new InvalidOperationException(
+                $"Large map '{map.Id}' location '{location.Id}' does not define a position.");
     }
 
     public MapInteractionResult InteractWithLocation((string MapId, MapLocationDefinition Location, MapEventDefinition? Event) location)
