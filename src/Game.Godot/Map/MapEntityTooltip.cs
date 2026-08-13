@@ -2,14 +2,12 @@ using Godot;
 
 namespace Game.Godot.Map;
 
-public partial class MapEntityTooltip : PanelContainer
+public partial class MapEntityTooltip : RichTextLabel
 {
-	private RichTextLabel _richTextLabel = null!;
 	private string _text = string.Empty;
 	
 	public override void _Ready()
 	{
-		_richTextLabel = GetNode<RichTextLabel>("%RichTextLabel");
 		Refresh();
 	}
 
@@ -31,14 +29,19 @@ public partial class MapEntityTooltip : PanelContainer
 		return tooltip;
 	}
 
-	public static MapEntityTooltip Show(
-		Control parent,
+	public static Control Show(
+		Node parent,
 		PackedScene scene,
 		string text,
 		Rect2 anchor,
 		Rect2 bounds)
 	{
-		var tooltip = Create(scene, text);
+		var content = Create(scene, text);
+		var tooltip = new PanelContainer
+		{
+			ThemeTypeVariation = "TooltipPanel",
+		};
+		tooltip.AddChild(content);
 		IgnoreMouseInputRecursive(tooltip);
 		parent.AddChild(tooltip);
 
@@ -66,7 +69,7 @@ public partial class MapEntityTooltip : PanelContainer
 			return;
 		}
 
-		_richTextLabel.Text = _text;
+		Text = _text;
 	}
 
 	private static float ClampAxis(float position, float length, float minimum, float maximum) =>

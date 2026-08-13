@@ -13,7 +13,8 @@ public partial class MapScreen
 	private void InitializeLargeMapNodes()
 	{
 		_largeMapView = GetNode<LargeMapView>("%LargeMapView");
-		_largeMapView.LocationPressed += OnLocationPressed;
+		_largeMapView.LocationPressed += _locationTooltipLayer.Request;
+		_largeMapView.GestureStarted += _locationTooltipLayer.Dismiss;
 	}
 
 	private void FillLargeMap(MapEnterResult result)

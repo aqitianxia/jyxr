@@ -19,6 +19,8 @@ public partial class MapScreen : Control
 	private TextureRect _smallMapBackground = null!;
 	private ColorRect _smallMapTimeDim = null!;
 	private HBoxContainer _mapEntityList = null!;
+	private ScrollContainer _smallMapLocationScroll = null!;
+	private MapLocationTooltipLayer _locationTooltipLayer = null!;
 	private Control _bottomBox = null!;
 	private RichTextLabel _mapDescriptionLabel = null!;
 	private MapInteractionResult? _pendingInteraction;
@@ -29,14 +31,18 @@ public partial class MapScreen : Control
 	{
 		_mapBigTab = GetNode<Control>("%MapBigTab");
 		_mapSmallTab = GetNode<Control>("%MapSmallTab");
+		_locationTooltipLayer = GetNode<MapLocationTooltipLayer>("%TooltipHost");
+		_locationTooltipLayer.LocationActivated += OnLocationPressed;
 		InitializeLargeMapNodes();
 		_smallMapBackground = GetNode<TextureRect>("%SmallMapBackground");
 		_smallMapTimeDim = GetNode<ColorRect>("%SmallMapTimeDim");
 		_cameraButton = GetNode<Control>("%CameraButton");
+		_smallMapLocationScroll = GetNode<ScrollContainer>("%SmallMapLocationScroll");
 		_mapEntityList = GetNode<HBoxContainer>("%MapEntityList");
 		_bottomBox = GetNode<Control>("%BottomBox");
 		_mapDescriptionLabel = GetNode<RichTextLabel>("%MapDescriptionLabel");
 		_clockChangedSubscription = Game.Session.Events.Subscribe<ClockChangedEvent>(OnClockChanged);
+		_smallMapLocationScroll.ScrollStarted += _locationTooltipLayer.Dismiss;
 
 		if (_pendingInitialResult is not null)
 		{
@@ -49,6 +55,7 @@ public partial class MapScreen : Control
 
 	public override void _ExitTree()
 	{
+		_locationTooltipLayer.Dismiss();
 		_clockChangedSubscription?.Dispose();
 		_clockChangedSubscription = null;
 	}
@@ -90,6 +97,7 @@ public partial class MapScreen : Control
 
 	private void Apply(MapEnterResult result)
 	{
+		_locationTooltipLayer.Dismiss();
 		if (result.Map.Musics.Any())
 		{
 			Game.Audio.PlayBgm(result.Map.Musics);
@@ -138,7 +146,7 @@ public partial class MapScreen : Control
 		}
 
 		button.Setup(location);
-		button.LocationPressed += OnLocationPressed;
+		button.LocationPressed += _locationTooltipLayer.Request;
 		return button;
 	}
 
@@ -150,6 +158,7 @@ public partial class MapScreen : Control
 		}
 
 		_isHandlingInteraction = true;
+		_locationTooltipLayer.Dismiss();
 
 		try
 		{
@@ -291,6 +300,7 @@ public partial class MapScreen : Control
 
 	private void ApplyStoryPresentationVisibility()
 	{
+		_locationTooltipLayer.Dismiss();
 		if (_isStoryPresentationActive)
 		{
 			if (_mapBigTab.Visible)
@@ -305,7 +315,7 @@ public partial class MapScreen : Control
 				_smallMapTimeDim.Hide();
 			}
 
-			_mapEntityList.Hide();
+			_smallMapLocationScroll.Hide();
 			_bottomBox.Hide();
 			_cameraButton.Hide();
 			return;
@@ -314,7 +324,7 @@ public partial class MapScreen : Control
 		if (_mapBigTab.Visible)
 		{
 			_largeMapView.Show();
-			_mapEntityList.Hide();
+			_smallMapLocationScroll.Hide();
 			_bottomBox.Hide();
 			_cameraButton.Hide();
 			return;
@@ -324,7 +334,7 @@ public partial class MapScreen : Control
 		_largeMapView.ResetInputState();
 		_smallMapBackground.Visible = _smallMapBackground.Texture is not null;
 		ApplySmallMapTimeLighting();
-		_mapEntityList.Show();
+		_smallMapLocationScroll.Show();
 		_bottomBox.Show();
 		//_cameraButton.Show();
 	}

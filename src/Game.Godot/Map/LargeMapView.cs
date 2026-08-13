@@ -43,8 +43,6 @@ public partial class LargeMapView : Control
 	private Vector2 _touchPressPosition;
 	private LargeMapMarker? _touchPressedMarker;
 	private LargeMapMarker? _tooltipMarker;
-	private LargeMapMarker? _mobileTooltipMarker;
-	private Control? _mobileTooltip;
 	private bool _interactionEnabled = true;
 
 	[Export]
@@ -53,7 +51,10 @@ public partial class LargeMapView : Control
 	[Export]
 	public PackedScene TooltipScene { get; set; } = null!;
 
-	public event Action<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>? LocationPressed;
+	public event Action<
+		(string MapId, MapLocationDefinition Location, MapEventDefinition? Event),
+		Rect2>? LocationPressed;
+	public event Action? GestureStarted;
 
 	public bool HasBackground => _background.Texture is not null;
 
@@ -220,7 +221,6 @@ public partial class LargeMapView : Control
 		_touchState = TouchGestureState.Idle;
 		_touchPressedMarker = null;
 		_tooltipMarker = null;
-		DismissMobileTooltip();
 	}
 
 	private void SetBackground(string? resourceId)
@@ -353,10 +353,6 @@ public partial class LargeMapView : Control
 			_mousePressPosition = position;
 			_previousMousePosition = position;
 			_mousePressedMarker = FindMarkerAt(position);
-			if (_mousePressedMarker is null)
-			{
-				DismissMobileTooltip();
-			}
 
 			return true;
 		}
@@ -394,7 +390,7 @@ public partial class LargeMapView : Control
 		{
 			_mouseDragging = true;
 			_mousePressedMarker = null;
-			DismissMobileTooltip();
+			GestureStarted?.Invoke();
 		}
 
 		if (_mouseDragging)
@@ -423,16 +419,12 @@ public partial class LargeMapView : Control
 				_touchState = TouchGestureState.PendingTap;
 				_touchPressPosition = position;
 				_touchPressedMarker = FindMarkerAt(position);
-				if (_touchPressedMarker is null)
-				{
-					DismissMobileTooltip();
-				}
 			}
 			else
 			{
 				_touchState = TouchGestureState.Pinching;
 				_touchPressedMarker = null;
-				DismissMobileTooltip();
+				GestureStarted?.Invoke();
 			}
 			return true;
 		}
@@ -490,7 +482,7 @@ public partial class LargeMapView : Control
 			{
 				_touchState = TouchGestureState.Dragging;
 				_touchPressedMarker = null;
-				DismissMobileTooltip();
+				GestureStarted?.Invoke();
 			}
 
 			if (_touchState == TouchGestureState.Dragging)
@@ -504,6 +496,11 @@ public partial class LargeMapView : Control
 
 		if (TryGetOtherTouch(drag.Index, out var otherPosition))
 		{
+			if (_touchState != TouchGestureState.Pinching)
+			{
+				GestureStarted?.Invoke();
+			}
+
 			_touches[drag.Index] = position;
 			_touchState = TouchGestureState.Pinching;
 			_touchPressedMarker = null;
@@ -540,51 +537,11 @@ public partial class LargeMapView : Control
 			return;
 		}
 
-		if (!Game.IsMobilePlatform)
-		{
-			LocationPressed?.Invoke(location);
-			return;
-		}
-
-		var tooltipText = MapEntityPresentation.BuildTooltipText(location);
-		if (string.IsNullOrWhiteSpace(tooltipText))
-		{
-			LocationPressed?.Invoke(location);
-			return;
-		}
-
-		if (_mobileTooltipMarker != marker)
-		{
-			ShowMobileTooltip(marker, tooltipText);
-			return;
-		}
-
-		DismissMobileTooltip();
-		LocationPressed?.Invoke(location);
-	}
-
-	private void ShowMobileTooltip(LargeMapMarker marker, string text)
-	{
-		DismissMobileTooltip();
-		_mobileTooltipMarker = marker;
-		var markerRect = marker.GetScreenBounds();
-		_mobileTooltip = MapEntityTooltip.Show(
-			this,
-			TooltipScene,
-			text,
-			markerRect,
-			new Rect2(Vector2.Zero, Size));
-	}
-
-	private void DismissMobileTooltip()
-	{
-		_mobileTooltipMarker = null;
-		var tooltip = _mobileTooltip;
-		_mobileTooltip = null;
-		if (tooltip is not null && GodotObject.IsInstanceValid(tooltip))
-		{
-			tooltip.QueueFree();
-		}
+		var localBounds = marker.GetScreenBounds();
+		var canvasTransform = GetGlobalTransformWithCanvas();
+		var firstCorner = canvasTransform * localBounds.Position;
+		var secondCorner = canvasTransform * localBounds.End;
+		LocationPressed?.Invoke(location, new Rect2(firstCorner, secondCorner - firstCorner).Abs());
 	}
 
 	private LargeMapMarker? FindMarkerAt(Vector2 screenPosition)
