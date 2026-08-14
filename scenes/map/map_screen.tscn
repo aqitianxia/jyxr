@@ -220,12 +220,21 @@ layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.05
 anchor_right = 0.95
-offset_top = 362.0
-offset_bottom = 688.0
+offset_left = -40.0
+offset_top = 338.0
+offset_right = 40.0
+offset_bottom = 708.0
 horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 
-[node name="MapEntityList" type="HBoxContainer" parent="MapSmallTab/SmallMapLocationScroll" unique_id=274914384]
+[node name="SmallMapLocationContent" type="MarginContainer" parent="MapSmallTab/SmallMapLocationScroll" unique_id=300000003]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 68
+
+[node name="MapEntityList" type="HBoxContainer" parent="MapSmallTab/SmallMapLocationScroll/SmallMapLocationContent" unique_id=274914384]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 80
