@@ -4,6 +4,7 @@
     "name": "Sample Shop",
     "products": [
       {
+        "id": "healing_potion",
         "reward": {
           "kind": "item",
           "itemId": "healing_potion",

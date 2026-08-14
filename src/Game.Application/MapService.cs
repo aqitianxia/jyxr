@@ -113,7 +113,7 @@ public sealed class MapService
             ConsumedTimeSlots = consumedTimeSlots,
             Movement = movement.Result,
             MapEventCompletionKey = location.Event.RepeatMode == RepeatMode.Once
-                ? location.Event.Id
+                ? new MapEventKey(location.MapId, location.Location.Id, location.Event.Id)
                 : null,
         };
     }
@@ -133,7 +133,7 @@ public sealed class MapService
         var locations = new List<(string MapId, MapLocationDefinition Location, MapEventDefinition? Event)>(map.Locations.Count);
         foreach (var location in map.Locations)
         {
-            var mapEvent = FindTriggerEvent(location);
+            var mapEvent = FindTriggerEvent(map.Id, location);
             if (mapEvent is null &&
                 (map.Kind == MapKind.Small ||
                  location.HideWhenNoEvent))
@@ -147,12 +147,12 @@ public sealed class MapService
         return locations;
     }
 
-    private MapEventDefinition? FindTriggerEvent(MapLocationDefinition location)
+    private MapEventDefinition? FindTriggerEvent(string mapId, MapLocationDefinition location)
     {
         foreach (var mapEvent in location.Events)
         {
             if (mapEvent.RepeatMode == RepeatMode.Once &&
-                IsOnceEventCompleted(mapEvent.Id))
+                IsOnceEventCompleted(mapId, location.Id, mapEvent.Id))
             {
                 continue;
             }
@@ -216,12 +216,12 @@ public sealed class MapService
         ArgumentNullException.ThrowIfNull(interaction);
         if (interaction.MapEventCompletionKey is { } eventKey)
         {
-            State.MapEventProgress.MarkCompleted(eventKey);
+            State.MapEventProgress.MarkCompleted(eventKey.MapId, eventKey.LocationId, eventKey.EventId);
         }
     }
 
-    private bool IsOnceEventCompleted(string eventKey) =>
-        State.MapEventProgress.IsCompleted(eventKey);
+    private bool IsOnceEventCompleted(string mapId, string locationId, string eventId) =>
+        State.MapEventProgress.IsCompleted(mapId, locationId, eventId);
 
 }
 
@@ -240,7 +240,7 @@ public sealed record MapInteractionResult
     public int ConsumedTimeSlots { get; init; }
     public MapMovementResult? Movement { get; init; }
     public string? Message { get; init; }
-    internal string? MapEventCompletionKey { get; init; }
+    internal MapEventKey? MapEventCompletionKey { get; init; }
 }
 
 public sealed record MapMovementResult(

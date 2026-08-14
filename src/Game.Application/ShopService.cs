@@ -22,9 +22,8 @@ public sealed class ShopService
 
         var shop = _session.ContentRepository.GetShop(shopId);
         var products = shop.Products
-            .Select((product, index) => (Product: product, Index: index))
-            .Where(entry => IsAvailable(entry.Product.Reward))
-            .Select(entry => CreateProductView(shop.Id, entry.Index, entry.Product))
+            .Where(product => IsAvailable(product.Reward))
+            .Select(product => CreateProductView(shop.Id, product))
             .ToList();
 
         return new ShopView(shop, products);
@@ -32,27 +31,24 @@ public sealed class ShopService
 
     public ShopTransactionResult Buy(
         string shopId,
-        int productIndex,
+        string productId,
         int quantity = 1,
         ShopCurrencyKind? currencyKind = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shopId);
-        ArgumentOutOfRangeException.ThrowIfNegative(productIndex);
+        ArgumentException.ThrowIfNullOrWhiteSpace(productId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         var shop = _session.ContentRepository.GetShop(shopId);
-        if (productIndex >= shop.Products.Count)
-        {
-            throw new InvalidOperationException($"Shop '{shopId}' has no product at index {productIndex}.");
-        }
-
-        var productDefinition = shop.Products[productIndex];
+        var productDefinition = shop.Products.SingleOrDefault(product =>
+            string.Equals(product.Id, productId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Shop '{shopId}' has no product '{productId}'.");
         if (!IsAvailable(productDefinition.Reward))
         {
             return ShopTransactionResult.Failed($"【{_session.RewardGrantService.GetDisplayName(productDefinition.Reward)}】已达等级上限。");
         }
 
-        var product = CreateProductView(shop.Id, productIndex, productDefinition);
+        var product = CreateProductView(shop.Id, productDefinition);
         var selectedCurrency = currencyKind ?? product.DefaultCurrencyKind;
         var unitPrice = product.GetUnitPrice(selectedCurrency);
         if (unitPrice is null)
@@ -79,7 +75,7 @@ public sealed class ShopService
         }
 
         Spend(selectedCurrency, totalPrice);
-        State.Shop.AddPurchasedQuantity(product.PurchaseKey, quantity);
+        State.Shop.AddPurchasedQuantity(shop.Id, productDefinition.Id, quantity);
         if (selectedCurrency == ShopCurrencyKind.Silver)
         {
             _session.Events.Publish(new CurrencyChangedEvent());
@@ -144,11 +140,9 @@ public sealed class ShopService
         return item.Price > 0;
     }
 
-    private ShopProductView CreateProductView(string shopId, int productIndex, ShopProductDefinition product)
+    private ShopProductView CreateProductView(string shopId, ShopProductDefinition product)
     {
-        var rewardKey = product.Reward.GetStableKey();
-        var purchaseKey = BuildPurchaseKey(shopId, rewardKey);
-        var purchasedQuantity = State.Shop.GetPurchasedQuantity(purchaseKey);
+        var purchasedQuantity = State.Shop.GetPurchasedQuantity(shopId, product.Id);
         int? remainingClaims = product.MaxClaims is null
             ? null
             : Math.Max(0, product.MaxClaims.Value - purchasedQuantity);
@@ -162,14 +156,13 @@ public sealed class ShopService
         var (picture, description) = ResolvePresentation(product.Reward, item);
 
         return new ShopProductView(
-            productIndex,
+            product.Id,
             product,
             item,
             displayName,
             picture,
             description,
             product.Reward is not ItemRewardDefinition,
-            purchaseKey,
             price,
             product.PremiumPrice,
             purchasedQuantity,
@@ -237,9 +230,6 @@ public sealed class ShopService
         }
     }
 
-    private static string BuildPurchaseKey(string shopId, string rewardKey) =>
-        $"{shopId}|{rewardKey}";
-
     private static string FormatTransactionMessage(string verb, string itemName, int quantity) =>
         quantity == 1
             ? $"{verb}【{itemName}】"
@@ -257,14 +247,13 @@ public sealed record ShopView(
     IReadOnlyList<ShopProductView> Products);
 
 public sealed record ShopProductView(
-    int ProductIndex,
+    string ProductId,
     ShopProductDefinition Definition,
     ItemDefinition? Item,
     string DisplayName,
     string Picture,
     string Description,
     bool IsSpecial,
-    string PurchaseKey,
     int? Price,
     int? PremiumPrice,
     int PurchasedQuantity,

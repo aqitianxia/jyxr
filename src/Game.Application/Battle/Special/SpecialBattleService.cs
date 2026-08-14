@@ -306,7 +306,7 @@ public sealed class SpecialBattleService
                 State.SpecialBattle.GetTowerRewardClaimCount(
                     tower.Id,
                     stage.Id,
-                    reward.Reward.GetStableKey()) < reward.MaxClaims.Value)
+                    reward.Id) < reward.MaxClaims.Value)
             .ToArray();
         if (candidates.Length == 0)
         {
@@ -314,7 +314,7 @@ public sealed class SpecialBattleService
                 tower.Id,
                 stage.Id,
                 new ItemRewardDefinition { ItemId = DefaultTowerRewardId },
-                $"item:{DefaultTowerRewardId}",
+                DefaultTowerRewardId,
                 _session.ContentRepository.GetItem(DefaultTowerRewardId).Name,
                 IsLimited: false);
         }
@@ -331,12 +331,11 @@ public sealed class SpecialBattleService
             }
         }
 
-        var rewardKey = selectedReward.Reward.GetStableKey();
         return new PendingTowerReward(
             tower.Id,
             stage.Id,
             selectedReward.Reward,
-            rewardKey,
+            selectedReward.Id,
             _session.RewardGrantService.GetDisplayName(selectedReward.Reward),
             IsLimited: selectedReward.MaxClaims is not null);
     }
@@ -372,7 +371,7 @@ public sealed class SpecialBattleService
     {
         if (reward.IsLimited)
         {
-            State.SpecialBattle.AddTowerRewardClaim(reward.TowerId, reward.StageId, reward.RewardKey);
+            State.SpecialBattle.AddTowerRewardClaim(reward.TowerId, reward.StageId, reward.RewardId);
         }
     }
 
@@ -422,7 +421,7 @@ public sealed class SpecialBattleService
         string TowerId,
         string StageId,
         RewardDefinition Definition,
-        string RewardKey,
+        string RewardId,
         string DisplayName,
         bool IsLimited);
 }

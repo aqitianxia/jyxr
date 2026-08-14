@@ -62,7 +62,7 @@ public sealed class SaveGameServiceTests
         state.Clock.AdvanceDays(31);
         state.Location.ChangeMap("sample_map");
         state.Location.SetLargeMapPosition("world", new MapPosition(512, 410));
-        state.MapEventProgress.MarkCompleted("world-village-intro");
+        state.MapEventProgress.MarkCompleted("world", "village", "intro");
         state.Story.SetVariable("tutorial_finished", ExpressionValue.FromBoolean(true));
         state.Story.MarkCompleted("新手村_南贤开场");
         state.Story.SetLastStory("新手村_南贤开场");
@@ -85,7 +85,7 @@ public sealed class SaveGameServiceTests
         Assert.Equal(TimeSlot.Chou, session.State.Clock.TimeSlot);
         Assert.Equal("sample_map", session.State.Location.CurrentMapId);
         Assert.Equal(new MapPosition(512, 410), session.State.Location.GetLargeMapPosition("world"));
-        Assert.True(session.State.MapEventProgress.IsCompleted("world-village-intro"));
+        Assert.True(session.State.MapEventProgress.IsCompleted("world", "village", "intro"));
         Assert.True(session.State.Story.IsStoryCompleted("新手村_南贤开场"));
         Assert.Equal("新手村_南贤开场", session.State.Story.LastStoryId);
         Assert.Equal(3723, session.State.PlayTimeSeconds);

@@ -140,7 +140,7 @@ public sealed class CanonicalDslCatalogTests
     [InlineData("character_level")]
     [InlineData("character_stat")]
     [InlineData("skill_level")]
-    [InlineData("event_completed")]
+    [InlineData("map_event_completed")]
     [InlineData("story_completed")]
     [InlineData("last_story_is")]
     [InlineData("has_time_key")]

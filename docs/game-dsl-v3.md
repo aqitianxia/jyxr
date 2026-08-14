@@ -121,7 +121,7 @@ current_time_slot !in ['子', '丑']
 | `character_level(character_id)` | Number | 活动队伍角色等级。 |
 | `character_stat(character_id, stat)` | Number | 活动队伍角色基础属性。 |
 | `skill_level(character_id, skill_id)` | Number | 外功或内功等级；角色未学会时为 `0`。 |
-| `event_completed(event_id)` | Boolean | 指定地图事件是否已完成。参数是地图事件定义中的全局唯一 ID。 |
+| `map_event_completed(map_id, location_id, event_id)` | Boolean | 指定地图地点下的事件是否已完成；事件 ID 只需在所属地点内唯一。 |
 | `story_completed(story_id)` | Boolean | 剧情是否完成；别名 `should_finish`。 |
 | `last_story_is(story_id)` | Boolean | 最近完成的剧情是否匹配；别名 `follow_story`。 |
 | `has_time_key(key)` | Boolean | 是否存在剧情限时 key。 |
@@ -282,7 +282,7 @@ remove_external('主角', '野球拳')
 | `suggest(text)` | 显示并等待剧情提示。 | — |
 | `toast(enabled)` | 开启或抑制 toast。 | — |
 
-每个地图事件必须声明全局唯一且稳定的 `id`。`once` 事件在 command 成功后按该 ID 记录完成状态，因此调整事件数组顺序不会改变存档语义。地图 action 可调用当前会话注册的任意 StoryCommand，不限于场景指令；世界触发会在派发一次性 command 前记录完成状态，防止换图递归触发。
+每个地图事件必须声明在所属地点内唯一且稳定的 `id`。`once` 事件在 command 成功后按 `mapId + locationId + eventId` 记录完成状态，因此调整事件数组顺序不会改变存档语义。地图 action 可调用当前会话注册的任意 StoryCommand，不限于场景指令；世界触发会在派发一次性 command 前记录完成状态，防止换图递归触发。
 
 ```json
 {

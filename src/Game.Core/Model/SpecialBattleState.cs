@@ -5,11 +5,11 @@ namespace Game.Core.Model;
 public sealed class SpecialBattleState
 {
     private readonly HashSet<string> _trialCompletedCharacterIds = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> _towerRewardClaimCounts = new(StringComparer.Ordinal);
+    private readonly Dictionary<TowerRewardKey, int> _towerRewardClaimCounts = [];
 
     public IReadOnlyCollection<string> TrialCompletedCharacterIds => _trialCompletedCharacterIds;
 
-    public IReadOnlyDictionary<string, int> TowerRewardClaimCounts => _towerRewardClaimCounts;
+    public IReadOnlyDictionary<TowerRewardKey, int> TowerRewardClaimCounts => _towerRewardClaimCounts;
 
     public static SpecialBattleState Restore(SpecialBattleStateRecord? record)
     {
@@ -24,11 +24,17 @@ public sealed class SpecialBattleState
             state.MarkTrialCompleted(characterId);
         }
 
-        foreach (var (claimKey, count) in record.TowerRewardClaimCounts)
+        foreach (var claim in record.TowerRewardClaims ?? [])
         {
-            if (count > 0)
+            ArgumentException.ThrowIfNullOrWhiteSpace(claim.TowerId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(claim.StageId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(claim.RewardId);
+            ArgumentOutOfRangeException.ThrowIfNegative(claim.Count);
+            if (claim.Count > 0)
             {
-                state._towerRewardClaimCounts[claimKey] = count;
+                state._towerRewardClaimCounts.Add(
+                    new TowerRewardKey(claim.TowerId, claim.StageId, claim.RewardId),
+                    claim.Count);
             }
         }
 
@@ -49,26 +55,37 @@ public sealed class SpecialBattleState
 
     public int GetTowerRewardClaimCount(string towerId, string stageId, string rewardId)
     {
-        var claimKey = CreateTowerRewardClaimKey(towerId, stageId, rewardId);
+        var claimKey = CreateTowerRewardKey(towerId, stageId, rewardId);
         return _towerRewardClaimCounts.GetValueOrDefault(claimKey);
     }
 
     public void AddTowerRewardClaim(string towerId, string stageId, string rewardId)
     {
-        var claimKey = CreateTowerRewardClaimKey(towerId, stageId, rewardId);
+        var claimKey = CreateTowerRewardKey(towerId, stageId, rewardId);
         _towerRewardClaimCounts[claimKey] = GetTowerRewardClaimCount(towerId, stageId, rewardId) + 1;
     }
 
     public SpecialBattleStateRecord ToRecord() =>
         new(
             _trialCompletedCharacterIds.OrderBy(static id => id, StringComparer.Ordinal).ToArray(),
-            new Dictionary<string, int>(_towerRewardClaimCounts, StringComparer.Ordinal));
+            _towerRewardClaimCounts
+                .OrderBy(static entry => entry.Key.TowerId, StringComparer.Ordinal)
+                .ThenBy(static entry => entry.Key.StageId, StringComparer.Ordinal)
+                .ThenBy(static entry => entry.Key.RewardId, StringComparer.Ordinal)
+                .Select(static entry => new TowerRewardClaimRecord(
+                    entry.Key.TowerId,
+                    entry.Key.StageId,
+                    entry.Key.RewardId,
+                    entry.Value))
+                .ToArray());
 
-    private static string CreateTowerRewardClaimKey(string towerId, string stageId, string rewardId)
+    private static TowerRewardKey CreateTowerRewardKey(string towerId, string stageId, string rewardId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(towerId);
         ArgumentException.ThrowIfNullOrWhiteSpace(stageId);
         ArgumentException.ThrowIfNullOrWhiteSpace(rewardId);
-        return string.Join('|', towerId, stageId, rewardId);
+        return new TowerRewardKey(towerId, stageId, rewardId);
     }
 }
+
+public readonly record struct TowerRewardKey(string TowerId, string StageId, string RewardId);

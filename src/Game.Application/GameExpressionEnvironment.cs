@@ -134,8 +134,9 @@ internal sealed class MapQueryFunctions
     private readonly GameSession _session;
     public MapQueryFunctions(GameSession session) => _session = session;
 
-    [ExpressionFunction("event_completed")]
-    public bool EventCompleted(string id) => _session.State.MapEventProgress.IsCompleted(id);
+    [ExpressionFunction("map_event_completed")]
+    public bool MapEventCompleted(string mapId, string locationId, string eventId) =>
+        _session.State.MapEventProgress.IsCompleted(mapId, locationId, eventId);
 }
 
 internal sealed class StoryQueryFunctions

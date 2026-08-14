@@ -8,7 +8,7 @@ namespace Game.Tests;
 
 public sealed class MapServiceTests
 {
-    private const string WorldVillageEventId = "world-village-intro";
+    private const string WorldVillageEventId = "intro";
 
     [Fact]
     public void EnterMap_LargeMap_FirstVisitUsesDefaultLocation()
@@ -225,7 +225,7 @@ public sealed class MapServiceTests
                 ],
                 hideWhenNoEvent: true));
         var state = new GameState();
-        state.MapEventProgress.MarkCompleted(WorldVillageEventId);
+        state.MapEventProgress.MarkCompleted("world", "village", WorldVillageEventId);
         var session = new GameSession(state, TestContentFactory.CreateRepository(maps: [worldMap]));
 
         Assert.Empty(session.MapService.EnterMap("world").Locations);
@@ -343,9 +343,9 @@ public sealed class MapServiceTests
         Assert.Equal(6, result.ConsumedTimeSlots);
         Assert.Equal(TimeSlot.Xu, state.Clock.TimeSlot);
         Assert.Equal(new MapPosition(30, 40), state.Location.GetLargeMapPosition("world"));
-        Assert.False(state.MapEventProgress.IsCompleted(WorldVillageEventId));
+        Assert.False(state.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
         session.MapService.CompleteInteraction(result);
-        Assert.True(state.MapEventProgress.IsCompleted(WorldVillageEventId));
+        Assert.True(state.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
     }
 
     [Fact]
@@ -398,12 +398,50 @@ public sealed class MapServiceTests
         var repository = TestContentFactory.CreateRepository(maps: [worldMap]);
 
         var state = new GameState();
-        state.MapEventProgress.MarkCompleted(WorldVillageEventId);
+        state.MapEventProgress.MarkCompleted("world", "village", WorldVillageEventId);
         var session = new GameSession(state, repository);
 
         var location = session.MapService.EnterMap("world").Locations.Single();
 
         Assert.Null(location.Event);
+    }
+
+    [Fact]
+    public void EnterMap_TracksMatchingLocalEventIdsIndependentlyByLocation()
+    {
+        var map = CreateMap(
+            "town",
+            MapKind.Small,
+            CreateLocation(
+                "smith",
+                events:
+                [
+                    new MapEventDefinition
+                    {
+                        Id = "intro",
+                        Action = Call("story('smith_intro')"),
+                        RepeatMode = RepeatMode.Once,
+                    },
+                ]),
+            CreateLocation(
+                "inn",
+                events:
+                [
+                    new MapEventDefinition
+                    {
+                        Id = "intro",
+                        Action = Call("story('inn_intro')"),
+                        RepeatMode = RepeatMode.Once,
+                    },
+                ]));
+        var state = new GameState();
+        state.MapEventProgress.MarkCompleted("town", "smith", "intro");
+        var session = new GameSession(state, TestContentFactory.CreateRepository(maps: [map]));
+
+        var location = Assert.Single(session.MapService.EnterMap("town").Locations);
+
+        Assert.Equal("inn", location.Location.Id);
+        Assert.Equal("intro", location.Event!.Id);
     }
 
     [Fact]
@@ -438,9 +476,9 @@ public sealed class MapServiceTests
 
         Assert.Equal("map", result.Command!.Root.Name);
         Assert.Equal("world", state.Location.CurrentMapId);
-        Assert.False(state.MapEventProgress.IsCompleted(WorldVillageEventId));
+        Assert.False(state.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
         session.MapService.CompleteInteraction(result);
-        Assert.True(state.MapEventProgress.IsCompleted(WorldVillageEventId));
+        Assert.True(state.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
         Assert.Null(session.MapService.EnterMap("world").Locations.Single().Event);
     }
 
@@ -603,7 +641,7 @@ public sealed class MapServiceTests
         var repository = TestContentFactory.CreateRepository(maps: [map]);
 
         var state = new GameState();
-        state.MapEventProgress.MarkCompleted("inn-keeper-old_shop");
+        state.MapEventProgress.MarkCompleted("inn", "keeper", "inn-keeper-old_shop");
         var session = new GameSession(state, repository);
 
         var enterResult = session.MapService.EnterMap("inn");
@@ -697,13 +735,13 @@ public sealed class MapServiceTests
 
         var entryCompletedState = new GameState();
         entryCompletedState.Story.MarkCompleted("tlbb.dy_阿朱阿碧");
-        entryCompletedState.MapEventProgress.MarkCompleted("world-taihu-entry");
+        entryCompletedState.MapEventProgress.MarkCompleted("world", "taihu", "world-taihu-entry");
         var entryCompletedSession = new GameSession(entryCompletedState, repository);
         var entryCompletedLocation = entryCompletedSession.MapService.EnterMap("world").Locations.Single();
         Assert.Equal("结束前入口", entryCompletedLocation.Event!.Description);
 
         var finishedState = new GameState();
-        finishedState.MapEventProgress.MarkCompleted("world-taihu-entry");
+        finishedState.MapEventProgress.MarkCompleted("world", "taihu", "world-taihu-entry");
         finishedState.Story.MarkCompleted("tlbb.dy_阿朱阿碧");
         finishedState.Story.MarkCompleted("tlbb.dy_阿朱阿碧事件结束");
         var finishedSession = new GameSession(finishedState, repository);

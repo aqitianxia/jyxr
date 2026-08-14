@@ -4,36 +4,54 @@ namespace Game.Core.Model;
 
 public sealed class MapEventProgressState
 {
-    private readonly HashSet<string> _completedEventIds = new(StringComparer.Ordinal);
+    private readonly HashSet<MapEventKey> _completedEvents = [];
 
-    public IReadOnlyCollection<string> CompletedEventIds => _completedEventIds;
+    public IReadOnlyCollection<MapEventKey> CompletedEvents => _completedEvents;
 
     public static MapEventProgressState Restore(MapEventProgressRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
 
         var state = new MapEventProgressState();
-        foreach (var eventId in record.CompletedEventIds)
+        foreach (var completedEvent in record.CompletedEvents ?? [])
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
-            state._completedEventIds.Add(eventId);
+            state._completedEvents.Add(CreateKey(
+                completedEvent.MapId,
+                completedEvent.LocationId,
+                completedEvent.EventId));
         }
 
         return state;
     }
 
-    public bool IsCompleted(string eventId)
+    public bool IsCompleted(string mapId, string locationId, string eventId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
-        return _completedEventIds.Contains(eventId);
+        return _completedEvents.Contains(CreateKey(mapId, locationId, eventId));
     }
 
-    public void MarkCompleted(string eventId)
+    public void MarkCompleted(string mapId, string locationId, string eventId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
-        _completedEventIds.Add(eventId);
+        _completedEvents.Add(CreateKey(mapId, locationId, eventId));
     }
 
     public MapEventProgressRecord ToRecord() =>
-        new(_completedEventIds.OrderBy(static id => id, StringComparer.Ordinal).ToArray());
+        new(_completedEvents
+            .OrderBy(static key => key.MapId, StringComparer.Ordinal)
+            .ThenBy(static key => key.LocationId, StringComparer.Ordinal)
+            .ThenBy(static key => key.EventId, StringComparer.Ordinal)
+            .Select(static key => new MapEventCompletionRecord(
+                key.MapId,
+                key.LocationId,
+                key.EventId))
+            .ToArray());
+
+    private static MapEventKey CreateKey(string mapId, string locationId, string eventId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(locationId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
+        return new MapEventKey(mapId, locationId, eventId);
+    }
 }
+
+public readonly record struct MapEventKey(string MapId, string LocationId, string EventId);

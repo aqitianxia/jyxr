@@ -23,8 +23,8 @@ public sealed class SpecialBattleServiceTests
         var entry = Assert.Single(session.State.Inventory.Entries.OfType<StackInventoryEntry>());
         Assert.Equal(reward.Id, entry.Item.Id);
         Assert.Equal(2, entry.Quantity);
-        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "item:rare_reward"));
-        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_b", "item:rare_reward"));
+        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "rare_reward"));
+        Assert.Equal(1, session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_b", "rare_reward"));
     }
 
     [Fact]
@@ -81,7 +81,25 @@ public sealed class SpecialBattleServiceTests
         Assert.Equal(3, Assert.Single(session.State.Inventory.Entries.OfType<StackInventoryEntry>()).Quantity);
         Assert.Equal(
             1,
-            session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "item:stack_reward"));
+            session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "stack_reward"));
+    }
+
+    [Fact]
+    public async Task TowerRewardClaimsUseRewardDefinitionIdInsteadOfRewardContent()
+    {
+        var reward = CreateItem("rare_reward");
+        var tower = CreateSingleStageTower(reward.Id, rewardDefinitionId: "limited_slot");
+        var session = CreateSession(tower, reward);
+
+        await session.SpecialBattleService.RunTowerAsync(
+            new TowerRuntimeHost([["hero"]], [true]));
+
+        Assert.Equal(
+            1,
+            session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "limited_slot"));
+        Assert.Equal(
+            0,
+            session.State.SpecialBattle.GetTowerRewardClaimCount("tower", "stage_a", "rare_reward"));
     }
 
     [Fact]
@@ -153,14 +171,17 @@ public sealed class SpecialBattleServiceTests
         return new GameSession(state, repository);
     }
 
-    private static TowerDefinition CreateSingleStageTower(string rewardId, int quantity = 1) =>
+    private static TowerDefinition CreateSingleStageTower(
+        string rewardId,
+        int quantity = 1,
+        string? rewardDefinitionId = null) =>
         new()
         {
             Id = "tower",
             Name = "tower",
             Stages =
             [
-                CreateStage("stage_a", "battle_a", rewardId, 0, quantity),
+                CreateStage("stage_a", "battle_a", rewardId, 0, quantity, rewardDefinitionId),
             ],
         };
 
@@ -181,7 +202,8 @@ public sealed class SpecialBattleServiceTests
         string battleId,
         string rewardId,
         int index,
-        int quantity = 1) =>
+        int quantity = 1,
+        string? rewardDefinitionId = null) =>
         new()
         {
             Id = id,
@@ -192,6 +214,7 @@ public sealed class SpecialBattleServiceTests
             [
                 new TowerRewardDefinition
                 {
+                    Id = rewardDefinitionId ?? rewardId,
                     Reward = new ItemRewardDefinition { ItemId = rewardId, Quantity = quantity },
                     Weight = 1d,
                     MaxClaims = 1,

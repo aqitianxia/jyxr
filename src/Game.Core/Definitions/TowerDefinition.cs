@@ -22,6 +22,8 @@ public sealed record TowerStageDefinition
 
 public sealed record TowerRewardDefinition
 {
+    public required string Id { get; init; }
+
     public required RewardDefinition Reward { get; init; }
 
     public required double Weight { get; init; }

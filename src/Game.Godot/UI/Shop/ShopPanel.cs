@@ -244,7 +244,7 @@ public partial class ShopPanel : JyPanel
 	{
 		try
 		{
-			var result = Game.ShopService.Buy(_shopId, product.ProductIndex);
+			var result = Game.ShopService.Buy(_shopId, product.ProductId);
 			HandleTransactionResult(result, showToast: false);
 		}
 		catch (Exception exception)

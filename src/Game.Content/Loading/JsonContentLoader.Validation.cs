@@ -54,7 +54,6 @@ public sealed partial class JsonContentLoader
 
     private static void ValidateMaps(InMemoryContentRepository repository)
     {
-        var eventIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var map in repository.Maps.Values)
         {
             var locationsById = new Dictionary<string, MapLocationDefinition>(StringComparer.Ordinal);
@@ -84,6 +83,7 @@ public sealed partial class JsonContentLoader
             foreach (var location in map.Locations)
             {
                 var owner = $"Map '{map.Id}' location '{location.Id}'";
+                var eventIds = new HashSet<string>(StringComparer.Ordinal);
                 if (map.Kind == MapKind.Large)
                 {
                     Ensure(location.Position is not null, $"{owner} must define a position.");
@@ -107,7 +107,8 @@ public sealed partial class JsonContentLoader
                 foreach (var mapEvent in location.Events)
                 {
                     Ensure(!string.IsNullOrWhiteSpace(mapEvent.Id), $"{owner} has an event with an empty id.");
-                    Ensure(eventIds.Add(mapEvent.Id), $"Map event id '{mapEvent.Id}' is duplicated.");
+                    Ensure(eventIds.Add(mapEvent.Id),
+                        $"{owner} contains duplicate event id '{mapEvent.Id}'.");
                 }
             }
         }
@@ -1274,16 +1275,17 @@ public sealed partial class JsonContentLoader
     {
         foreach (var shop in repository.Shops.Values)
         {
-            var rewardKeys = new HashSet<string>(StringComparer.Ordinal);
+            var productIds = new HashSet<string>(StringComparer.Ordinal);
             for (var index = 0; index < shop.Products.Count; index += 1)
             {
                 var product = shop.Products[index];
+                Ensure(!string.IsNullOrWhiteSpace(product.Id),
+                    $"Shop '{shop.Id}' product {index} has empty id.");
+                Ensure(productIds.Add(product.Id),
+                    $"Shop '{shop.Id}' has duplicate product id '{product.Id}'.");
                 var reward = product.Reward ?? throw new InvalidOperationException(
                     $"Shop '{shop.Id}' product {index} is missing reward.");
                 ValidateReward(repository, reward, $"Shop '{shop.Id}' product {index}");
-                var rewardKey = reward.GetStableKey();
-                Ensure(rewardKeys.Add(rewardKey),
-                    $"Shop '{shop.Id}' has duplicate reward '{rewardKey}'.");
                 Ensure(product.MaxClaims is null or > 0, $"Shop '{shop.Id}' product {index} has invalid maxClaims.");
                 Ensure(product.Price is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid price.");
                 Ensure(product.PremiumPrice is null or >= 0, $"Shop '{shop.Id}' product {index} has invalid premiumPrice.");
@@ -1314,8 +1316,14 @@ public sealed partial class JsonContentLoader
                 Ensure(repository.Battles.ContainsKey(stage.BattleId),
                     $"Tower '{tower.Id}' stage '{stage.Id}' references missing battle '{stage.BattleId}'.");
 
-                foreach (var reward in stage.Rewards)
+                var rewardIds = new HashSet<string>(StringComparer.Ordinal);
+                for (var index = 0; index < stage.Rewards.Count; index += 1)
                 {
+                    var reward = stage.Rewards[index];
+                    Ensure(!string.IsNullOrWhiteSpace(reward.Id),
+                        $"Tower '{tower.Id}' stage '{stage.Id}' reward {index} has empty id.");
+                    Ensure(rewardIds.Add(reward.Id),
+                        $"Tower '{tower.Id}' stage '{stage.Id}' has duplicate reward id '{reward.Id}'.");
                     var definition = reward.Reward ?? throw new InvalidOperationException(
                         $"Tower '{tower.Id}' stage '{stage.Id}' has an empty reward.");
                     ValidateReward(repository, definition,

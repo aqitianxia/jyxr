@@ -15,6 +15,8 @@ public sealed record ShopDefinition
 
 public sealed record ShopProductDefinition
 {
+    public required string Id { get; init; }
+
     public required RewardDefinition Reward { get; init; }
 
     public int? MaxClaims { get; init; }

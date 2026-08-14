@@ -1,4 +1,9 @@
 namespace Game.Core.Persistence;
 
 public sealed record ShopStateRecord(
-    IReadOnlyDictionary<string, int> PurchasedQuantities);
+    IReadOnlyList<ShopPurchaseRecord>? Purchases = null);
+
+public sealed record ShopPurchaseRecord(
+    string ShopId,
+    string ProductId,
+    int Quantity);

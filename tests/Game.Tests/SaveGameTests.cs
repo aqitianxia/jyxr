@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Definitions.Skills;
@@ -263,6 +264,47 @@ public sealed class SaveGameTests
 
         Assert.True(restored.IsTrialCompleted("阿青"));
         Assert.Equal(2, restored.GetTowerRewardClaimCount("华山论剑", "华山第一战", "倚天剑"));
+        Assert.Equal(
+            new TowerRewardClaimRecord("华山论剑", "华山第一战", "倚天剑", 2),
+            Assert.Single(saveGame.SpecialBattleState!.TowerRewardClaims!));
+    }
+
+    [Fact]
+    public void SaveGame_IgnoresLegacyShopAndTowerClaimFieldsWhenNewFieldsAreMissing()
+    {
+        var shop = new ShopState();
+        shop.AddPurchasedQuantity("商店", "商品", 2);
+        var specialBattle = new SpecialBattleState();
+        specialBattle.MarkTrialCompleted("阿青");
+        specialBattle.AddTowerRewardClaim("天关", "关卡", "奖励");
+        var saveGame = SaveGame.Create(
+            new AdventureState(),
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            new MapEventProgressState(),
+            new WorldTriggerState(),
+            shopState: shop,
+            specialBattleState: specialBattle);
+        var root = JsonNode.Parse(JsonSerializer.Serialize(saveGame, GameJson.Default))!.AsObject();
+        var shopState = root["ShopState"]!.AsObject();
+        shopState.Remove("Purchases");
+        shopState["PurchasedQuantities"] = new JsonObject { ["商店|item:物品"] = 2 };
+        var specialBattleState = root["SpecialBattleState"]!.AsObject();
+        specialBattleState.Remove("TowerRewardClaims");
+        specialBattleState["TowerRewardClaimCounts"] = new JsonObject { ["天关|关卡|item:物品"] = 1 };
+
+        var restoredSave = JsonSerializer.Deserialize<SaveGame>(root.ToJsonString(), GameJson.Default)!;
+
+        Assert.Equal(24, restoredSave.Version);
+        Assert.Empty(restoredSave.RestoreShopState().PurchasedQuantities);
+        var restoredSpecialBattle = restoredSave.RestoreSpecialBattleState();
+        Assert.Empty(restoredSpecialBattle.TowerRewardClaimCounts);
+        Assert.True(restoredSpecialBattle.IsTrialCompleted("阿青"));
     }
 
     [Fact]
@@ -410,8 +452,8 @@ public sealed class SaveGameTests
         var definition = TestContentFactory.CreateCharacterDefinition("hero_knight");
         var character = TestContentFactory.CreateCharacterInstance("char_001", definition);
         var mapEventProgress = new MapEventProgressState();
-        mapEventProgress.MarkCompleted("world-village-intro");
-        mapEventProgress.MarkCompleted("world|sect_gate|1");
+        mapEventProgress.MarkCompleted("world", "village", "intro");
+        mapEventProgress.MarkCompleted("world", "sect_gate", "1");
 
         var saveGame = SaveGame.Create(
             new AdventureState(),
@@ -429,11 +471,40 @@ public sealed class SaveGameTests
 
         Assert.NotNull(roundTripped);
         Assert.Contains("\"MapEventProgress\"", json, StringComparison.Ordinal);
-        Assert.Contains("world-village-intro", json, StringComparison.Ordinal);
+        Assert.Contains("\"MapId\":\"world\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"LocationId\":\"village\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"EventId\":\"intro\"", json, StringComparison.Ordinal);
         var restoredProgress = roundTripped!.RestoreMapEventProgress();
-        Assert.True(restoredProgress.IsCompleted("world-village-intro"));
-        Assert.True(restoredProgress.IsCompleted("world|sect_gate|1"));
-        Assert.False(restoredProgress.IsCompleted("world|unknown|0"));
+        Assert.True(restoredProgress.IsCompleted("world", "village", "intro"));
+        Assert.True(restoredProgress.IsCompleted("world", "sect_gate", "1"));
+        Assert.False(restoredProgress.IsCompleted("world", "unknown", "0"));
+    }
+
+    [Fact]
+    public void SaveGame_IgnoresLegacyMapEventCompletionIdsWhenStructuredEventsAreMissing()
+    {
+        var mapEventProgress = new MapEventProgressState();
+        mapEventProgress.MarkCompleted("world", "village", "intro");
+        var saveGame = SaveGame.Create(
+            new AdventureState(),
+            new Party(),
+            new Inventory(),
+            new ChestState(),
+            new EquipmentInstanceFactory(),
+            new CurrencyState(),
+            new ClockState(),
+            new LocationState(),
+            mapEventProgress,
+            new WorldTriggerState());
+        var root = JsonNode.Parse(JsonSerializer.Serialize(saveGame, GameJson.Default))!.AsObject();
+        var progress = root["MapEventProgress"]!.AsObject();
+        progress.Remove("CompletedEvents");
+        progress["CompletedEventIds"] = new JsonArray("world-village-intro");
+
+        var restoredSave = JsonSerializer.Deserialize<SaveGame>(root.ToJsonString(), GameJson.Default)!;
+
+        Assert.Equal(24, restoredSave.Version);
+        Assert.Empty(restoredSave.RestoreMapEventProgress().CompletedEvents);
     }
 
     [Fact]

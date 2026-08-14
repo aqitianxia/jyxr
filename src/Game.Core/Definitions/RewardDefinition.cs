@@ -9,16 +9,6 @@ namespace Game.Core.Definitions;
 public abstract record RewardDefinition
 {
     public int Quantity { get; init; } = 1;
-
-    public string GetStableKey() =>
-        this switch
-        {
-            ItemRewardDefinition item => $"item:{item.ItemId}",
-            YuanbaoRewardDefinition => "yuanbao",
-            SkillMaxLevelRewardDefinition fragment =>
-                $"skill_max_level:{fragment.SkillKind}:{fragment.SkillId}",
-            _ => throw new NotSupportedException($"Unsupported reward definition '{GetType().Name}'."),
-        };
 }
 
 public sealed record ItemRewardDefinition : RewardDefinition

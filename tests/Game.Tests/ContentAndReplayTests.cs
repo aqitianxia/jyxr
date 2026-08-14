@@ -167,7 +167,7 @@ public sealed class ContentLoadingTests
     }
 
     [Fact]
-    public void JsonLoader_RejectsDuplicateMapEventIds()
+    public void JsonLoader_RejectsDuplicateMapEventIdsWithinLocation()
     {
         var first = JsonSerializer.Deserialize<MapEventDefinition>(
             """{"id":"world-location-event","action":"map('world')"}""",
@@ -309,6 +309,48 @@ public sealed class ContentLoadingTests
         });
 
         Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromPackage(package));
+    }
+
+    [Fact]
+    public void JsonLoader_AllowsTheSameMapEventIdInDifferentLocations()
+    {
+        var first = JsonSerializer.Deserialize<MapEventDefinition>(
+            """{"id":"intro","action":"map('world')"}""",
+            GameJson.Default)!;
+        var second = JsonSerializer.Deserialize<MapEventDefinition>(
+            """{"id":"intro","action":"map('world')"}""",
+            GameJson.Default)!;
+        var package = new ContentPackage
+        {
+            Maps =
+            [
+                new MapDefinition
+                {
+                    Id = "world",
+                    Name = "World",
+                    Kind = MapKind.Large,
+                    TravelSpeed = 10d,
+                    DefaultLocation = "village",
+                    Locations =
+                    [
+                        new MapLocationDefinition
+                        {
+                            Id = "village",
+                            Position = new MapPosition(10, 20),
+                            Events = [first],
+                        },
+                        new MapLocationDefinition
+                        {
+                            Id = "gate",
+                            Position = new MapPosition(30, 40),
+                            Events = [second],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        Assert.NotNull(new JsonContentLoader().LoadFromPackage(package));
     }
 
     [Fact]
@@ -1740,6 +1782,128 @@ public sealed class ContentLoadingTests
                     }
                   ]
                 }
+                """,
+        });
+
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromDirectory(directoryPath));
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void JsonLoader_AcceptsDistinctNestedIdsWithTheSameReward()
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["items.json"] =
+                """
+                [
+                  {"category":"normal","id":"reward","name":"reward","type":"consumable","consumeOnUse":true}
+                ]
+                """,
+            ["battles.json"] =
+                """
+                [
+                  {"id":"battle","name":"battle","background":"battle_bg/map"}
+                ]
+                """,
+            ["shops.json"] =
+                """
+                [
+                  {
+                    "id":"shop","name":"shop",
+                    "products":[
+                      {"id":"first","reward":{"kind":"item","itemId":"reward"}},
+                      {"id":"second","reward":{"kind":"item","itemId":"reward"}}
+                    ]
+                  }
+                ]
+                """,
+            ["towers.json"] =
+                """
+                [
+                  {
+                    "id":"tower","name":"tower",
+                    "stages":[{
+                      "id":"stage","battleId":"battle",
+                      "rewards":[
+                        {"id":"first","reward":{"kind":"item","itemId":"reward"},"weight":1},
+                        {"id":"second","reward":{"kind":"item","itemId":"reward"},"weight":1}
+                      ]
+                    }]
+                  }
+                ]
+                """,
+        });
+
+        try
+        {
+            Assert.NotNull(new JsonContentLoader().LoadFromDirectory(directoryPath));
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("", "second")]
+    [InlineData("duplicate", "duplicate")]
+    public void JsonLoader_RejectsInvalidShopProductIds(string firstId, string secondId)
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["items.json"] =
+                """
+                [{"category":"normal","id":"reward","name":"reward","type":"consumable","consumeOnUse":true}]
+                """,
+            ["shops.json"] =
+                $$$"""
+                [{"id":"shop","name":"shop","products":[
+                  {"id":"{{{firstId}}}","reward":{"kind":"item","itemId":"reward"}},
+                  {"id":"{{{secondId}}}","reward":{"kind":"item","itemId":"reward"}}
+                ]}]
+                """,
+        });
+
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => new JsonContentLoader().LoadFromDirectory(directoryPath));
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("", "second")]
+    [InlineData("duplicate", "duplicate")]
+    public void JsonLoader_RejectsInvalidTowerRewardIds(string firstId, string secondId)
+    {
+        var directoryPath = CreateContentDirectory(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["items.json"] =
+                """
+                [{"category":"normal","id":"reward","name":"reward","type":"consumable","consumeOnUse":true}]
+                """,
+            ["battles.json"] =
+                """
+                [{"id":"battle","name":"battle","background":"battle_bg/map"}]
+                """,
+            ["towers.json"] =
+                $$$"""
+                [{"id":"tower","name":"tower","stages":[{
+                  "id":"stage","battleId":"battle","rewards":[
+                    {"id":"{{{firstId}}}","reward":{"kind":"item","itemId":"reward"},"weight":1},
+                    {"id":"{{{secondId}}}","reward":{"kind":"item","itemId":"reward"},"weight":1}
+                  ]
+                }]}]
                 """,
         });
 
