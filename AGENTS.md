@@ -6,13 +6,13 @@
 
 ## 当前项目定位
 
-- 这是一个基于 `.NET 10` 与 `Godot 4.6` 的 2D 半即时制战棋 RPG 内核原型。
+- 这是一个基于 `.NET 10` 与 `Godot 4.7.1` 的 2D 半即时制战棋 RPG 内核原型。
 - 仓库根目录就是 Godot 工程根。
 - 根目录 `engine-free-rpg.csproj` 是当前唯一 Godot 宿主程序集项目，只编译 `src/Game.Godot/**/*.cs`，并引用 `Game.Content`、`Game.Application` 与 `Game.Presentation`。
 - 当前重点是：
   - 角色与技能规则内核
   - 轻量 affix 投影
-  - 轻量战斗原型
+  - 战斗运行时、Effect/Phase Hook 与 AI
   - JSON 内容装配
   - 剧本解释器与剧情状态
   - 地图进入与点位交互
@@ -20,12 +20,12 @@
   - 应用层会话与会话事件
   - 与 UI 引擎无关的展示流程
   - Godot 宿主层、HUD、地图、背包、商店、战斗 UI、剧情 UI、音频接线
-- 当前已接入第一版轻量战斗内核与 Godot 战斗界面；正式战场系统后续仍按 `docs/battlefield-system-design.md` 继续重建。
+- 当前战斗运行时已接入半即时行动、Effect/Phase Hook、敌方 AI、胜负判定、普通战斗结算、奖励回写和 Godot 演出链路。现行结构见 `docs/battle-runtime-architecture.md`，后续议题见 `docs/battle-runtime-refactoring-backlog.md`。
 
 ## 当前目录与数据位置
 
 - `mods`
-  - 当前未提交的 MOD 化改造已把正式 JSON 内容从仓库根 `data` 迁到 `mods/jyxr-base/data`。
+  - 正式 JSON 内容位于 `mods/jyxr-base/data`。
   - `mods/jyxr-base/mod.json` 是基础内容包清单；内容目录固定约定为 MOD 根目录下的 `data`。
 - `launcher`
   - 当前保存 launcher 级配置文件；`userdata/<modId>` 保存各 MOD 自己的存档、档案与设置。
@@ -39,20 +39,20 @@
   - 当前 Godot 主场景已切到 MOD launcher：`scenes/ui/mod_launcher/mod_launcher_panel.tscn`。
   - 还包含地图场景、HUD、剧情 UI、队伍 UI 等。
 - `src/Game.Core`
-  - 领域模型、定义模型、角色状态、技能实例、背包/装备实例、affix 投影、轻量战斗状态/引擎、剧情运行时、存档记录。
+  - 领域模型、定义模型、角色状态、技能实例、背包/装备实例、affix 投影、战斗状态/规则引擎、剧情运行时、存档记录。
 - `src/Game.Content`
   - JSON 内容输入、引用校验、runtime definition 装配、内存仓储。
   - `SampleData` 只保留测试样例内容。
 - `src/Game.Application`
   - 应用态会话、全局档案、存读档、角色服务、背包服务、物品使用服务、商店服务、地图服务、剧情服务、剧情命令行、诊断日志抽象、会话事件。
-  - 当前未提交的 MOD 改造新增 `src/Game.Application/Mods`，包含 `ProjectDataRoot`、`ModManifest`、`ModContext`、`ModRegistry`、`ModStoragePaths`、`LauncherSettingsRecord`。
+  - `src/Game.Application/Mods` 包含 `ProjectDataRoot`、`ModManifest`、`ModContext`、`ModRegistry`、`ModStoragePaths`、`LauncherSettingsRecord` 等 MOD 与存储模型。
 - `src/Game.Presentation`
   - 普通 .NET 展示层，只表达与 UI 引擎无关的交互状态、UI intent、展示流程和宿主能力抽象。
   - 当前承载战斗 GoF State 流程与 `IBattleFlowContext`，只引用 `Game.Core`，不引用 Godot。
 - `src/Game.Godot`
   - Godot 宿主适配层源码，由根目录 `engine-free-rpg.csproj` 编译。
   - 当前还包含 MOD runtime bootstrap、本地存档/档案持久化适配 `src/Game.Godot/Persistence`、主菜单、失败界面、储物箱 UI 和战斗 UI。
-  - 当前未提交的 MOD launcher UI 位于 `src/Game.Godot/UI/ModLauncher` 与 `scenes/ui/mod_launcher`。
+  - MOD launcher UI 位于 `src/Game.Godot/UI/ModLauncher` 与 `scenes/ui/mod_launcher`。
 - `legacy_scenes`
   - 原 Godot/GDScript 参考场景，不是当前主运行路径。
 - `jyx-legacy-data` / `jyx-legacy-dll`
@@ -89,6 +89,7 @@
 - 存档层只保存稳定 ID 和实例状态，不保存 runtime definition 引用。
 - runtime definition 应尽量在内容装配阶段拿到已解析引用，不在高频路径反复按字符串查仓储。
 - `GameState` 是当前可存档的大状态，持有：
+  - `PlayTimeSeconds`
   - `Adventure`
   - `Party`
   - `Inventory`
@@ -98,9 +99,12 @@
   - `Clock`
   - `Location`
   - `MapEventProgress`
+  - `WorldTriggers`
   - `Shop`
   - `Story`
   - `Journal`
+  - `SpecialBattle`
+  - `MiniGame`
 - `GameState` 不使用业务构造函数，创建后通过显式 setter 装配状态。
 - `AdventureState` 是当前周目的运行态上下文，属于 `GameState`，当前持有：
   - `Round`
@@ -136,7 +140,12 @@
   - `State`
   - `Profile`
   - `Config`
+  - `Settings`
   - `ContentRepository`
+  - `RandomService`
+  - `SkillMaxLevelPolicy`
+  - `CharacterResourceLimitPolicy`
+  - `PlayTimeService`
   - `SaveGameService`
   - `ProfileService`
   - `SessionFlowService`
@@ -145,7 +154,13 @@
   - `InventoryService`
   - `ChestService`
   - `ItemUseService`
+  - `RewardGrantService`
   - `ShopService`
+  - `EquipmentRefinementService`
+  - `BattleService`
+  - `SpecialBattleService`
+  - `MiniGameService`
+  - `WorldTriggerService`
   - `MapService`
   - `StoryTimeKeyExpirationService`
   - `StoryService`
@@ -169,17 +184,17 @@
   - `StoryService`
   - `Audio`
   - `Logger`
-- `Game.Initialize(...)` 当前接收已构造的 `GameSession`、当前 `ModContext` 和 logger；`GameConfig` 从 `GameSession.Config` 读取。它属于宿主启动装配，不属于业务流程调用点。
-- `Game.ActiveMod` 当前保存正在运行的 MOD 上下文；本地存档、档案和设置会通过它落到该 MOD 独立的 `userdata/<modId>` 目录。
+- `Game.Initialize(...)` 当前接收已构造的 `GameSession`、当前 `ModLoadout` 和 logger；`GameConfig` 从 `GameSession.Config` 读取。它属于宿主启动装配，不属于业务流程调用点。
+- `Game.ActiveModLoadout` 保存正在运行的主 MOD 与 addon 有效加载顺序，`Game.PrimaryMod` 返回主 MOD；本地存档、档案和设置落到主 MOD 独立的 `userdata/<modId>` 目录。
 - `GameConfig` 当前从当前 MOD 的 `data/game-config.json` 读取，并挂在 `GameSession` 上，承载开局剧情、初始队伍、储物箱容量、角色/技能上限和随机战斗音乐池等预览运行参数。
 - `SessionFlowService` 当前负责新游戏与下一周目状态切换；下一周目保留储物箱内容，元宝由 `GameProfile` 跨周目保留，周目数加 1，再按 `GameConfig.InitialPartyCharacterIds` 重建初始队伍。
 - `NewGameStateFactory` 当前集中创建新 `GameState`；初始化角色会调用 `LevelUpAllSkillsMaxLevel()` 把已有技能提到各自 `MaxLevel`。
-- `PreviewGameBootstrap` 已被当前未提交的 MOD 改造移除。
-- `GameRuntimeBootstrap.Initialize(ModContext, SceneTree)` 当前负责：
+- `PreviewGameBootstrap` 已被 MOD runtime bootstrap 取代。
+- `GameRuntimeBootstrap.Initialize(ModLoadout, SceneTree)` 当前负责：
   - 确保 `/root/__GameRuntime` 下的 `World`、`UIRoot`、`AudioManager` 三个运行时节点存在。
   - 在 runtime 节点实例化前按 manifest 顺序加载当前 MOD 的 PCK。
-  - 从 `ModContext.DataDirectoryPath` 读取 `game-config.json` 和 JSON 内容目录。
-  - 从 `ModContext.StoragePaths` 读取该 MOD 独立的设置与全局档案。
+  - 按主 MOD、依赖 addon、用户排序 addon 的有效顺序装配各 MOD 的 loose data 与 patch。
+  - 从 `ModLoadout.StoragePaths` 读取主 MOD 独立的设置与全局档案。
   - 构造新的 `GameSession`，调用 `Game.Initialize(...)`，再把 `UIRoot` 与 `TimedStoryCoordinator` 绑定到 session events。
 - 当前重复调用 `GameRuntimeBootstrap.Initialize(...)` 会替换 `Game.Session` 和资源上下文，但不会销毁并重建 `World`、`UIRoot`、`AudioManager` 节点；因此它还不是完整的“热切换 MOD / reload runtime”流程。
 - 如果后续支持大 MOD 级别的进程内切换或完整 runtime reload，应在替换旧 MOD/runtime 前 flush Godot 宿主侧 pending 的全局档案保存。
@@ -187,12 +202,12 @@
 ## 当前内容加载设计
 
 - 正式内容默认按目录中的多个 JSON 文件加载，不再依赖单个大内容包文件。
-- 当前未提交的 MOD 改造后，基础内容目录位于 `mods/jyxr-base/data`，Godot 侧不再通过 `res://data` 作为正式内容入口。
+- 基础内容目录位于 `mods/jyxr-base/data`，Godot 侧不再通过 `res://data` 作为正式内容入口。
 - launcher 会按平台解析固定的 `ProjectDataRoot`，再从 `<ProjectDataRoot>/mods/*/mod.json` 发现可用 MOD。
   - 编辑器调试：Godot 项目根。
   - PC 导出：可执行文件所在目录。
   - Android：`/storage/emulated/0/JYXR`。
-- 启动某个 MOD 后，`JsonContentLoader.LoadFromDirectory(ModContext.DataDirectoryPath)` 直接从该 MOD 的 loose `data` 目录加载内容。
+- 启动一个 `ModLoadout` 后，`JsonContentLoader.LoadModContent(...)` 按有效加载顺序装配各 MOD 的 loose `data` 与 `patches`。
 - `src/Game.Content/SampleData` 只保留测试样例内容。
 - `Game.Content.csproj` 当前不再链接根目录 `data/**/*.json`。
 - `JsonContentLoader` 入口包括：
@@ -303,16 +318,17 @@
 - 下一周目会保留当前银两和储物箱内容。
 - 如果后续支持多队伍/多编队，需要重新建模队伍集合、队伍标识、背包归属与存档结构。
 
-## 当前战斗原型
+## 当前战斗运行时
 
-- `Game.Core/Battle` 当前提供第一版轻量战斗内核：
+- `Game.Core/Battle` 提供与宿主无关的战斗运行时：
   - `BattleState`
   - `BattleGrid`
   - `BattleUnit`
   - `BattleBuffInstance`
   - `BattleEngine`
   - `BattleDamageCalculator`
-  - `BattleEvent`
+  - `BattleCommandResult`
+  - `BattleFact` / `BattleCue` / `BattleTrace`
 - `BattleEngine` 当前负责：
   - 半即时行动条推进
   - 行动开始/结束
@@ -321,13 +337,15 @@
   - 战斗内物品使用
   - 休息
   - Buff 回合流转
-  - hook 触发
+  - Effect 执行与 Phase Hook 触发
 - 战斗行动当前按固定 11x4 格子预览。
 - 玩家单位来自出战选择，敌方/临时单位从 `BattleDefinition` 组装。
 - 移动当前支持可达格计算、敌方控制区额外移动消耗和 `IgnoreZoneOfControl` trait。
 - 技能当前复用角色已有技能实例，按资源消耗、冷却、射程、影响范围、伤害和 Buff 处理。
 - 战斗内物品当前支持消耗品效果，并通过 `CanUseItemOnAlly` trait 扩展队友目标。
-- `BattleEvent` 输出结构化战斗事件，Godot 战斗 UI 根据事件播放飘字与日志。
+- 战斗命令返回有序的 `BattleFact`、`BattleCue`、`BattleTrace`；Godot 侧只消费需要呈现的事实与表现请求。
+- `BasicEnemyBattleAgent` 通过候选生成、技能评分和可替换策略执行敌方与自动战斗决策。
+- `Game.Application/Battle` 负责普通/特殊战斗构造、玩家资源 carryover、胜负结算、经验与银两奖励、随机掉落和全局击杀统计。
 - `src/Game.Presentation/Battle` 当前提供战斗 UI intent、交互能力、状态机与各流程状态。
 - `src/Game.Godot/UI/Battle` 当前提供战斗界面、棋盘、单位视图、技能栏、物品面板、飘字、演出以及 `IBattleFlowContext` 的 Godot 适配。
 - 地图 `battle` 事件和剧情 battle 命令当前会先打开出战选择，再进入 `BattleScreen`，不再使用胜负确认弹窗模拟。
@@ -335,7 +353,7 @@
 - `AssetResolver` 当前支持从 `assets/animation/combatant` 与 `assets/animation/skill` 加载角色战斗动画库和技能动画库。
 - legacy 战斗动画导入工具已移除；后续如需重新导入，应按当前资源结构重建工具，而不是恢复旧导入器。
 - `tools/PublishGodotCSharpHotfix.ps1` 用于发布 Godot C# 热更补丁程序集到已导出的 Windows 数据目录，并把同一批补丁文件复制到 `export/patch`。
-- 战斗系统仍是原型；AI 行动、正式战场结算、胜负回写、奖励/失败投影和完整演出控制器还未正式建模。
+- 战斗运行时已接入 AI、胜负判定、普通胜利结算、奖励回写和 Godot 演出管线；特殊胜负条件、失败投影以及少数伤害/AI 语义仍在收敛。
 
 ## 当前地图与剧情接线
 
@@ -502,7 +520,7 @@
   - 监听 `ClockChangedEvent` 与 `SaveLoadedEvent`，检查到期 story time key，等待当前剧情表现结束后排队运行目标剧情。
   - 限时剧情结束后，如果当前场景是地图，会刷新当前地图。
 
-## 当前 MOD 启动器改造状态（未提交）
+## 当前 MOD 启动器状态
 
 - 当前 `project.godot` 的 `run/main_scene` 已切到 `res://scenes/ui/mod_launcher/mod_launcher_panel.tscn`。
 - `ModLauncherPanel` 按平台解析固定 `ProjectDataRoot`，并从 `<ProjectDataRoot>/mods` 发现 MOD；不再提供目录选择器。
@@ -535,7 +553,7 @@
   只是被 `GameRuntimeBootstrap` 手动实例化到 `/root/__GameRuntime` 下。
 - 这三个节点内部通过 `World.Instance`、`UIRoot.Instance`、`AudioManager.Instance` 暴露运行时单例；调用前必须确保 `GameRuntimeBootstrap` 已执行并且节点 `_Ready()` 已完成。
 - Godot 运行期代码不应再通过 `/root/World` 这类路径查找 runtime 节点，避免把 bootstrap 托管节点误当 Godot autoload。
-- 当前重复启动不同 MOD 只会替换 `Game.Session`、`Game.ActiveMod` 并重绑 `UIRoot` / `TimedStoryCoordinator` 的 session events；不会自动销毁 `World`、`UIRoot`、`AudioManager`，也不会清空旧地图、旧面板、旧 toast 或正在播放的音乐。
+- 当前重复启动不同 MOD loadout 只会替换 `Game.Session`、`Game.ActiveModLoadout` 并重绑 `UIRoot` / `TimedStoryCoordinator` 的 session events；不会自动销毁 `World`、`UIRoot`、`AudioManager`，也不会清空旧地图、旧面板、旧 toast 或正在播放的音乐。
 - 因此当前 MOD launcher 适合“进程内选择一个 MOD 后启动”；如果要支持不重启进程切换 MOD，需要补正式 runtime reset / reload 流程。
 
 ## 当前会话事件
@@ -598,18 +616,18 @@
 重点未解决项包括：
 
 - `CharacterDefinition` 初始技能/装备表达待重审。
-- 技能动态上限/精通突破还没有正式建模；当前只有默认上限与 `maxlevel` toast。
+- 技能等级上限已由 `SkillMaxLevelPolicy` 统一计算；`maxlevel` 的 legacy 高周目增强仍待移除。
 - 内容加载尚未升级为真二阶段。
 - affix 引用解析入口需要继续收敛。
 - 当前 `Party` 是全局伙伴名册，无队伍 id/name。
 - 当前 `Inventory` 是全局背包。
-- 地图、剧情与商店已初步接通；battle 已有第一版原型，但 AI 行动、正式战场结算、胜负回写、奖励/失败投影和完整演出控制器仍未完整接线。
+- 地图、剧情、商店与战斗主流程已接通；战斗剩余重点是特殊胜负条件、失败投影和 `docs/battle-runtime-refactoring-backlog.md` 中的规则边界。
 - 剧情时间 key 当前只按天数与世界时辰做简单到期触发；更完整的限时任务、失败回滚、优先级和触发上下文仍未建模。
 - 世界/地图层、地图交互对象、事件/剧本系统、演出系统、地图会话层仍待建模。
 - 持久化层后续可能要补 `MapStateRecord`、`InteractableRecord`、`StoryFlagRecord`。
 - 当前 DTO 与 runtime definition 存在较多重复字段，后续应收缩 DTO 噪音。
 - 全局档案目前只覆盖称号和简单累计统计，更完整的 meta progression 还未建模。
-- 背包主动使用只覆盖装备、武学书、绝技书、天赋书和基础强化道具；普通消耗品、功能道具、剧情物品仍未完整接线。
+- 战斗外背包已接入装备、武学书、绝技书、天赋书、属性/资源调整和剧情触发类道具；消耗品只在战斗中使用，普通剧情物品仍不可主动使用。
 
 ## 当前工作区习惯
 
@@ -682,10 +700,10 @@
 ## 参考文档
 
 - `TODO.md`
-- `docs/map-migration-design.md`
-- `docs/battlefield-system-design.md`
-- `docs/battle-float-text-and-speech-style.md`
-- `docs/attachment-design.md`
+- `docs/battle-runtime-architecture.md`
+- `docs/battle-runtime-refactoring-backlog.md`
 - `docs/battle-effect-phase-hook-design.md`
-- `docs/effect-trigger-model-comparison.md`
+- `docs/battle-damage-timing-design.md`
+- `docs/buff-effects-guide.md`
+- `docs/mod-data-patching.md`
 - `docs/character-skill-switching-design.md`

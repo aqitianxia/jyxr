@@ -15,7 +15,7 @@
 
 ## 当前项目状态
 
-项目已经具备一半基础。
+本文最初撰写时的 launcher 状态已经过期。目前数据 MOD 与多 MOD 装配已经落地，代码 MOD 仍处于方案阶段。
 
 Godot 宿主启用了动态加载：
 
@@ -35,7 +35,7 @@ Godot 宿主启用了动态加载：
 - `engine-free-rpg`
   - Godot 宿主、场景、UI、资源与启动装配。
 
-`mod.json` 已经预留代码 MOD 字段：
+`mod.json` 当前声明 `type`、`dependencies`、`saveImpact`，并预留代码 MOD 字段：
 
 - `packs`
 - `assemblies`
@@ -44,12 +44,13 @@ Godot 宿主启用了动态加载：
 
 当前启动流程位于 `src/Game.Godot/Bootstrap/GameRuntimeBootstrap.cs`：
 
-1. `LoadResourcePacks(modContext, logger)`
-2. `EnsureRuntimeNodes(sceneTree)`
-3. `LoadConfig(modContext)`
-4. `new JsonContentLoader().LoadFromDirectory(modContext.DataDirectoryPath)`
-5. 构造 `GameSession`
-6. `Game.Initialize(session, modContext, logger)`
+1. launcher 解析一个主 game MOD、依赖 addon 和用户排序 addon，生成 `ModLoadout`
+2. `LoadResourcePacks(modLoadout, logger)`
+3. `EnsureRuntimeNodes(sceneTree)`
+4. `JsonContentLoader.LoadModContent(...)` 按有效顺序注册新增定义并应用 `patches`
+5. 从主 MOD 的 storage paths 读取设置与全局档案
+6. 构造 `GameSession`
+7. `Game.Initialize(session, modLoadout, logger)`
 
 也就是说，当前已经有：
 
@@ -58,7 +59,9 @@ Godot 宿主启用了动态加载：
 - MOD 独立存档目录
 - MOD manifest
 - PCK 资源包加载
-- loose JSON 内容加载
+- 多 MOD 同时启用、依赖解析与有效加载顺序
+- loose JSON 新内容加载与结构化数据补丁
+- 存档 MOD 列表记录和 `saveImpact` 风险提示
 
 当前还没有：
 
@@ -67,7 +70,6 @@ Godot 宿主启用了动态加载：
 - MOD 代码 API
 - MOD 注册表
 - Harmony
-- 多 MOD 同时启用与合并
 
 ## 和 STS2 的关键差异
 
