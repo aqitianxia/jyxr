@@ -85,7 +85,7 @@ internal static class ModContentLoader
                 catalog.AddDefinition(
                     spec.Kind,
                     id,
-                    entry.Definition.DeepClone().AsObject(),
+                    entry.Definition,
                     input.ModId,
                     entry.FilePath);
             }
@@ -694,7 +694,7 @@ internal static class ModContentLoader
         var packageNode = new JsonObject();
         foreach (var spec in ContentTypeCatalog.All)
         {
-            packageNode[spec.PackagePropertyName] = catalog.GetDefinitions(spec.Kind);
+            packageNode[spec.PackagePropertyName] = catalog.DrainDefinitions(spec.Kind);
         }
 
         try
@@ -937,14 +937,22 @@ internal static class ModContentLoader
             _definitionSources[target.Kind].Remove(target.Id!);
         }
 
-        public JsonArray GetDefinitions(string kind)
+        public JsonArray DrainDefinitions(string kind)
         {
             var array = new JsonArray();
             foreach (var value in _definitions[kind].Values)
             {
-                array.Add(value.DeepClone());
+                if (value.Parent is not null)
+                {
+                    throw new ContentLoadException(
+                        $"Definition '{kind}:{GetRequiredString(value, "id", kind)}' is still attached to a JSON parent during materialization.");
+                }
+
+                array.Add(value);
             }
 
+            _definitions[kind].Clear();
+            _definitionSources[kind].Clear();
             return array;
         }
 
@@ -953,7 +961,7 @@ internal static class ModContentLoader
             var result = new Dictionary<string, StoryScript>(StringComparer.Ordinal);
             foreach (var (scriptId, story) in _stories)
             {
-                result.Add(scriptId, StoryScriptJson.Parse(story.Node.ToJsonString()));
+                result.Add(scriptId, StoryScriptJson.Parse(story.Node, story.FilePath));
             }
 
             return result;

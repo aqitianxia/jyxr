@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
 
@@ -20,6 +21,12 @@ public static class GameJson
 
     public static JsonDocument ParseDocument(Stream stream) =>
         JsonDocument.Parse(stream, DocumentOptions);
+
+    internal static JsonNode? ParseNode(string json) =>
+        JsonNode.Parse(json, documentOptions: DocumentOptions);
+
+    internal static JsonNode? ParseNode(Stream stream) =>
+        JsonNode.Parse(stream, documentOptions: DocumentOptions);
 
     private static JsonSerializerOptions CreateDefaultOptions() =>
         new()

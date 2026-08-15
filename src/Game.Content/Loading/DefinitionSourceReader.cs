@@ -35,12 +35,17 @@ internal static class DefinitionSourceReader
                 throw new ContentLoadException($"Content file '{filePath}' must be a JSON object or array.");
             }
 
-            foreach (var node in definitions)
+            var detachedDefinitions = new JsonObject[definitions.Count];
+            for (var index = 0; index < definitions.Count; index++)
             {
-                entries.Add(new DefinitionSourceEntry(
-                    filePath,
-                    node as JsonObject
-                    ?? throw new ContentLoadException($"Every entry in '{filePath}' must be a JSON object.")));
+                detachedDefinitions[index] = definitions[index] as JsonObject
+                    ?? throw new ContentLoadException($"Every entry in '{filePath}' must be a JSON object.");
+            }
+
+            definitions.Clear();
+            foreach (var detachedDefinition in detachedDefinitions)
+            {
+                entries.Add(new DefinitionSourceEntry(filePath, detachedDefinition));
             }
         }
 

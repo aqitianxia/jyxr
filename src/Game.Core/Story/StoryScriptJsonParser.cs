@@ -1,42 +1,41 @@
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Game.Core.Story;
 
-internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName = "story")
+internal sealed class StoryScriptJsonParser(JsonNode? root, string sourceName = "story")
 {
     private readonly ExpressionParser _expressionParser = new();
 
     public StoryScript Parse()
     {
-        EnsureObject(root, "root");
-        var version = GetRequiredInt32(root, "version");
+        var rootObject = EnsureObject(root, "root");
+        var version = GetRequiredInt32(rootObject, "version");
         if (version != StoryScript.CurrentVersion)
         {
             throw new StoryRuntimeException(
                 $"Unsupported story script version '{version}'. Expected version {StoryScript.CurrentVersion}.");
         }
 
-        var segmentsElement = GetRequiredProperty(root, "segments");
-        EnsureArray(segmentsElement, "segments");
-        return new StoryScript(version, segmentsElement.EnumerateArray().Select(ParseSegment).ToArray());
+        var segments = EnsureArray(GetRequiredProperty(rootObject, "segments"), "segments");
+        return new StoryScript(version, segments.Select(ParseSegment).ToArray());
     }
 
-    private Segment ParseSegment(JsonElement element)
+    private Segment ParseSegment(JsonNode? node)
     {
-        EnsureObject(element, "segment");
+        var element = EnsureObject(node, "segment");
         var name = GetRequiredString(element, "name");
         return new Segment(name, ParseSteps(GetRequiredProperty(element, "steps"), $"segment '{name}'.steps"));
     }
 
-    private IReadOnlyList<Step> ParseSteps(JsonElement element, string path)
+    private IReadOnlyList<Step> ParseSteps(JsonNode? node, string path)
     {
-        EnsureArray(element, path);
-        return element.EnumerateArray().Select(ParseStep).ToArray();
+        var elements = EnsureArray(node, path);
+        return elements.Select(ParseStep).ToArray();
     }
 
-    private Step ParseStep(JsonElement element)
+    private Step ParseStep(JsonNode? node)
     {
-        EnsureObject(element, "step");
+        var element = EnsureObject(node, "step");
         var kind = GetRequiredString(element, "kind");
         return kind switch
         {
@@ -54,7 +53,7 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         };
     }
 
-    private CommandStep ParseCommandStep(JsonElement element)
+    private CommandStep ParseCommandStep(JsonObject element)
     {
         if (TryGetProperty(element, "name", out _) || TryGetProperty(element, "args", out _))
         {
@@ -64,12 +63,12 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         return new CommandStep(ParseCall(GetRequiredString(element, "call"), "command.call"));
     }
 
-    private SetVariableStep ParseSetVariableStep(JsonElement element) =>
+    private SetVariableStep ParseSetVariableStep(JsonObject element) =>
         new(
             ParseVariableName(element, "target"),
             ParseExpression(GetRequiredString(element, "value"), "set.value"));
 
-    private static string ParseVariableName(JsonElement element, string propertyName)
+    private static string ParseVariableName(JsonObject element, string propertyName)
     {
         var name = GetRequiredString(element, propertyName);
         try
@@ -83,30 +82,28 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         }
     }
 
-    private ChoiceStep ParseChoiceStep(JsonElement element)
+    private ChoiceStep ParseChoiceStep(JsonObject element)
     {
-        var promptElement = GetRequiredProperty(element, "prompt");
-        EnsureObject(promptElement, "choice.prompt");
-        var prompt = new ChoicePrompt(GetRequiredString(promptElement, "speaker"), GetRequiredString(promptElement, "text"));
+        var prompt = EnsureObject(GetRequiredProperty(element, "prompt"), "choice.prompt");
+        var parsedPrompt = new ChoicePrompt(GetRequiredString(prompt, "speaker"), GetRequiredString(prompt, "text"));
         if (TryGetProperty(element, "groups", out _))
         {
             throw new StoryRuntimeException("Story v3 choice steps use 'blocks'; the old 'groups' shape is not supported.");
         }
 
-        var blocksElement = GetRequiredProperty(element, "blocks");
-        EnsureArray(blocksElement, "choice.blocks");
-        var blocks = blocksElement.EnumerateArray().Select(ParseChoiceBlock).ToArray();
+        var blockNodes = EnsureArray(GetRequiredProperty(element, "blocks"), "choice.blocks");
+        var blocks = blockNodes.Select(ParseChoiceBlock).ToArray();
         if (blocks.Length == 0)
         {
             throw new StoryRuntimeException("choice.blocks must contain at least one block.");
         }
 
-        return new ChoiceStep(prompt, blocks, ParseChoiceStyle(element));
+        return new ChoiceStep(parsedPrompt, blocks, ParseChoiceStyle(element));
     }
 
-    private ChoiceBlock ParseChoiceBlock(JsonElement element)
+    private ChoiceBlock ParseChoiceBlock(JsonNode? node)
     {
-        EnsureObject(element, "choice.block");
+        var element = EnsureObject(node, "choice.block");
         return GetRequiredString(element, "kind") switch
         {
             "options" => new ChoiceOptionsBlock(ParseChoiceOptions(
@@ -117,13 +114,12 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         };
     }
 
-    private ChoiceBranchBlock ParseChoiceBranchBlock(JsonElement element)
+    private ChoiceBranchBlock ParseChoiceBranchBlock(JsonObject element)
     {
-        var casesElement = GetRequiredProperty(element, "cases");
-        EnsureArray(casesElement, "choice.branch.cases");
-        var cases = casesElement.EnumerateArray().Select(caseElement =>
+        var caseNodes = EnsureArray(GetRequiredProperty(element, "cases"), "choice.branch.cases");
+        var cases = caseNodes.Select(node =>
         {
-            EnsureObject(caseElement, "choice.branch.case");
+            var caseElement = EnsureObject(node, "choice.branch.case");
             return new ChoiceBranchCase(
                 ParseExpression(GetRequiredString(caseElement, "when"), "choice.branch.case.when"),
                 ParseChoiceOptions(
@@ -136,30 +132,30 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         }
 
         IReadOnlyList<ChoiceOption>? fallback = null;
-        var fallbackElement = GetRequiredProperty(element, "fallback");
-        if (fallbackElement.ValueKind != JsonValueKind.Null)
+        var fallbackNode = GetRequiredProperty(element, "fallback");
+        if (fallbackNode is not null)
         {
-            fallback = ParseChoiceOptions(fallbackElement, "choice.branch.fallback");
+            fallback = ParseChoiceOptions(fallbackNode, "choice.branch.fallback");
         }
 
         return new ChoiceBranchBlock(cases, fallback);
     }
 
-    private IReadOnlyList<ChoiceOption> ParseChoiceOptions(JsonElement element, string path)
+    private IReadOnlyList<ChoiceOption> ParseChoiceOptions(JsonNode? node, string path)
     {
-        EnsureArray(element, path);
-        var options = element.EnumerateArray().Select(optionElement =>
+        var optionNodes = EnsureArray(node, path);
+        var options = optionNodes.Select(node =>
         {
-            EnsureObject(optionElement, "choice.option");
+            var optionElement = EnsureObject(node, "choice.option");
             ParsedExpression? when = null;
-            if (TryGetProperty(optionElement, "when", out var whenElement))
+            if (TryGetProperty(optionElement, "when", out var whenNode))
             {
-                if (whenElement.ValueKind != JsonValueKind.String)
+                if (!TryGetString(whenNode, out var whenSource))
                 {
                     throw new StoryRuntimeException("choice.option.when must be a string or be omitted.");
                 }
 
-                when = ParseExpression(whenElement.GetString() ?? string.Empty, "choice.option.when");
+                when = ParseExpression(whenSource, "choice.option.when");
             }
 
             return new ChoiceOption(
@@ -175,56 +171,54 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         return options;
     }
 
-    private static ChoiceStyle ParseChoiceStyle(JsonElement element)
+    private static ChoiceStyle ParseChoiceStyle(JsonObject element)
     {
-        if (!TryGetProperty(element, "style", out var styleElement))
+        if (!TryGetProperty(element, "style", out var styleNode))
         {
             return ChoiceStyle.Regular;
         }
 
-        if (styleElement.ValueKind != JsonValueKind.String)
+        if (!TryGetString(styleNode, out var style))
         {
             throw new StoryRuntimeException("choice.style must be a string.");
         }
 
-        return styleElement.GetString() switch
+        return style switch
         {
             "regular" => ChoiceStyle.Regular,
             "bold" => ChoiceStyle.Bold,
-            var style => throw new StoryRuntimeException($"Unsupported choice style '{style}'."),
+            _ => throw new StoryRuntimeException($"Unsupported choice style '{style}'."),
         };
     }
 
-    private BattleStep ParseBattleStep(JsonElement element)
+    private BattleStep ParseBattleStep(JsonObject element)
     {
         var battleId = GetRequiredString(element, "battleId");
-        var outcomesElement = GetRequiredProperty(element, "outcomes");
-        EnsureObject(outcomesElement, "battle.outcomes");
+        var outcomesElement = EnsureObject(GetRequiredProperty(element, "outcomes"), "battle.outcomes");
         var outcomes = new Dictionary<BattleOutcome, IReadOnlyList<Step>>();
-        foreach (var property in outcomesElement.EnumerateObject())
+        foreach (var property in outcomesElement)
         {
-            outcomes.Add(ParseBattleOutcome(property.Name), ParseSteps(property.Value, $"battle.outcomes.{property.Name}"));
+            outcomes.Add(ParseBattleOutcome(property.Key), ParseSteps(property.Value, $"battle.outcomes.{property.Key}"));
         }
 
         return new BattleStep(battleId, outcomes);
     }
 
-    private BranchStep ParseBranchStep(JsonElement element)
+    private BranchStep ParseBranchStep(JsonObject element)
     {
-        var casesElement = GetRequiredProperty(element, "cases");
-        EnsureArray(casesElement, "branch.cases");
-        var cases = casesElement.EnumerateArray().Select(caseElement =>
+        var caseNodes = EnsureArray(GetRequiredProperty(element, "cases"), "branch.cases");
+        var cases = caseNodes.Select(node =>
         {
-            EnsureObject(caseElement, "branch.case");
+            var caseElement = EnsureObject(node, "branch.case");
             return new BranchCase(
                 ParseExpression(GetRequiredString(caseElement, "when"), "branch.case.when"),
                 ParseSteps(GetRequiredProperty(caseElement, "steps"), "branch.case.steps"));
         }).ToArray();
 
         IReadOnlyList<Step>? fallback = null;
-        if (TryGetProperty(element, "fallback", out var fallbackElement) && fallbackElement.ValueKind != JsonValueKind.Null)
+        if (TryGetProperty(element, "fallback", out var fallbackNode) && fallbackNode is not null)
         {
-            fallback = ParseSteps(fallbackElement, "branch.fallback");
+            fallback = ParseSteps(fallbackNode, "branch.fallback");
         }
 
         return new BranchStep(cases, fallback);
@@ -262,7 +256,7 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         _ => throw new StoryRuntimeException($"Unsupported battle outcome '{raw}'."),
     };
 
-    private static JsonElement GetRequiredProperty(JsonElement element, string name)
+    private static JsonNode? GetRequiredProperty(JsonObject element, string name)
     {
         if (!TryGetProperty(element, name, out var value))
         {
@@ -272,36 +266,36 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         return value;
     }
 
-    private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
-    {
-        foreach (var property in element.EnumerateObject())
-        {
-            if (property.NameEquals(name))
-            {
-                value = property.Value;
-                return true;
-            }
-        }
+    private static bool TryGetProperty(JsonObject element, string name, out JsonNode? value) =>
+        element.TryGetPropertyValue(name, out value);
 
-        value = default;
-        return false;
-    }
-
-    private static string GetRequiredString(JsonElement element, string name)
+    private static string GetRequiredString(JsonObject element, string name)
     {
         var value = GetRequiredProperty(element, name);
-        if (value.ValueKind != JsonValueKind.String)
+        if (!TryGetString(value, out var result))
         {
             throw new StoryRuntimeException($"Property '{name}' must be a string.");
         }
 
-        return value.GetString() ?? string.Empty;
+        return result;
     }
 
-    private static int GetRequiredInt32(JsonElement element, string name)
+    private static bool TryGetString(JsonNode? node, out string value)
+    {
+        if (node is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var result))
+        {
+            value = result;
+            return true;
+        }
+
+        value = string.Empty;
+        return false;
+    }
+
+    private static int GetRequiredInt32(JsonObject element, string name)
     {
         var value = GetRequiredProperty(element, name);
-        if (!value.TryGetInt32(out var result))
+        if (value is not JsonValue jsonValue || !jsonValue.TryGetValue<int>(out var result))
         {
             throw new StoryRuntimeException($"Property '{name}' must be an integer.");
         }
@@ -309,19 +303,23 @@ internal sealed class StoryScriptJsonParser(JsonElement root, string sourceName 
         return result;
     }
 
-    private static void EnsureObject(JsonElement element, string path)
+    private static JsonObject EnsureObject(JsonNode? node, string path)
     {
-        if (element.ValueKind != JsonValueKind.Object)
+        if (node is not JsonObject result)
         {
             throw new StoryRuntimeException($"{path} must be a JSON object.");
         }
+
+        return result;
     }
 
-    private static void EnsureArray(JsonElement element, string path)
+    private static JsonArray EnsureArray(JsonNode? node, string path)
     {
-        if (element.ValueKind != JsonValueKind.Array)
+        if (node is not JsonArray result)
         {
             throw new StoryRuntimeException($"{path} must be a JSON array.");
         }
+
+        return result;
     }
 }

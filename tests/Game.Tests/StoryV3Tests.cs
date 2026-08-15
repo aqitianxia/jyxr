@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Game.Application;
 using Game.Core.Abstractions;
 using Game.Core.Model;
@@ -7,6 +8,42 @@ namespace Game.Tests;
 
 public sealed class StoryV3Tests
 {
+    [Fact]
+    public void JsonParser_JsonObjectAndStringEntrypointsProduceEquivalentIr()
+    {
+        const string json = """
+        {"version":3,"segments":[{"name":"start","steps":[
+          {"kind":"set","target":"quest_stage","value":"3"},
+          {"kind":"choice","prompt":{"speaker":"主角","text":"走吗"},"style":"bold","blocks":[
+            {"kind":"branch","cases":[{"when":"quest_stage >= 3","options":[{"text":"走","when":"true","steps":[]}]}],"fallback":null}
+          ]},
+          {"kind":"battle","battleId":"sample_battle","outcomes":{"win":[],"lose":[],"timeout":[]}},
+          {"kind":"branch","cases":[{"when":"quest_stage == 3","steps":[]}],"fallback":[]}
+        ]}]}
+        """;
+        var root = JsonNode.Parse(json)!.AsObject();
+
+        var fromString = StoryScriptJson.Parse(json, "equivalent-story");
+        var fromNode = StoryScriptJson.Parse(root, "equivalent-story");
+
+        Assert.Equivalent(fromString, fromNode, strict: true);
+    }
+
+    [Fact]
+    public void JsonParser_JsonObjectEntrypointIncludesSourceNameInExpressionErrors()
+    {
+        var root = JsonNode.Parse("""
+            {"version":3,"segments":[{"name":"start","steps":[
+              {"kind":"set","target":"quest_stage","value":"("}
+            ]}]}
+            """)!.AsObject();
+
+        var exception = Assert.Throws<StoryRuntimeException>(() =>
+            StoryScriptJson.Parse(root, "stories/invalid.story.json"));
+
+        Assert.Contains("stories/invalid.story.json", exception.Message);
+    }
+
     [Fact]
     public void JsonParser_ParsesV3StateStepsBranchAndChoice()
     {

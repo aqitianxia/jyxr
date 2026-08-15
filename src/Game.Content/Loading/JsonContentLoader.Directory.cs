@@ -38,7 +38,7 @@ public sealed partial class JsonContentLoader
         var definitions = new JsonArray();
         foreach (var entry in DefinitionSourceReader.Read(directoryPath, spec, required))
         {
-            definitions.Add(entry.Definition.DeepClone());
+            definitions.Add(entry.Definition);
         }
 
         return definitions;

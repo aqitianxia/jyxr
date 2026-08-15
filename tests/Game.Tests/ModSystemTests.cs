@@ -565,6 +565,39 @@ public sealed class ModSystemTests
     }
 
     [Fact]
+    public void JsonContentLoader_MaterializesRootDefinitionReplacementWithoutCloning()
+    {
+        var addonDirectory = CreateSparseAddonDirectory();
+        WritePatch(
+            addonDirectory,
+            """
+            {
+              "format": 2,
+              "operations": [
+                {
+                  "op": "set",
+                  "target": {"kind": "character", "id": "ally_warrior"},
+                  "value": {
+                    "id": "ally_warrior",
+                    "name": "Replacement Warrior",
+                    "stats": {"max_hp": 44, "speed": 35, "movement": 3, "max_mp": 10},
+                    "externalSkills": [{"level": 1, "id": "basic_attack"}],
+                    "internalSkills": [],
+                    "talentIds": [],
+                    "equipmentIds": ["iron_blade"],
+                    "specialSkillIds": []
+                  }
+                }
+              ]
+            }
+            """);
+
+        var repository = LoadWithAddon(addonDirectory).Repository;
+
+        Assert.Equal("Replacement Warrior", repository.GetCharacter("ally_warrior").Name);
+    }
+
+    [Fact]
     public void JsonContentLoader_LoadsGeneratedAddonDataAndPatch()
     {
         var addonDirectory = CreateSparseAddonDirectory();
