@@ -1,19 +1,26 @@
+using Game.Core.Model;
 using Game.Core.Story;
 
 namespace Game.Application;
 
 internal sealed class ApplicationStoryRuntimeHost : IStoryRuntimeContext
 {
+    private readonly GameSession _session;
+    private readonly GameState _executionState;
     private readonly IRuntimeHost _externalHost;
     private readonly StoryTextInterpolator _textInterpolator;
     private readonly StoryVariableMutationService _variableMutations;
 
     public ApplicationStoryRuntimeHost(
+        GameSession session,
+        GameState executionState,
         IRuntimeHost externalHost,
         StoryCommandDispatcher commandDispatcher,
         StoryTextInterpolator textInterpolator,
         ExpressionEnvironment expressionEnvironment)
     {
+        _session = session ?? throw new ArgumentNullException(nameof(session));
+        _executionState = executionState ?? throw new ArgumentNullException(nameof(executionState));
         _externalHost = externalHost ?? throw new ArgumentNullException(nameof(externalHost));
         ArgumentNullException.ThrowIfNull(commandDispatcher);
         _textInterpolator = textInterpolator ?? throw new ArgumentNullException(nameof(textInterpolator));
@@ -21,6 +28,8 @@ internal sealed class ApplicationStoryRuntimeHost : IStoryRuntimeContext
         Commands = commandDispatcher.Registry;
         ExpressionEnvironment = expressionEnvironment ?? throw new ArgumentNullException(nameof(expressionEnvironment));
     }
+
+    public bool IsExecutionActive => ReferenceEquals(_session.State, _executionState);
 
     public ExpressionEnvironment ExpressionEnvironment { get; }
     public AsyncExpressionCallRegistry<StoryCommandResult> Commands { get; }

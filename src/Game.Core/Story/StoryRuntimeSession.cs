@@ -30,6 +30,11 @@ internal sealed partial class StoryRuntimeSession(
 
         while (TryGetCurrentSegment(out var segment))
         {
+            if (!host.IsExecutionActive)
+            {
+                yield break;
+            }
+
             string? jumpTarget = null;
 
             await foreach (var stepResult in ExecuteSegmentAsync(segment, ct))
@@ -89,6 +94,12 @@ internal sealed partial class StoryRuntimeSession(
         StepResult? control = null;
         await foreach (var stepResult in ExecuteStepsAsync(segment.Steps, ct))
         {
+            if (!host.IsExecutionActive)
+            {
+                control = StepResult.Terminate();
+                break;
+            }
+
             if (stepResult.Event is not null)
             {
                 yield return stepResult;
@@ -101,7 +112,7 @@ internal sealed partial class StoryRuntimeSession(
             }
         }
 
-        if (control?.Control == StepControl.Terminate)
+        if (!host.IsExecutionActive || control?.Control == StepControl.Terminate)
         {
             yield return StepResult.Terminate();
             yield break;

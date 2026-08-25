@@ -35,10 +35,13 @@ public sealed class StoryService
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storyId);
+        var executionState = _session.State;
         var entry = _session.ContentRepository.GetStorySegment(storyId);
         var executionContext = context ?? StoryExecutionContext.Empty;
         var runtimeDispatcher = new StoryCommandDispatcher(_session, Host, executionContext, includeDebugCommands: false);
         var runtimeHost = new ApplicationStoryRuntimeHost(
+            _session,
+            executionState,
             Host,
             runtimeDispatcher,
             new StoryTextInterpolator(_session),
@@ -48,8 +51,8 @@ public sealed class StoryService
         {
             if (storyEvent is SegmentCompletedEvent completed)
             {
-                _session.State.Story.MarkCompleted(completed.SegmentId);
-                _session.State.Story.SetLastStory(completed.SegmentId);
+                executionState.Story.MarkCompleted(completed.SegmentId);
+                executionState.Story.SetLastStory(completed.SegmentId);
             }
             yield return storyEvent;
         }

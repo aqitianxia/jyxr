@@ -125,6 +125,32 @@ public sealed class StoryV3Tests
     }
 
     [Fact]
+    public async Task Service_StateReplacementTerminatesOriginatingStoryWithoutPollutingReplacementState()
+    {
+        var script = StoryScriptJson.Parse("""
+        {"version":3,"segments":[{"name":"start","steps":[
+          {"kind":"command","call":"replace_state()"},
+          {"kind":"set","target":"polluted","value":"true"}
+        ]}]}
+        """);
+        var originalState = new GameState();
+        var replacementState = new GameState();
+        var host = new StateReplacingHost(replacementState);
+        var session = new GameSession(
+            originalState,
+            TestContentFactory.CreateRepository(storyScripts: [script]),
+            host);
+        host.Session = session;
+
+        await session.StoryService.ExecuteAsync("start");
+
+        Assert.Same(replacementState, session.State);
+        Assert.False(originalState.Story.IsStoryCompleted("start"));
+        Assert.False(replacementState.Story.IsStoryCompleted("start"));
+        Assert.False(replacementState.Story.TryGetVariable("polluted", out _));
+    }
+
+    [Fact]
     public async Task Service_ExecutionContextIsIsolatedAndRequired()
     {
         const string json = """
@@ -439,6 +465,23 @@ public sealed class StoryV3Tests
         }
         public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) => ValueTask.FromResult(BattleOutcome);
         public ValueTask GameOverAsync(CancellationToken cancellationToken) { GameOverInvoked = true; return ValueTask.CompletedTask; }
+    }
+
+    private sealed class StateReplacingHost(GameState replacementState) : IRuntimeHost
+    {
+        public GameSession Session { get; set; } = null!;
+
+        [StoryCommand("replace_state")]
+        public void ReplaceState() => Session.ReplaceState(replacementState);
+
+        public ValueTask DialogueAsync(DialogueContext dialogue, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask<int> ChooseOptionAsync(ChoiceContext choice, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(0);
+
+        public ValueTask<BattleOutcome> ResolveBattleAsync(BattleContext battle, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(BattleOutcome.Win);
     }
 
     private sealed class CollectingDiagnosticLogger : IDiagnosticLogger

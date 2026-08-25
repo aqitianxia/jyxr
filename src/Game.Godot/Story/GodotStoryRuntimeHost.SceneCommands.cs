@@ -17,7 +17,9 @@ public sealed partial class GodotStoryRuntimeHost
 
 		try
 		{
-			if (!await StoryRunHelper.RunAsync(storyId, cancellationToken))
+			var executionState = Game.State;
+			if (!await StoryRunHelper.RunAsync(storyId, cancellationToken) &&
+				ReferenceEquals(executionState, Game.State))
 			{
 				throw new InvalidOperationException($"Story command '{storyId}' did not complete a segment.");
 			}

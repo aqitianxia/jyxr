@@ -16,6 +16,8 @@ public interface IRuntimeHost
 
 public interface IStoryRuntimeContext : IRuntimeHost
 {
+    bool IsExecutionActive { get; }
+
     ExpressionEnvironment ExpressionEnvironment { get; }
 
     AsyncExpressionCallRegistry<StoryCommandResult> Commands { get; }

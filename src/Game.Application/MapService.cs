@@ -112,6 +112,7 @@ public sealed class MapService
             Message = location.Event.Description,
             ConsumedTimeSlots = consumedTimeSlots,
             Movement = movement.Result,
+            OriginatingState = State,
             MapEventCompletionKey = location.Event.RepeatMode == RepeatMode.Once
                 ? new MapEventKey(location.MapId, location.Location.Id, location.Event.Id)
                 : null,
@@ -214,7 +215,8 @@ public sealed class MapService
     public void CompleteInteraction(MapInteractionResult interaction)
     {
         ArgumentNullException.ThrowIfNull(interaction);
-        if (interaction.MapEventCompletionKey is { } eventKey)
+        if (ReferenceEquals(interaction.OriginatingState, State) &&
+            interaction.MapEventCompletionKey is { } eventKey)
         {
             State.MapEventProgress.MarkCompleted(eventKey.MapId, eventKey.LocationId, eventKey.EventId);
         }
@@ -240,6 +242,7 @@ public sealed record MapInteractionResult
     public int ConsumedTimeSlots { get; init; }
     public MapMovementResult? Movement { get; init; }
     public string? Message { get; init; }
+    internal GameState? OriginatingState { get; init; }
     internal MapEventKey? MapEventCompletionKey { get; init; }
 }
 

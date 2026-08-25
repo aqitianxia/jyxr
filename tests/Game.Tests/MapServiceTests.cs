@@ -349,6 +349,34 @@ public sealed class MapServiceTests
     }
 
     [Fact]
+    public void CompleteInteraction_DoesNotWriteOnceEventIntoReplacementState()
+    {
+        var villageEvent = new MapEventDefinition
+        {
+            Id = WorldVillageEventId,
+            Action = Call("story('story_intro')"),
+            RepeatMode = RepeatMode.Once,
+        };
+        var worldMap = CreateMap(
+            "world",
+            MapKind.Large,
+            CreateLocation("village", position: new MapPosition(30, 40), events: [villageEvent]));
+        var originalState = new GameState();
+        var session = new GameSession(
+            originalState,
+            TestContentFactory.CreateRepository(maps: [worldMap]));
+        var location = session.MapService.EnterMap("world").Locations.Single();
+        var interaction = session.MapService.InteractWithLocation(location);
+        var replacementState = new GameState();
+
+        session.ReplaceState(replacementState);
+        session.MapService.CompleteInteraction(interaction);
+
+        Assert.False(originalState.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
+        Assert.False(replacementState.MapEventProgress.IsCompleted("world", "village", WorldVillageEventId));
+    }
+
+    [Fact]
     public void EnterMap_StoryCompletionDoesNotReplaceMapEventIdentity()
     {
         var worldMap = CreateMap(
