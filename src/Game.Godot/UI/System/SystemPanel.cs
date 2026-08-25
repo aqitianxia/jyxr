@@ -1,275 +1,76 @@
 using Game.Application;
-using Game.Core.Story;
 using Game.Godot.Persistence;
-using Game.Godot.Settings;
 using Godot;
 
 namespace Game.Godot.UI;
 
 public partial class SystemPanel : Control
 {
-	private const int MaxConsoleLineCount = 8;
-	private const int MinBattleSpeedMultiplier = 1;
-	private const int MaxBattleSpeedMultiplier = 5;
-	private static readonly IReadOnlyList<(string Label, ScreenAspectMode Value)> ScreenAspectOptions =
-	[
-		("无限制", ScreenAspectMode.Unlimited),
-		("16:9", ScreenAspectMode.Ratio16x9),
-		("18:9", ScreenAspectMode.Ratio18x9),
-		("20:9", ScreenAspectMode.Ratio20x9),
-	];
-
-	private readonly LocalUserSettingsStore _settingsStore = new();
-	private readonly List<string> _consoleLines = [];
-
-	private UserSettingsRecord _settings = UserSettingsRecord.Default;
-	private CheckBox _showBattleBoardCheckBox = null!;
-	private CheckBox _showBattleHpCheckBox = null!;
-	private CheckBox _autoSaveCheckBox = null!;
-	private CheckBox _largeMapMovementAnimationCheckBox = null!;
-	private CheckBox _autoBattleCheckBox = null!;
-	private CheckBox _battleSpeedUpCheckBox = null!;
-	private CheckBox _typewriterDialogCheckBox = null!;
-	private HSlider _battleSpeedMultiplierSlider = null!;
-	private Label _battleSpeedMultiplierValueLabel = null!;
-	private OptionButton _screenAspectOptionButton = null!;
-	private CheckBox _musicCheckBox = null!;
-	private CheckBox _sfxCheckBox = null!;
-	private Control _consoleRoot = null!;
-	private LineEdit _consoleInput = null!;
-	private RichTextLabel _consoleOutput = null!;
-	private Button _executeButton = null!;
 	private BaseButton _backButton = null!;
+	private Button _consoleButton = null!;
 	private Button _mainMenuButton = null!;
+	private Button _exitGameButton = null!;
 	private Button _loadButton = null!;
 	private Button _saveButton = null!;
 	private Button _deleteSaveButton = null!;
+	private IDisposable? _adventureStateSubscription;
 
 	public override void _Ready()
 	{
-		_consoleRoot = GetNode<Control>("%ConsoleVBox");
-		_consoleInput = GetNode<LineEdit>("%ConsoleInput");
-		_consoleOutput = GetNode<RichTextLabel>("%ConsoleOutput");
-		_executeButton = GetNode<Button>("%ExecuteButton");
 		_backButton = GetNode<BaseButton>("%BackButton");
+		_consoleButton = GetNode<Button>("%ConsoleButton");
 		_mainMenuButton = GetNode<Button>("%MainMenuButton");
+		_exitGameButton = GetNode<Button>("%ExitGameButton");
 		_loadButton = GetNode<Button>("%LoadButton");
 		_saveButton = GetNode<Button>("%SaveButton");
 		_deleteSaveButton = GetNode<Button>("%DeleteSaveButton");
 
-		_showBattleBoardCheckBox = GetNode<CheckBox>("%ShowBattleBoardCheckBox");
-		_showBattleHpCheckBox = GetNode<CheckBox>("%ShowBattleHpCheckBox");
-		_autoSaveCheckBox = GetNode<CheckBox>("%AutoSaveCheckBox");
-		_largeMapMovementAnimationCheckBox = GetNode<CheckBox>("%LargeMapMovementAnimationCheckBox");
-		_autoBattleCheckBox = GetNode<CheckBox>("%AutoBattleCheckBox");
-		_battleSpeedUpCheckBox = GetNode<CheckBox>("%BattleSpeedUpCheckBox");
-		_typewriterDialogCheckBox = GetNode<CheckBox>("%TypewriterDialogCheckBox");
-		_battleSpeedMultiplierSlider = GetNode<HSlider>("%BattleSpeedMultiplierSlider");
-		_battleSpeedMultiplierValueLabel = GetNode<Label>("%BattleSpeedMultiplierValueLabel");
-		_screenAspectOptionButton = GetNode<OptionButton>("%ScreenAspectOptionButton");
-		_musicCheckBox = GetNode<CheckBox>("%MusicCheckBox");
-		_sfxCheckBox = GetNode<CheckBox>("%SfxCheckBox");
-
-		_executeButton.Pressed += OnExecutePressed;
-		_consoleInput.TextSubmitted += OnConsoleTextSubmitted;
 		_backButton.Pressed += () => UIRoot.Instance.CloseMainPanel();
-		_mainMenuButton.Pressed += OnMainMenuPressed;
-		_loadButton.Pressed += OnLoadPressed;
+		_consoleButton.Pressed += OnConsolePressed;
+		_mainMenuButton.Pressed += GameFlow.ReturnToMainMenu;
+		_exitGameButton.Pressed += OnExitGamePressed;
+		_loadButton.Pressed += () => OpenSaveSlots(SaveSlotPanelMode.Load, "load");
 		_saveButton.Pressed += OnSavePressed;
-		_deleteSaveButton.Pressed += OnDeleteSavePressed;
+		_deleteSaveButton.Pressed += () => OpenSaveSlots(SaveSlotPanelMode.Delete, "delete");
 
-		_showBattleBoardCheckBox.Toggled += enabled => OnSettingToggled("战斗棋盘显示", enabled);
-		_showBattleHpCheckBox.Toggled += enabled => OnSettingToggled("战斗血条显示", enabled);
-		_autoSaveCheckBox.Toggled += enabled => OnSettingToggled("自动存档", enabled);
-		_largeMapMovementAnimationCheckBox.Toggled += enabled => OnSettingToggled("大地图移动动画", enabled);
-		_autoBattleCheckBox.Toggled += enabled => OnSettingToggled("自动战斗", enabled);
-		_battleSpeedUpCheckBox.Toggled += enabled => OnSettingToggled("战斗加速", enabled);
-		_typewriterDialogCheckBox.Toggled += enabled => OnSettingToggled("对话逐字显示", enabled);
-		_battleSpeedMultiplierSlider.ValueChanged += OnBattleSpeedMultiplierChanged;
-		_screenAspectOptionButton.ItemSelected += OnScreenAspectSelected;
-		_musicCheckBox.Toggled += enabled => OnSettingToggled("音乐", enabled);
-		_sfxCheckBox.Toggled += enabled => OnSettingToggled("音效", enabled);
-
-		PopulateScreenAspectOptions();
-		LoadSettings();
+		_consoleButton.Visible = Game.Config.ConsoleEnabled;
+		_adventureStateSubscription = Game.Session.Events.Subscribe<AdventureStateChangedEvent>(_ => ApplyNoRegretRestrictions());
 		ApplyNoRegretRestrictions();
-		ApplyConsoleConfig();
 	}
 
-	private void ApplyConsoleConfig()
+	private async void OnExitGamePressed()
 	{
-		_consoleRoot.Visible = Game.Config.ConsoleEnabled;
-		_consoleInput.Editable = Game.Config.ConsoleEnabled;
-		_executeButton.Disabled = !Game.Config.ConsoleEnabled;
+		if (!await UIRoot.Instance.ShowConfirmAsync(
+			"确认退出游戏吗？未保存的进度将会丢失。"))
+		{
+			return;
+		}
+
+		GetTree().Quit();
+	}
+
+	public override void _ExitTree()
+	{
+		_adventureStateSubscription?.Dispose();
+		_adventureStateSubscription = null;
+		base._ExitTree();
+	}
+
+	private void OnConsolePressed()
+	{
 		if (!Game.Config.ConsoleEnabled)
 		{
 			return;
 		}
 
-		AppendConsoleLine("系统", "命令行执行剧本指令，当前不支持 jump。");
-		AppendConsoleLine("系统", "示例：item 道口烧鸡 / log \"踏入江湖\"");
-		if (!Game.IsMobilePlatform)
-		{
-			_consoleInput.CallDeferred(Control.MethodName.GrabFocus);
-		}
-	}
-
-	private void LoadSettings()
-	{
-		_settings = _settingsStore.LoadOrDefault();
-		ApplySettingsToControls(_settings);
-		UserSettingsApplier.Apply(_settings);
-	}
-
-	private void SaveSettings(UserSettingsRecord settings)
-	{
-		_settingsStore.Save(settings);
-	}
-
-	private void OnSettingToggled(string displayName, bool enabled)
-	{
 		try
 		{
-			_settings = ReadSettingsFromControls();
-			UserSettingsApplier.Apply(_settings);
-			SaveSettings(_settings);
-			AppendConsoleLine("设置", $"{displayName}：{(enabled ? "开启" : "关闭")}");
+			UIRoot.Instance.ShowConsolePanel();
 		}
 		catch (Exception exception)
 		{
-			Game.Logger.Error($"Failed to apply setting '{displayName}'.", exception);
-			AppendConsoleLine("错误", exception.Message);
-		}
-	}
-
-	private void ApplySettingsToControls(UserSettingsRecord settings)
-	{
-		_showBattleBoardCheckBox.SetPressedNoSignal(settings.ShowBattleBoard);
-		_showBattleHpCheckBox.SetPressedNoSignal(settings.ShowBattleHp);
-		_autoSaveCheckBox.SetPressedNoSignal(settings.AutoSave);
-		_largeMapMovementAnimationCheckBox.SetPressedNoSignal(settings.LargeMapMovementAnimationEnabled);
-		_autoBattleCheckBox.SetPressedNoSignal(settings.AutoBattle);
-		_battleSpeedUpCheckBox.SetPressedNoSignal(settings.BattleSpeedUp);
-		_typewriterDialogCheckBox.SetPressedNoSignal(settings.DialogueTypewriterEnabled);
-		_battleSpeedMultiplierSlider.SetValueNoSignal(ClampBattleSpeedMultiplier(settings.BattleSpeedMultiplier));
-		UpdateBattleSpeedMultiplierLabel((int)_battleSpeedMultiplierSlider.Value);
-		SelectScreenAspectNoSignal(settings.ScreenAspectMode);
-		_musicCheckBox.SetPressedNoSignal(settings.MusicEnabled);
-		_sfxCheckBox.SetPressedNoSignal(settings.SfxEnabled);
-	}
-
-	private void OnBattleSpeedMultiplierChanged(double value)
-	{
-		var multiplier = ClampBattleSpeedMultiplier((int)Math.Round(value));
-		_battleSpeedMultiplierSlider.SetValueNoSignal(multiplier);
-		UpdateBattleSpeedMultiplierLabel(multiplier);
-		if (_settings.BattleSpeedMultiplier == multiplier)
-		{
-			return;
-		}
-		_settings = ReadSettingsFromControls();
-		UserSettingsApplier.Apply(_settings);
-		SaveSettings(_settings);
-	}
-
-	private void OnScreenAspectSelected(long index)
-	{
-		var mode = ReadSelectedScreenAspect();
-		if (_settings.ScreenAspectMode == mode)
-		{
-			return;
-		}
-
-		try
-		{
-			_settings = ReadSettingsFromControls();
-			UserSettingsApplier.Apply(_settings);
-			SaveSettings(_settings);
-			AppendConsoleLine("设置", $"画面尺寸：{FormatScreenAspect(mode)}");
-		}
-		catch (Exception exception)
-		{
-			Game.Logger.Error("Failed to apply screen aspect setting.", exception);
-			AppendConsoleLine("错误", exception.Message);
-		}
-	}
-
-	private UserSettingsRecord ReadSettingsFromControls() => new(
-		UserSettingsRecord.CurrentVersion,
-		_showBattleHpCheckBox.ButtonPressed,
-		Game.State.Adventure.NoRegret ? _settings.AutoSave : _autoSaveCheckBox.ButtonPressed,
-		_autoBattleCheckBox.ButtonPressed,
-		_battleSpeedUpCheckBox.ButtonPressed,
-		ClampBattleSpeedMultiplier((int)Math.Round(_battleSpeedMultiplierSlider.Value)),
-		_musicCheckBox.ButtonPressed,
-		_sfxCheckBox.ButtonPressed,
-		_typewriterDialogCheckBox.ButtonPressed,
-		_showBattleBoardCheckBox.ButtonPressed,
-		_largeMapMovementAnimationCheckBox.ButtonPressed,
-		ReadSelectedScreenAspect(),
-		_settings.LargeMapZoom);
-
-	private void UpdateBattleSpeedMultiplierLabel(int multiplier)
-	{
-		_battleSpeedMultiplierValueLabel.Text = $"{multiplier}倍";
-	}
-
-	private static int ClampBattleSpeedMultiplier(int multiplier) =>
-		Math.Clamp(multiplier, MinBattleSpeedMultiplier, MaxBattleSpeedMultiplier);
-
-	private void PopulateScreenAspectOptions()
-	{
-		OptionButtonBinder.PopulateEnum(_screenAspectOptionButton, ScreenAspectOptions);
-	}
-
-	private ScreenAspectMode ReadSelectedScreenAspect()
-	{
-		return OptionButtonBinder.ReadSelectedEnum(_screenAspectOptionButton, ScreenAspectMode.Unlimited);
-	}
-
-	private void SelectScreenAspectNoSignal(ScreenAspectMode mode)
-	{
-		OptionButtonBinder.SelectEnumNoSignal(_screenAspectOptionButton, mode);
-	}
-
-	private static string FormatScreenAspect(ScreenAspectMode mode) =>
-		mode switch
-		{
-			ScreenAspectMode.Unlimited => "无限制",
-			ScreenAspectMode.Ratio16x9 => "16:9",
-			ScreenAspectMode.Ratio18x9 => "18:9",
-			ScreenAspectMode.Ratio20x9 => "20:9",
-			_ => mode.ToString(),
-		};
-
-	private void OnExecutePressed() => SubmitConsoleCommand(_consoleInput.Text);
-
-	private void OnConsoleTextSubmitted(string text) => SubmitConsoleCommand(text);
-
-	private async void SubmitConsoleCommand(string text)
-	{
-		var commandLine = text.Trim();
-		if (!Game.Config.ConsoleEnabled)
-		{
-			return;
-		}
-
-		if (string.IsNullOrWhiteSpace(commandLine))
-		{
-			AppendConsoleLine("控制台", "请输入有效指令。");
-			return;
-		}
-
-		try
-		{
-			await Game.StoryService.CommandLine.ExecuteAsync(commandLine);
-			ApplyNoRegretRestrictions();
-			AppendConsoleLine("控制台", $"已执行剧本指令：{commandLine}");
-		}
-		catch (Exception exception)
-		{
-			Game.Logger.Error($"Console command failed: {commandLine}", exception);
-			AppendConsoleLine("错误", exception.Message);
+			Game.Logger.Error("Opening console panel failed.", exception);
+			UIRoot.Instance.ShowSuggestion(exception.Message);
 		}
 	}
 
@@ -281,84 +82,32 @@ public partial class SystemPanel : Control
 			return;
 		}
 
-		try
-		{
-			UIRoot.Instance.ShowSaveSlotSelectionPanel(SaveSlotPanelMode.Save);
-		}
-		catch (Exception exception)
-		{
-			Game.Logger.Error("Opening save slot panel failed.", exception);
-			AppendConsoleLine("错误", exception.Message);
-		}
+		OpenSaveSlots(SaveSlotPanelMode.Save, "save");
 	}
 
-	private void OnLoadPressed()
+	private static void OpenSaveSlots(SaveSlotPanelMode mode, string operationName)
 	{
 		try
 		{
-			UIRoot.Instance.ShowSaveSlotSelectionPanel(SaveSlotPanelMode.Load);
+			UIRoot.Instance.ShowSaveSlotSelectionPanel(mode);
 		}
 		catch (Exception exception)
 		{
-			Game.Logger.Error("Opening load slot panel failed.", exception);
-			AppendConsoleLine("错误", exception.Message);
+			Game.Logger.Error($"Opening {operationName} slot panel failed.", exception);
+			UIRoot.Instance.ShowSuggestion(exception.Message);
 		}
-	}
-
-	private void OnDeleteSavePressed()
-	{
-		try
-		{
-			UIRoot.Instance.ShowSaveSlotSelectionPanel(SaveSlotPanelMode.Delete);
-		}
-		catch (Exception exception)
-		{
-			Game.Logger.Error("Opening delete slot panel failed.", exception);
-			AppendConsoleLine("错误", exception.Message);
-		}
-	}
-
-	private void OnMainMenuPressed()
-	{
-		AppendConsoleLine("系统", "正在返回主菜单。");
-		GameFlow.ReturnToMainMenu();
 	}
 
 	private void ApplyNoRegretRestrictions()
 	{
-		var noRegret = Game.State.Adventure.NoRegret;
-		_saveButton.Disabled = noRegret;
-		_saveButton.Modulate = noRegret ? new Color(0.55f, 0.55f, 0.55f, 0.72f) : Colors.White;
-		_saveButton.TooltipText = noRegret ? "无悔周目只允许自动存档。" : string.Empty;
-		_autoSaveCheckBox.Disabled = noRegret;
-		_autoSaveCheckBox.SetPressedNoSignal(noRegret || _settings.AutoSave);
-		_autoSaveCheckBox.TooltipText = noRegret ? "无悔周目强制开启自动存档。" : string.Empty;
-	}
-
-	private void AppendConsoleLine(string source, string message)
-	{
-		if (!CanAppendConsoleLine())
+		if (!GodotObject.IsInstanceValid(this) || !IsInsideTree())
 		{
 			return;
 		}
 
-		_consoleLines.Add($"[color=#513523]{source}[/color]  {message}");
-		while (_consoleLines.Count > MaxConsoleLineCount)
-		{
-			_consoleLines.RemoveAt(0);
-		}
-
-		_consoleOutput.Clear();
-		foreach (var line in _consoleLines)
-		{
-			_consoleOutput.AppendText(line + "\n");
-		}
+		var noRegret = Game.State.Adventure.NoRegret;
+		_saveButton.Disabled = noRegret;
+		_saveButton.Modulate = noRegret ? new Color(0.55f, 0.55f, 0.55f, 0.72f) : Colors.White;
+		_saveButton.TooltipText = noRegret ? "无悔周目只允许自动存档。" : string.Empty;
 	}
-
-	private bool CanAppendConsoleLine() =>
-		GodotObject.IsInstanceValid(this)
-		&& IsInsideTree()
-		&& _consoleOutput is not null
-		&& GodotObject.IsInstanceValid(_consoleOutput);
-
 }

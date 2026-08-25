@@ -46,12 +46,14 @@ public static class GameRuntimeBootstrap
 
 		var config = loadedContent.Config;
 		var repository = loadedContent.Repository;
-		var settings = new LocalUserSettingsStore(modLoadout.StoragePaths.SettingsPath, logger).LoadOrDefault();
+		var settingsStore = new LocalUserSettingsStore(modLoadout.StoragePaths.SettingsPath, logger);
+		var settings = settingsStore.LoadOrDefault();
+		var userSettings = new UserSettingsService(settingsStore, settings);
 		var profile = new LocalProfileStore(modLoadout.StoragePaths.ProfilePath, logger).LoadOrEmpty().Restore();
 		var session = BuildSession(repository, logger, config, profile);
 
-		Game.Initialize(session, modLoadout, logger);
-		UserSettingsApplier.Apply(settings);
+		Game.Initialize(session, modLoadout, userSettings, logger);
+		userSettings.ApplyCurrent();
 		BindUiToSession(session);
 	}
 

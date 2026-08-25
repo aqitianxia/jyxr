@@ -36,6 +36,9 @@ public partial class UIRoot : Control
 	public PackedScene SystemPanelScene { get; set; } = null!;
 
 	[Export]
+	public PackedScene ConsolePanelScene { get; set; } = null!;
+
+	[Export]
 	public PackedScene SaveSlotSelectionPanelScene { get; set; } = null!;
 
 	[Export]
@@ -266,6 +269,14 @@ public partial class UIRoot : Control
 	public Control ShowHeroPanel() => ShowMainPanel(HeroPanelScene, "hero panel");
 
 	public Control ShowSystemPanel() => ShowMainPanel(SystemPanelScene, "system panel");
+
+	public Control ShowConsolePanel() => ShowPopupPanel(ConsolePanelScene, "console panel", panel =>
+	{
+		if (panel is not ConsolePanel)
+		{
+			throw new InvalidOperationException("Console panel scene root must be ConsolePanel.");
+		}
+	});
 
 	public Control ShowGameOverScreen() => ShowMainPanel(GameOverScreenScene, "game over screen");
 

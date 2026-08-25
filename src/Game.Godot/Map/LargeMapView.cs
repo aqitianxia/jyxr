@@ -2,7 +2,6 @@ using Game.Application;
 using Game.Core.Definitions;
 using Game.Core.Model;
 using Game.Godot.Assets;
-using Game.Godot.Persistence;
 using Godot;
 
 namespace Game.Godot.Map;
@@ -24,7 +23,6 @@ public partial class LargeMapView : Control
 
 	private readonly Dictionary<int, Vector2> _touches = new();
 	private readonly LargeMapTransform _transform = new(CanvasSize, MinimumZoom, MaximumZoom);
-	private readonly LocalUserSettingsStore _settingsStore = new();
 	private Control _mapSurface = null!;
 	private TextureRect _background = null!;
 	private ColorRect _timeDim = null!;
@@ -32,7 +30,7 @@ public partial class LargeMapView : Control
 	private Control _heroPin = null!;
 	private TextureRect _heroAvatar = null!;
 	private global::Godot.Timer _zoomSaveTimer = null!;
-	private UserSettingsRecord _settings = UserSettingsRecord.Default;
+	private float _savedZoom;
 	private Vector2 _heroLogicalPosition;
 	private bool _mousePressed;
 	private bool _mouseDragging;
@@ -67,7 +65,7 @@ public partial class LargeMapView : Control
 		_heroPin = GetNode<Control>("%MapPin");
 		_heroAvatar = GetNode<TextureRect>("%PinAvatar");
 		_mapSurface.Size = CanvasSize;
-		_settings = _settingsStore.LoadOrDefault();
+		_savedZoom = Game.UserSettings.Current.LargeMapZoom;
 		_zoomSaveTimer = new global::Godot.Timer
 		{
 			OneShot = true,
@@ -248,8 +246,8 @@ public partial class LargeMapView : Control
 
 	private void ResetView(Vector2? centerLogicalPosition = null)
 	{
-		var initialZoom = _settings.LargeMapZoom > 0f
-			? _settings.LargeMapZoom
+		var initialZoom = _savedZoom > 0f
+			? _savedZoom
 			: Game.IsMobilePlatform ? MobileDefaultZoom : MinimumZoom;
 		_transform.Reset(Size, initialZoom, centerLogicalPosition);
 		ApplyVisualTransform();
@@ -297,12 +295,11 @@ public partial class LargeMapView : Control
 
 	private void ScheduleZoomSave()
 	{
-		if (Mathf.IsEqualApprox(_settings.LargeMapZoom, _transform.Zoom))
+		if (Mathf.IsEqualApprox(_savedZoom, _transform.Zoom))
 		{
 			return;
 		}
 
-		_settings = _settings with { LargeMapZoom = _transform.Zoom };
 		_zoomSaveTimer.Start();
 	}
 
@@ -310,7 +307,9 @@ public partial class LargeMapView : Control
 	{
 		try
 		{
-			_settingsStore.Save(_settings);
+			var zoom = _transform.Zoom;
+			Game.UserSettings.Update(settings => settings with { LargeMapZoom = zoom });
+			_savedZoom = zoom;
 		}
 		catch (Exception exception)
 		{

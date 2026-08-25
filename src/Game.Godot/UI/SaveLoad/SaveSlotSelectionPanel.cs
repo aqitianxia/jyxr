@@ -33,7 +33,7 @@ public partial class SaveSlotSelectionPanel : JyPanel
 		_subtitleLabel = GetNode<Label>("%SubtitleLabel");
 		_skipConfirmationCheckBox = GetNode<CheckBox>("%SkipConfirmationCheckBox");
 		_slotsGrid = GetNode<GridContainer>("%SlotsGrid");
-		_slotCardScene = GD.Load<PackedScene>("res://scenes/ui/system_panel/save_slot_card.tscn");
+		_slotCardScene = GD.Load<PackedScene>("res://scenes/ui/save_load/save_slot_card.tscn");
 		_saveCards = CreateSaveCards();
 
 		ApplyModeText();

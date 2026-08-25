@@ -1,4 +1,3 @@
-using Game.Godot.Persistence;
 using Godot;
 
 namespace Game.Godot.UI.Battle;
@@ -14,16 +13,13 @@ internal sealed class BattleSettingsController(
 {
     private const int MinSpeedMultiplier = 1;
     private const int MaxSpeedMultiplier = 5;
-    private readonly LocalUserSettingsStore _store = new();
     private readonly double _initialTimeScale = Engine.TimeScale;
-    private UserSettingsRecord? _loadedSettings;
     private bool _speedUpEnabled;
     private int _speedMultiplier = 2;
 
     public void Load()
     {
-        var settings = _store.LoadOrDefault();
-        _loadedSettings = settings;
+        var settings = Game.UserSettings.Current;
         _speedUpEnabled = settings.BattleSpeedUp;
         _speedMultiplier = Math.Clamp(settings.BattleSpeedMultiplier, MinSpeedMultiplier, MaxSpeedMultiplier);
         board.ShowBaseBoard = settings.ShowBattleBoard;
@@ -60,21 +56,12 @@ internal sealed class BattleSettingsController(
 
     public void Save()
     {
-        var loadedSettings = _loadedSettings ??
-            throw new InvalidOperationException("Battle settings must be loaded before they can be saved.");
-        var settings = loadedSettings with
+        Game.UserSettings.Update(settings => settings with
         {
             AutoBattle = isAutoBattleEnabled(),
             BattleSpeedUp = _speedUpEnabled,
             BattleSpeedMultiplier = _speedMultiplier,
-        };
-
-        if (settings == loadedSettings)
-        {
-            return;
-        }
-
-        _store.Save(settings);
+        });
     }
 
     private void ApplyTimeScale() =>

@@ -3,6 +3,7 @@ using Game.Application.Mods;
 using Game.Core.Abstractions;
 using Game.Core.Model;
 using Game.Godot.Audio;
+using Game.Godot.Settings;
 using Godot;
 
 namespace Game.Godot;
@@ -18,10 +19,12 @@ public static class Game
 	private static GameSession _currentSession = null!;
 	private static IDiagnosticLogger _diagnosticLogger = null!;
 	private static ModLoadout _activeModLoadout = null!;
+	private static UserSettingsService _userSettings = null!;
 
 	public static bool IsInitialized =>
 		_currentSession is not null &&
-		_diagnosticLogger is not null;
+		_diagnosticLogger is not null &&
+		_userSettings is not null;
 
 	public static GameSession Session
 	{
@@ -97,6 +100,15 @@ public static class Game
 			return _activeModLoadout;
 		}
 	}
+
+	public static UserSettingsService UserSettings
+	{
+		get
+		{
+			EnsureInitialized();
+			return _userSettings;
+		}
+	}
 	public static ModContext PrimaryMod => ActiveModLoadout.PrimaryMod;
 
 	public static GameClientPlatformKind ClientPlatform => ResolveClientPlatform();
@@ -106,10 +118,12 @@ public static class Game
 	public static void Initialize(
 		GameSession initialSession,
 		ModLoadout activeModLoadout,
+		UserSettingsService userSettings,
 		IDiagnosticLogger? diagnosticLogger = null)
 	{
 		ArgumentNullException.ThrowIfNull(initialSession);
 		ArgumentNullException.ThrowIfNull(activeModLoadout);
+		ArgumentNullException.ThrowIfNull(userSettings);
 		if (initialSession.Config.InitialPartyCharacterIds.Count == 0)
 		{
 			throw new InvalidOperationException("Game initialization requires at least one initial party character.");
@@ -117,6 +131,7 @@ public static class Game
 
 		_currentSession = initialSession;
 		_activeModLoadout = activeModLoadout;
+		_userSettings = userSettings;
 		_diagnosticLogger = diagnosticLogger ?? NullDiagnosticLogger.Instance;
 		_diagnosticLogger.Info(
 			$"Game initialized with mods: {string.Join(", ", activeModLoadout.ModsInLoadOrder.Select(static mod => $"{mod.ModId}@{mod.Manifest.Version}"))}.");
@@ -124,7 +139,7 @@ public static class Game
 
 	private static void EnsureInitialized()
 	{
-		if (_currentSession is null || _diagnosticLogger is null)
+		if (_currentSession is null || _diagnosticLogger is null || _userSettings is null)
 		{
 			throw new InvalidOperationException("Game has not been initialized.");
 		}

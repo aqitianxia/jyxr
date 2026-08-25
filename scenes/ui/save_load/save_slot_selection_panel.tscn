@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://brltgo8b2opqk"]
 
 [ext_resource type="PackedScene" uid="uid://d1unjwj8fihty" path="res://scenes/ui/base/jy_panel.tscn" id="1_panel"]
-[ext_resource type="Script" uid="uid://b5rjwcm2fqdl6" path="res://src/Game.Godot/UI/System/SaveSlotSelectionPanel.cs" id="2_script"]
+[ext_resource type="Script" uid="uid://b5rjwcm2fqdl6" path="res://src/Game.Godot/UI/SaveLoad/SaveSlotSelectionPanel.cs" id="2_script"]
 
 [node name="SaveSlotSelectionPanel" unique_id=1893980029 instance=ExtResource("1_panel")]
 script = ExtResource("2_script")

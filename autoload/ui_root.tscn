@@ -14,9 +14,10 @@
 [ext_resource type="PackedScene" uid="uid://bdvws2ugdkk6a" path="res://scenes/ui/hero_panel/hero_panel.tscn" id="8_hero_panel"]
 [ext_resource type="PackedScene" uid="uid://sdtyoj35nitl" path="res://scenes/ui/system_panel/system_panel.tscn" id="9_system_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/toast/toast_panel.tscn" id="9_toast_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/console/console_panel.tscn" id="9_console_panel"]
 [ext_resource type="Shader" uid="uid://bkkv5qham5ddy" path="res://assets/shader/story_screen_filter.gdshader" id="10_story_filter"]
 [ext_resource type="PackedScene" uid="uid://cxqxd285b6u0o" path="res://scenes/ui/hint/hint_box.tscn" id="10_hint_box"]
-[ext_resource type="PackedScene" uid="uid://brltgo8b2opqk" path="res://scenes/ui/system_panel/save_slot_selection_panel.tscn" id="10_save_slots"]
+[ext_resource type="PackedScene" uid="uid://brltgo8b2opqk" path="res://scenes/ui/save_load/save_slot_selection_panel.tscn" id="10_save_slots"]
 [ext_resource type="PackedScene" uid="uid://b4kveik4eci2d" path="res://scenes/ui/base/confirm_dialog.tscn" id="11_confirm_dialog"]
 [ext_resource type="PackedScene" uid="uid://bs35w4y4foane" path="res://scenes/ui/inventory_panel/inventory_panel.tscn" id="12_inventory_panel"]
 [ext_resource type="PackedScene" uid="uid://cpw5uh28ivr5j" path="res://scenes/ui/chest_panel/chest_panel.tscn" id="13_chest_panel"]
@@ -54,6 +55,7 @@ InventoryPanelScene = ExtResource("12_inventory_panel")
 GameLogPanelScene = ExtResource("7_journal")
 HeroPanelScene = ExtResource("8_hero_panel")
 SystemPanelScene = ExtResource("9_system_panel")
+ConsolePanelScene = ExtResource("9_console_panel")
 SaveSlotSelectionPanelScene = ExtResource("10_save_slots")
 ShopPanelScene = ExtResource("13_shop_panel")
 ChestPanelScene = ExtResource("13_chest_panel")

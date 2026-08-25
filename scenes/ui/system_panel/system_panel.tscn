@@ -2,112 +2,52 @@
 
 [ext_resource type="Script" uid="uid://dfeiaxmn5awtk" path="res://src/Game.Godot/UI/System/SystemPanel.cs" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://5n52fg3sl8bk" path="res://assets/art/battle_bg/zhulin.jpg" id="2_background"]
-[ext_resource type="Texture2D" uid="uid://rp0frp5p0jig" path="res://assets/art/misc/cross.png" id="3_ndm7c"]
-[ext_resource type="Texture2D" uid="uid://b1n3vntrjjyry" path="res://assets/art/ui/icon_main_menu.svg" id="3_quit_icon"]
-[ext_resource type="Script" uid="uid://dk1o2p3qb36f" path="res://src/Game.Godot/UI/Base/JyButton.cs" id="4_7j340"]
-[ext_resource type="Texture2D" uid="uid://bbc8vj3vn1kxx" path="res://assets/art/ui/icon_load.svg" id="4_load_icon"]
-[ext_resource type="Texture2D" uid="uid://yw4d3sy6ibqr" path="res://assets/art/ui/icon_save.svg" id="5_save_icon"]
-[ext_resource type="Texture2D" uid="uid://bk4oxdt3ugto2" path="res://assets/art/ui/icon_delete.svg" id="6_delete_icon"]
-[ext_resource type="Texture2D" uid="uid://dm0vjpb2ne3ac" path="res://assets/theme/art/checkbox_checked.svg" id="7_checkbox_checked"]
+[ext_resource type="Texture2D" uid="uid://rp0frp5p0jig" path="res://assets/art/misc/cross.png" id="3_close"]
+[ext_resource type="Texture2D" uid="uid://b1n3vntrjjyry" path="res://assets/art/ui/icon_main_menu.svg" id="4_main_menu"]
+[ext_resource type="Texture2D" uid="uid://bbc8vj3vn1kxx" path="res://assets/art/ui/icon_load.svg" id="5_load"]
+[ext_resource type="Texture2D" uid="uid://yw4d3sy6ibqr" path="res://assets/art/ui/icon_save.svg" id="6_save"]
+[ext_resource type="Texture2D" uid="uid://bk4oxdt3ugto2" path="res://assets/art/ui/icon_delete.svg" id="7_delete"]
+[ext_resource type="Script" uid="uid://dk1o2p3qb36f" path="res://src/Game.Godot/UI/Base/JyButton.cs" id="8_button"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_section.tscn" id="9_settings"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/icon_console.svg" id="10_console"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/icon_exit.svg" id="11_exit"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent_normal"]
-bg_color = Color(1, 1, 1, 0)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
-corner_radius_bottom_right = 28
-corner_radius_bottom_left = 28
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 0.99, 0.95, 0.88)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.48, 0.3, 0.16, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0.2, 0.1, 0.04, 0.32)
+shadow_size = 8
+shadow_offset = Vector2(0, 4)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent_pressed"]
-bg_color = Color(0, 0, 0, 0.08)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
-corner_radius_bottom_right = 28
-corner_radius_bottom_left = 28
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_hover"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 0.93, 0.72, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.68, 0.4, 0.12, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent_hover"]
-bg_color = Color(1, 1, 1, 0.04)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
-corner_radius_bottom_right = 28
-corner_radius_bottom_left = 28
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_quit"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(1, 0.99, 0.95, 0.84)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.48, 0.24, 0.13, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0.28, 0.14, 0.08, 0.38)
-shadow_size = 12
-shadow_offset = Vector2(0, 6)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_delete"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(1, 0.99, 0.95, 0.84)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.68, 0.17, 0.14, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0.39, 0.09, 0.08, 0.34)
-shadow_size = 12
-shadow_offset = Vector2(0, 6)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_load"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(1, 0.99, 0.95, 0.84)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.77, 0.52, 0.11, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0.44, 0.29, 0.07, 0.36)
-shadow_size = 12
-shadow_offset = Vector2(0, 6)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_save"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(1, 0.99, 0.95, 0.84)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.12, 0.47, 0.68, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0.05, 0.24, 0.38, 0.34)
-shadow_size = 12
-shadow_offset = Vector2(0, 6)
-
-[node name="SystemPanel" type="Control" unique_id=1875352258]
+[node name="SystemPanel" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -116,7 +56,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1093288141]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -128,7 +68,7 @@ texture = ExtResource("2_background")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1532776401]
+[node name="Backdrop" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -138,7 +78,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.18)
 
-[node name="ContentRoot" type="Control" parent="." unique_id=381094612]
+[node name="ContentRoot" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -149,453 +89,153 @@ offset_bottom = 1080.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="BackButton" type="TextureButton" parent="ContentRoot" unique_id=57524310]
+[node name="SettingsSection" parent="ContentRoot" instance=ExtResource("9_settings")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackButton" type="TextureButton" parent="ContentRoot"]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 1688.0
-offset_top = 3.0
-offset_right = 1879.0
-offset_bottom = 178.0
-texture_normal = ExtResource("3_ndm7c")
+offset_left = 1615.0
+offset_top = 5.0
+offset_right = 1815.0
+offset_bottom = 205.0
+texture_normal = ExtResource("3_close")
 ignore_texture_size = true
 stretch_mode = 5
-script = ExtResource("4_7j340")
-metadata/_custom_type_script = "uid://dk1o2p3qb36f"
+script = ExtResource("8_button")
 
-[node name="ActionRow" type="Control" parent="ContentRoot" unique_id=1158134751]
-anchors_preset = 0
-offset_left = 1023.0
-offset_top = 708.0
-offset_right = 1914.0
-offset_bottom = 1078.0
-
-[node name="MainMenuButton" type="Button" parent="ContentRoot/ActionRow" unique_id=858266893]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 255)
+[node name="ActionRow" type="HBoxContainer" parent="ContentRoot"]
 layout_mode = 0
-offset_left = 15.0
-offset_top = 53.0
-offset_right = 215.0
-offset_bottom = 308.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_transparent_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_transparent_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_transparent_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_transparent_hover")
-
-[node name="MainMenuLayout" type="MarginContainer" parent="ContentRoot/ActionRow/MainMenuButton" unique_id=237040938]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
-
-[node name="MainMenuVBox" type="VBoxContainer" parent="ContentRoot/ActionRow/MainMenuButton/MainMenuLayout" unique_id=523837735]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 14
+offset_left = 200.0
+offset_top = 835.0
+offset_right = 1720.0
+offset_bottom = 940.0
+theme_override_constants/separation = 18
 alignment = 1
 
-[node name="MainMenuCard" type="PanelContainer" parent="ContentRoot/ActionRow/MainMenuButton/MainMenuLayout/MainMenuVBox" unique_id=1913598830]
-custom_minimum_size = Vector2(170, 140)
+[node name="ConsoleButton" type="Button" parent="ContentRoot/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_action_quit")
+theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
+text = "控制台"
+icon = ExtResource("10_console")
+expand_icon = true
+icon_max_width = 52
 
-[node name="MainMenuIconMargin" type="MarginContainer" parent="ContentRoot/ActionRow/MainMenuButton/MainMenuLayout/MainMenuVBox/MainMenuCard" unique_id=1423972117]
+[node name="MainMenuButton" type="Button" parent="ContentRoot/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 18
-
-[node name="MainMenuIcon" type="TextureRect" parent="ContentRoot/ActionRow/MainMenuButton/MainMenuLayout/MainMenuVBox/MainMenuCard/MainMenuIconMargin" unique_id=563417098]
-custom_minimum_size = Vector2(104, 104)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("3_quit_icon")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="MainMenuLabel" type="Label" parent="ContentRoot/ActionRow/MainMenuButton/MainMenuLayout/MainMenuVBox" unique_id=1461312086]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.09, 0.07, 0.05, 1)
-theme_override_colors/font_outline_color = Color(0.96, 0.95, 0.88, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 44
+theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "主菜单"
-horizontal_alignment = 1
+icon = ExtResource("4_main_menu")
+expand_icon = true
+icon_max_width = 52
 
-[node name="DeleteSaveButton" type="Button" parent="ContentRoot/ActionRow" unique_id=208159084]
+[node name="ExitGameButton" type="Button" parent="ContentRoot/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 255)
-layout_mode = 0
-offset_left = 235.0
-offset_top = 53.0
-offset_right = 435.0
-offset_bottom = 308.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_transparent_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_transparent_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_transparent_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_transparent_hover")
+custom_minimum_size = Vector2(220, 105)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.38, 0.1, 0.06, 1)
+theme_override_colors/font_hover_color = Color(0.6, 0.08, 0.04, 1)
+theme_override_colors/font_pressed_color = Color(0.46, 0.04, 0.02, 1)
+theme_override_colors/font_focus_color = Color(0.6, 0.08, 0.04, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
+text = "退出游戏"
+icon = ExtResource("11_exit")
+expand_icon = true
+icon_max_width = 52
 
-[node name="DeleteLayout" type="MarginContainer" parent="ContentRoot/ActionRow/DeleteSaveButton" unique_id=1478004255]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
-
-[node name="DeleteVBox" type="VBoxContainer" parent="ContentRoot/ActionRow/DeleteSaveButton/DeleteLayout" unique_id=701538260]
+[node name="ActionGroupSpacer" type="Control" parent="ContentRoot/ActionRow"]
+custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 14
-alignment = 1
 
-[node name="DeleteCard" type="PanelContainer" parent="ContentRoot/ActionRow/DeleteSaveButton/DeleteLayout/DeleteVBox" unique_id=1058307990]
-custom_minimum_size = Vector2(170, 140)
+[node name="DeleteSaveButton" type="Button" parent="ContentRoot/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_action_delete")
-
-[node name="DeleteIconMargin" type="MarginContainer" parent="ContentRoot/ActionRow/DeleteSaveButton/DeleteLayout/DeleteVBox/DeleteCard" unique_id=598491738]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 18
-
-[node name="DeleteIcon" type="TextureRect" parent="ContentRoot/ActionRow/DeleteSaveButton/DeleteLayout/DeleteVBox/DeleteCard/DeleteIconMargin" unique_id=955616295]
-custom_minimum_size = Vector2(104, 104)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("6_delete_icon")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="DeleteLabel" type="Label" parent="ContentRoot/ActionRow/DeleteSaveButton/DeleteLayout/DeleteVBox" unique_id=588494603]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.09, 0.07, 0.05, 1)
-theme_override_colors/font_outline_color = Color(0.96, 0.95, 0.88, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 44
+theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "删档"
-horizontal_alignment = 1
+icon = ExtResource("7_delete")
+expand_icon = true
+icon_max_width = 52
 
-[node name="LoadButton" type="Button" parent="ContentRoot/ActionRow" unique_id=871097712]
+[node name="SaveButton" type="Button" parent="ContentRoot/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 255)
-layout_mode = 0
-offset_left = 675.0
-offset_top = 53.0
-offset_right = 875.0
-offset_bottom = 308.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_transparent_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_transparent_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_transparent_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_transparent_hover")
-
-[node name="LoadLayout" type="MarginContainer" parent="ContentRoot/ActionRow/LoadButton" unique_id=1896376769]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
-
-[node name="LoadVBox" type="VBoxContainer" parent="ContentRoot/ActionRow/LoadButton/LoadLayout" unique_id=2096411061]
+custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 14
-alignment = 1
-
-[node name="LoadCard" type="PanelContainer" parent="ContentRoot/ActionRow/LoadButton/LoadLayout/LoadVBox" unique_id=1033242118]
-custom_minimum_size = Vector2(170, 140)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_action_load")
-
-[node name="LoadIconMargin" type="MarginContainer" parent="ContentRoot/ActionRow/LoadButton/LoadLayout/LoadVBox/LoadCard" unique_id=1128810166]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 18
-
-[node name="LoadIcon" type="TextureRect" parent="ContentRoot/ActionRow/LoadButton/LoadLayout/LoadVBox/LoadCard/LoadIconMargin" unique_id=486916272]
-custom_minimum_size = Vector2(104, 104)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("4_load_icon")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="LoadLabel" type="Label" parent="ContentRoot/ActionRow/LoadButton/LoadLayout/LoadVBox" unique_id=1905543615]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.09, 0.07, 0.05, 1)
-theme_override_colors/font_outline_color = Color(0.96, 0.95, 0.88, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 44
-text = "读档"
-horizontal_alignment = 1
-
-[node name="SaveButton" type="Button" parent="ContentRoot/ActionRow" unique_id=298006004]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 255)
-layout_mode = 0
-offset_left = 455.0
-offset_top = 53.0
-offset_right = 655.0
-offset_bottom = 308.0
-theme_override_styles/disabled = SubResource("StyleBoxFlat_transparent_normal")
-theme_override_styles/normal = SubResource("StyleBoxFlat_transparent_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_transparent_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_transparent_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_transparent_hover")
-
-[node name="SaveLayout" type="MarginContainer" parent="ContentRoot/ActionRow/SaveButton" unique_id=1931887834]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
-
-[node name="SaveVBox" type="VBoxContainer" parent="ContentRoot/ActionRow/SaveButton/SaveLayout" unique_id=882930059]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 14
-alignment = 1
-
-[node name="SaveCard" type="PanelContainer" parent="ContentRoot/ActionRow/SaveButton/SaveLayout/SaveVBox" unique_id=1653543648]
-custom_minimum_size = Vector2(170, 140)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_action_save")
-
-[node name="SaveIconMargin" type="MarginContainer" parent="ContentRoot/ActionRow/SaveButton/SaveLayout/SaveVBox/SaveCard" unique_id=1606717553]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 18
-
-[node name="SaveIcon" type="TextureRect" parent="ContentRoot/ActionRow/SaveButton/SaveLayout/SaveVBox/SaveCard/SaveIconMargin" unique_id=1802449772]
-custom_minimum_size = Vector2(104, 104)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("5_save_icon")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="SaveLabel" type="Label" parent="ContentRoot/ActionRow/SaveButton/SaveLayout/SaveVBox" unique_id=107280820]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.09, 0.07, 0.05, 1)
-theme_override_colors/font_outline_color = Color(0.96, 0.95, 0.88, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 44
+theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_disabled_color = Color(0.46, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action")
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "存档"
+icon = ExtResource("6_save")
+expand_icon = true
+icon_max_width = 52
+
+[node name="LoadButton" type="Button" parent="ContentRoot/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 105)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
+text = "读档"
+icon = ExtResource("5_load")
+expand_icon = true
+icon_max_width = 52
+
+[node name="HotkeyHint" type="Label" parent="ContentRoot"]
+layout_mode = 0
+offset_left = 610.0
+offset_top = 970.0
+offset_right = 1310.0
+offset_bottom = 1025.0
+theme_override_colors/font_color = Color(0.94, 0.91, 0.78, 0.9)
+theme_override_colors/font_outline_color = Color(0.04, 0.08, 0.05, 0.85)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 30
+text = "F1  快速存档    ·    F2  快速读档"
 horizontal_alignment = 1
-
-[node name="ConsoleVBox" type="VBoxContainer" parent="ContentRoot" unique_id=1398615551]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 78.0
-offset_top = 45.0
-offset_right = 1549.0
-offset_bottom = 415.0
-theme_override_constants/separation = 18
-
-[node name="ConsoleTitle" type="Label" parent="ContentRoot/ConsoleVBox" unique_id=1313749824]
-layout_mode = 2
-theme_override_font_sizes/font_size = 42
-text = "命令行"
-
-[node name="InputRow" type="HBoxContainer" parent="ContentRoot/ConsoleVBox" unique_id=1760579999]
-layout_mode = 2
-theme_override_constants/separation = 18
-
-[node name="ConsoleInput" type="LineEdit" parent="ContentRoot/ConsoleVBox/InputRow" unique_id=1705413527]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 84)
-layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "输入指令..."
-keep_editing_on_text_submit = true
-
-[node name="ExecuteButton" type="Button" parent="ContentRoot/ConsoleVBox/InputRow" unique_id=681298942]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 84)
-layout_mode = 2
-text = "执行"
-
-[node name="ConsoleOutput" type="RichTextLabel" parent="ContentRoot/ConsoleVBox" unique_id=1236216528]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-size_flags_horizontal = 3
-bbcode_enabled = true
-
-[node name="SettingsVBox" type="VBoxContainer" parent="ContentRoot" unique_id=1628029161]
-layout_mode = 0
-offset_left = 100.0
-offset_top = 342.0
-offset_right = 531.0
-offset_bottom = 1072.0
-size_flags_vertical = 3
-theme_override_constants/separation = 12
-
-[node name="ShowBattleBoardCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=178949392]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-text = "战斗棋盘显示"
-
-[node name="ShowBattleHpCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=241839893]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-text = "战斗血条显示"
-
-[node name="AutoBattleCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=1797562101]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-text = "自动战斗"
-
-[node name="BattleSpeedUpCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=602575964]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-text = "战斗加速"
-
-[node name="MusicCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=485689480]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-text = "音乐"
-
-[node name="SfxCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=2144269868]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-text = "音效"
-
-[node name="AutoSaveCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=1547401015]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-theme_override_icons/checked_disabled = ExtResource("7_checkbox_checked")
-text = "自动存档"
-
-[node name="LargeMapMovementAnimationCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=100000213]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-text = "大地图移动动画"
-
-[node name="TypewriterDialogCheckBox" type="CheckBox" parent="ContentRoot/SettingsVBox" unique_id=1858744057]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-button_pressed = true
-text = "对话逐字显示"
-
-[node name="SettingsVBox2" type="VBoxContainer" parent="ContentRoot" unique_id=513766603]
-visible = false
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="SettingsVBoxExtra" type="VBoxContainer" parent="ContentRoot" unique_id=761857004]
-layout_mode = 0
-offset_left = 784.0
-offset_top = 352.0
-offset_right = 1456.0
-offset_bottom = 830.0
-
-[node name="BattleSpeedMultiplierRow" type="HBoxContainer" parent="ContentRoot/SettingsVBoxExtra" unique_id=1372084744]
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="BattleSpeedMultiplierTitle" type="Label" parent="ContentRoot/SettingsVBoxExtra/BattleSpeedMultiplierRow" unique_id=1850405269]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "加速倍率"
-
-[node name="BattleSpeedMultiplierSlider" type="HSlider" parent="ContentRoot/SettingsVBoxExtra/BattleSpeedMultiplierRow" unique_id=6818955]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-min_value = 1.0
-max_value = 5.0
-value = 2.0
-
-[node name="BattleSpeedMultiplierValueLabel" type="Label" parent="ContentRoot/SettingsVBoxExtra/BattleSpeedMultiplierRow" unique_id=1441750479]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "2倍"
-
-[node name="ScreenAspectRow" type="HBoxContainer" parent="ContentRoot/SettingsVBoxExtra" unique_id=902061134]
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="ScreenAspectTitle" type="Label" parent="ContentRoot/SettingsVBoxExtra/ScreenAspectRow" unique_id=759503675]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "画面尺寸"
-
-[node name="ScreenAspectOptionButton" type="OptionButton" parent="ContentRoot/SettingsVBoxExtra/ScreenAspectRow" unique_id=1056856894]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 50
-
-[node name="Label" type="Label" parent="ContentRoot" unique_id=617545365]
-layout_mode = 0
-offset_left = 1249.0
-offset_top = 1011.0
-offset_right = 1689.0
-offset_bottom = 1059.0
-theme_override_font_sizes/font_size = 40
-text = "F1快速存档，F2快速读档"

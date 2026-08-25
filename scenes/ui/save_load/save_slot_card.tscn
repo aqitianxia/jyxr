@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dtr5c0pjawo7x"]
 
-[ext_resource type="Script" uid="uid://m2jcypjverpf" path="res://src/Game.Godot/UI/System/SaveSlotCard.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://m2jcypjverpf" path="res://src/Game.Godot/UI/SaveLoad/SaveSlotCard.cs" id="1_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_normal"]
 bg_color = Color(0.91, 0.87, 0.78, 0.97)

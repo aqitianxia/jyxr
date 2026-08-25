@@ -24,6 +24,10 @@ public static class UserSettingsApplier
 
 		ApplyBusEnabled(BgmBusName, settings.MusicEnabled);
 		ApplyBusEnabled(SfxBusName, settings.SfxEnabled);
+		if (Game.IsDesktopPlatform)
+		{
+			ApplyWindowDisplayMode(settings.WindowDisplayMode);
+		}
 		ApplyScreenAspect(settings.ScreenAspectMode);
 	}
 
@@ -36,6 +40,21 @@ public static class UserSettingsApplier
 		}
 
 		AudioServer.SetBusMute(busIndex, !enabled);
+	}
+
+	private static void ApplyWindowDisplayMode(WindowDisplayMode mode)
+	{
+		if (Engine.GetMainLoop() is not SceneTree tree)
+		{
+			return;
+		}
+
+		tree.Root.Mode = mode switch
+		{
+			WindowDisplayMode.Windowed => Window.ModeEnum.Windowed,
+			WindowDisplayMode.Fullscreen => Window.ModeEnum.Fullscreen,
+			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported window display mode."),
+		};
 	}
 
 	private static void ApplyScreenAspect(ScreenAspectMode mode)

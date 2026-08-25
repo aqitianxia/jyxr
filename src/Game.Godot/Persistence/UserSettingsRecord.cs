@@ -15,9 +15,10 @@ public sealed record UserSettingsRecord(
 	bool ShowBattleBoard,
 	bool LargeMapMovementAnimationEnabled,
 	ScreenAspectMode ScreenAspectMode,
+	WindowDisplayMode WindowDisplayMode,
 	float LargeMapZoom)
 {
-	public const int CurrentVersion = 7;
+	public const int CurrentVersion = 9;
 
 	public static UserSettingsRecord Default { get; } = new(
 		CurrentVersion,
@@ -32,5 +33,6 @@ public sealed record UserSettingsRecord(
 		ShowBattleBoard: true,
 		LargeMapMovementAnimationEnabled: true,
 		ScreenAspectMode: ScreenAspectMode.Unlimited,
+		WindowDisplayMode: WindowDisplayMode.Windowed,
 		LargeMapZoom: 0f);
 }
