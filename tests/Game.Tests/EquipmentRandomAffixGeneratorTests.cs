@@ -29,7 +29,7 @@ public sealed class EquipmentRandomAffixGeneratorTests
     }
 
     [Fact]
-    public void GenerateRolls_UsesConfiguredAttackAndLegacyWeaponExpressions()
+    public void GenerateRolls_UsesConfiguredAttackAndWeaponRanges()
     {
         var equipment = TestContentFactory.CreateEquipment("weapon", level: 4);
         var attackRepository = TestContentFactory.CreateRepository(equipmentRandomAffixTables:
@@ -48,9 +48,7 @@ public sealed class EquipmentRandomAffixGeneratorTests
 
         var weaponOption = Option(
             EquipmentRandomAffixKind.WeaponBonus,
-            Range(
-                "floor(item_level * 0.2 * (1 + round * 2))",
-                "floor(item_level * 0.4 * (1 + round * 2))")) with
+            Range("3", "5")) with
         {
             WeaponType = WeaponType.Jianfa,
         };
@@ -59,7 +57,7 @@ public sealed class EquipmentRandomAffixGeneratorTests
         var weaponRoll = Assert.Single(EquipmentRandomAffixGenerator.GenerateRolls(
             equipment, weaponRepository, round: 2, rollCount: 1, new MaxRandomService()));
 
-        Assert.Equal(0.08d, Assert.IsType<WeaponBonusModifierAffix>(Assert.Single(weaponRoll.Affixes)).Value.Delta);
+        Assert.Equal(0.05d, Assert.IsType<WeaponBonusModifierAffix>(Assert.Single(weaponRoll.Affixes)).Value.Delta);
     }
 
     [Fact]
