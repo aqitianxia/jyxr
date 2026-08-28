@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://b130hd46yt8qu" path="res://src/Game.Godot/UI/Battle/Widgets/BattleSelectedSkillBox.cs" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://cwew33n5mbgj3" path="res://assets/art/ui/battle/xuandingjineng-dise.png" id="2_bg"]
 [ext_resource type="PackedScene" uid="uid://cao7kwtub078m" path="res://scenes/ui/skill_tab/skill_tooltip.tscn" id="3_tooltip"]
-[ext_resource type="FontFile" uid="uid://dhqmakafvt2fy" path="res://assets/font/行楷简.otf" id="4_font"]
+[ext_resource type="FontVariation" path="res://assets/theme/fonts/martial_display_font.tres" id="4_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_skill_icon"]
 bg_color = Color(0, 0, 0, 1)

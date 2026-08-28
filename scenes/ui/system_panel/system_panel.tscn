@@ -8,9 +8,9 @@
 [ext_resource type="Texture2D" uid="uid://yw4d3sy6ibqr" path="res://assets/art/ui/icon_save.svg" id="6_save"]
 [ext_resource type="Texture2D" uid="uid://bk4oxdt3ugto2" path="res://assets/art/ui/icon_delete.svg" id="7_delete"]
 [ext_resource type="Script" uid="uid://dk1o2p3qb36f" path="res://src/Game.Godot/UI/Base/JyButton.cs" id="8_button"]
-[ext_resource type="PackedScene" path="res://scenes/ui/settings/settings_section.tscn" id="9_settings"]
-[ext_resource type="Texture2D" path="res://assets/art/ui/icon_console.svg" id="10_console"]
-[ext_resource type="Texture2D" path="res://assets/art/ui/icon_exit.svg" id="11_exit"]
+[ext_resource type="PackedScene" uid="uid://dglpv52kau1u4" path="res://scenes/ui/settings/settings_section.tscn" id="9_settings"]
+[ext_resource type="Texture2D" uid="uid://yq5cq27hyj8i" path="res://assets/art/ui/icon_console.svg" id="10_console"]
+[ext_resource type="Texture2D" uid="uid://b5t8r8n130xfh" path="res://assets/art/ui/icon_exit.svg" id="11_exit"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action"]
 content_margin_left = 20.0
@@ -47,7 +47,7 @@ corner_radius_top_right = 18
 corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
-[node name="SystemPanel" type="Control"]
+[node name="SystemPanel" type="Control" unique_id=713738667]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -56,7 +56,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=622011440]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -68,7 +68,7 @@ texture = ExtResource("2_background")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Backdrop" type="ColorRect" parent="."]
+[node name="Backdrop" type="ColorRect" parent="." unique_id=142697128]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -78,7 +78,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.18)
 
-[node name="ContentRoot" type="Control" parent="."]
+[node name="ContentRoot" type="Control" parent="." unique_id=1555368924]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -89,15 +89,10 @@ offset_bottom = 1080.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="SettingsSection" parent="ContentRoot" instance=ExtResource("9_settings")]
+[node name="SettingsSection" parent="ContentRoot" unique_id=819248979 instance=ExtResource("9_settings")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="BackButton" type="TextureButton" parent="ContentRoot"]
+[node name="BackButton" type="TextureButton" parent="ContentRoot" unique_id=1126001445]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 1615.0
@@ -109,23 +104,23 @@ ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("8_button")
 
-[node name="ActionRow" type="HBoxContainer" parent="ContentRoot"]
+[node name="ActionRow" type="HBoxContainer" parent="ContentRoot" unique_id=999978676]
 layout_mode = 0
-offset_left = 200.0
+offset_left = 189.0
 offset_top = 835.0
-offset_right = 1720.0
+offset_right = 1709.0
 offset_bottom = 940.0
 theme_override_constants/separation = 18
 alignment = 1
 
-[node name="ConsoleButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="ConsoleButton" type="Button" parent="ContentRoot/ActionRow" unique_id=745599204]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
 theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
@@ -133,16 +128,15 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "控制台"
 icon = ExtResource("10_console")
 expand_icon = true
-icon_max_width = 52
 
-[node name="MainMenuButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="MainMenuButton" type="Button" parent="ContentRoot/ActionRow" unique_id=2114454890]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
 theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
@@ -150,16 +144,15 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "主菜单"
 icon = ExtResource("4_main_menu")
 expand_icon = true
-icon_max_width = 52
 
-[node name="ExitGameButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="ExitGameButton" type="Button" parent="ContentRoot/ActionRow" unique_id=125549846]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.38, 0.1, 0.06, 1)
-theme_override_colors/font_hover_color = Color(0.6, 0.08, 0.04, 1)
-theme_override_colors/font_pressed_color = Color(0.46, 0.04, 0.02, 1)
 theme_override_colors/font_focus_color = Color(0.6, 0.08, 0.04, 1)
+theme_override_colors/font_pressed_color = Color(0.46, 0.04, 0.02, 1)
+theme_override_colors/font_hover_color = Color(0.6, 0.08, 0.04, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
@@ -167,21 +160,20 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "退出游戏"
 icon = ExtResource("11_exit")
 expand_icon = true
-icon_max_width = 52
 
-[node name="ActionGroupSpacer" type="Control" parent="ContentRoot/ActionRow"]
+[node name="ActionGroupSpacer" type="Control" parent="ContentRoot/ActionRow" unique_id=730522355]
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="DeleteSaveButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="DeleteSaveButton" type="Button" parent="ContentRoot/ActionRow" unique_id=2048954853]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
 theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
@@ -189,35 +181,33 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "删档"
 icon = ExtResource("7_delete")
 expand_icon = true
-icon_max_width = 52
 
-[node name="SaveButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="SaveButton" type="Button" parent="ContentRoot/ActionRow" unique_id=1475166066]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
 theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
 theme_override_colors/font_disabled_color = Color(0.46, 0.42, 0.36, 1)
 theme_override_font_sizes/font_size = 30
-theme_override_styles/disabled = SubResource("StyleBoxFlat_action")
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action")
 theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "存档"
 icon = ExtResource("6_save")
 expand_icon = true
-icon_max_width = 52
 
-[node name="LoadButton" type="Button" parent="ContentRoot/ActionRow"]
+[node name="LoadButton" type="Button" parent="ContentRoot/ActionRow" unique_id=333751980]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 105)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.13, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
 theme_override_colors/font_focus_color = Color(0.42, 0.17, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.32, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.42, 0.17, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_action")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_hover")
@@ -225,9 +215,8 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_action_hover")
 text = "读档"
 icon = ExtResource("5_load")
 expand_icon = true
-icon_max_width = 52
 
-[node name="HotkeyHint" type="Label" parent="ContentRoot"]
+[node name="HotkeyHint" type="Label" parent="ContentRoot" unique_id=1418546467]
 layout_mode = 0
 offset_left = 610.0
 offset_top = 970.0

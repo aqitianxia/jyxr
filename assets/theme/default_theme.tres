@@ -1,6 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://dlcvf85pnfgve"]
 
-[ext_resource type="FontFile" uid="uid://cdfrmippp180d" path="res://assets/font/LXGWWenKaiMonoGBLite-Medium.ttf" id="1_ag65a"]
+[ext_resource type="FontVariation" path="res://assets/theme/fonts/default_ui_font.tres" id="1_default_font"]
 [ext_resource type="Texture2D" uid="uid://dm0vjpb2ne3ac" path="res://assets/theme/art/checkbox_checked.svg" id="1_xul1n"]
 [ext_resource type="Texture2D" uid="uid://caaqngs56a3px" path="res://assets/theme/art/checkbox_empty.svg" id="2_ehq15"]
 
@@ -111,6 +111,7 @@ expand_margin_left = -14.0
 expand_margin_right = -14.0
 
 [resource]
+default_font = ExtResource("1_default_font")
 default_font_size = 25
 Button/font_sizes/font_size = 50
 Button/styles/focus = SubResource("StyleBoxFlat_ehq15")
@@ -125,7 +126,6 @@ CheckBox/styles/hover_pressed = SubResource("StyleBoxFlat_xul1n")
 CheckBox/styles/normal = SubResource("StyleBoxFlat_il5tp")
 CheckBox/styles/pressed = SubResource("StyleBoxFlat_4tj8r")
 Label/font_sizes/font_size = 25
-Label/fonts/font = ExtResource("1_ag65a")
 LineEdit/font_sizes/font_size = 60
 OptionButton/font_sizes/font_size = 35
 Panel/styles/panel = SubResource("StyleBoxFlat_ni34w")

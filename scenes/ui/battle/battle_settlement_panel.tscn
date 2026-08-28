@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://bhq13l0u7c1hg" path="res://scenes/ui/inventory_panel/inventory_item_box.tscn" id="3_item_box"]
 [ext_resource type="PackedScene" uid="uid://b1hd7sr7biah0" path="res://scenes/ui/base/jy_button.tscn" id="4_button"]
 [ext_resource type="Texture2D" uid="uid://browbb8ve6io8" path="res://assets/art/misc/btn_heng.png" id="5_button_texture"]
-[ext_resource type="FontFile" uid="uid://dhqmakafvt2fy" path="res://assets/font/行楷简.otf" id="6_font"]
+[ext_resource type="FontVariation" path="res://assets/theme/fonts/martial_display_font.tres" id="6_font"]
 [ext_resource type="PackedScene" path="res://scenes/ui/battle/battle_skill_fragment_reward_box.tscn" id="7_fragment_box"]
 
 [sub_resource type="LabelSettings" id="1_title"]
