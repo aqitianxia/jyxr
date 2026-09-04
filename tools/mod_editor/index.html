@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金庸群侠传XR · MOD 创作者工坊 (JYXR Mod Studio)</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* 欢迎屏补充样式 */
+    .welcome-hero-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .welcome-card {
+      max-width: 880px;
+      text-align: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 48px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .welcome-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      background: rgba(229, 169, 60, 0.15);
+      border: 1px solid rgba(229, 169, 60, 0.3);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+    .welcome-card h1 {
+      font-size: 32px;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .welcome-subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 36px;
+    }
+    .feature-card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+      text-align: left;
+    }
+    .f-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .f-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .f-card h4 {
+      font-size: 15px;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .f-card p {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .welcome-action-box {
+      margin-top: 24px;
+    }
+    .btn-lg {
+      padding: 12px 28px;
+      font-size: 16px;
+    }
+    .welcome-hint {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航栏 -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <div class="brand-title">
+        <span>⚔️ JYXR Mod Studio</span>
+        <span class="brand-badge">v1.0 Pro</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" data-tab="items">🗡️ 神兵与道具工坊</button>
+        <button class="nav-tab-btn" data-tab="skills">🥋 武学与招式工坊</button>
+        <button class="nav-tab-btn" data-tab="characters">👤 侠客与宗师工坊</button>
+        <button class="nav-tab-btn" data-tab="stories">📜 剧情对白流编排</button>
+        <button class="nav-tab-btn" data-tab="health">🔍 全局健康检查</button>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <span class="mod-status-tag" id="currentModLabel">未打开 MOD 目录</span>
+      <button class="btn btn-primary" id="openModDirBtn">📂 打开 MOD 目录</button>
+    </div>
+  </header>
+
+  <!-- 主编辑工作台 -->
+  <main id="mainAppContainer">
+    <!-- 由 JS 视图动态挂载 -->
+  </main>
+
+  <!-- 全局通知 Toast -->
+  <div id="toastNotification"></div>
+
+  <!-- 模块化前端脚本 -->
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
