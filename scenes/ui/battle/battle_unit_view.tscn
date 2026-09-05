@@ -290,11 +290,12 @@ offset_left = -105.0
 offset_top = 52.0
 offset_right = 17.0
 offset_bottom = 215.0
+mouse_filter = 2
 theme_override_colors/default_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
 theme_override_constants/line_separation = 0
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/normal_font_size = 16
 bbcode_enabled = true
 text = "[color=yellow]圣战[/color]
 [color=red]缓速[/color]"
