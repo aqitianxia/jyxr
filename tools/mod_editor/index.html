@@ -1133,6 +1133,40 @@ textarea.input-field {
 .story-file-tabs .story-file-btn.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); font-weight: 600; }
 .story-step-card .step-move-btns { display: flex; gap: 4px; }
 .story-step-card .step-move-btns button { padding: 2px 8px; font-size: 12px; }
+.story-file-tabs .story-file-btn.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); font-weight: 600; }
+.story-mode-toggle { display: flex; gap: 6px; margin-left: auto; }
+.story-mode-btn {
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12.5px;
+  border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-muted);
+}
+.story-mode-btn.active { background: var(--accent-gold); color: #1f2937; border-color: var(--accent-gold); font-weight: 600; }
+
+.story-dsl-wrap { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px 14px; height: calc(100vh - 190px); min-height: 420px; }
+.story-dsl-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.story-dsl-badge { font-size: 12.5px; padding: 5px 12px; border-radius: 6px; }
+.story-dsl-badge.ok { background: rgba(6, 78, 59, 0.45); color: #6ee7b7; }
+.story-dsl-badge.bad { background: rgba(127, 29, 29, 0.45); color: #fca5a5; }
+.story-dsl-help { margin-left: auto; }
+.story-dsl-help summary { cursor: pointer; font-size: 12.5px; color: var(--accent-gold); }
+.story-dsl-help pre {
+  margin-top: 8px; padding: 10px 12px; background: var(--bg-dark); border: 1px solid var(--border-color);
+  border-radius: 8px; font-size: 11.5px; line-height: 1.6; color: var(--text-main);
+  max-height: 300px; overflow: auto; width: 480px; white-space: pre-wrap;
+}
+.story-dsl-editor {
+  flex: 1; width: 100%; resize: none;
+  background: var(--bg-dark); color: var(--text-main);
+  border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.6; white-space: pre; overflow: auto;
+  tab-size: 2;
+}
+.story-dsl-editor:focus { outline: none; border-color: var(--accent-purple); }
+.story-dsl-diags { max-height: 140px; overflow: auto; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+.dsl-diag { padding: 5px 10px; border-radius: 5px; }
+.dsl-diag.ok { background: rgba(6, 78, 59, 0.3); color: #6ee7b7; }
+.dsl-diag.error { background: rgba(127, 29, 29, 0.35); color: #fecaca; }
+.dsl-diag.warning { background: rgba(120, 53, 15, 0.35); color: #fcd34d; }
   </style>
 </head>
 <body>
@@ -1185,6 +1219,14 @@ textarea.input-field {
   <datalist id="storyTargetList"></datalist>
   <datalist id="storyBattleList"></datalist>
   <datalist id="storyCallList"></datalist>
+
+  <!-- Story DSL 引擎 (github.com/jyx-remake/story-dsl, MIT) -->
+  <script>
+"use strict";var StoryDSL=(()=>{var _=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports);var pe=_(ue=>{"use strict";Object.defineProperty(ue,"__esModule",{value:!0})});var de=_(G=>{"use strict";Object.defineProperty(G,"__esModule",{value:!0});G.transformCommandSource=De;function De(e,t){let n=e.call;if(!n)return null;if(n.name!=="maxlevel"||n.args.length!==2)return e.callSource;let r=n.args[0];if(r.type!=="literal"||r.valueType!=="string")return t.diagnostics.push({message:"maxlevel \u81EA\u52A8\u8865 key \u65F6\uFF0C\u6280\u80FD\u540D\u5FC5\u987B\u662F\u5B57\u7B26\u4E32\u5B57\u9762\u91CF",span:r.span,severity:"error",code:"semantic"}),e.callSource;let i=e.callSource.lastIndexOf(")");if(i<0)return e.callSource;let s=Fe(`${t.segmentName}_${r.value}`);return`${e.callSource.slice(0,i)}, ${s}${e.callSource.slice(i)}`}function Fe(e){return`'${e.replace(/[\\'\b\f\n\r\t\u0000-\u001f]/gu,t=>({"\\":"\\\\","'":"\\'","\b":"\\b","\f":"\\f","\n":"\\n","\r":"\\r","	":"\\t"})[t]??`\\u${t.charCodeAt(0).toString(16).padStart(4,"0")}`)}'`}});var fe=_(V=>{"use strict";Object.defineProperty(V,"__esModule",{value:!0});V.compileScript=We;var Ke=de();function ze(e){return{message:"jump/return \u4E4B\u540E\u7684\u540C\u7EA7\u8BED\u53E5\u4E0D\u53EF\u8FBE\uFF0C\u5DF2\u8DF3\u8FC7 IR \u8F93\u51FA",span:e,severity:"error",code:"unreachable"}}function We(e){let t=[];return{ir:{version:3,segments:e.segments.map(r=>({name:r.name,steps:M(r.statements,r.name,t)}))},diagnostics:t}}function M(e,t,n){let r=[],i=!1;for(let s of e){if(i){n.push(ze(s.span));continue}let a=Ue(s,t,n);a&&(r.push(a),(a.kind==="jump"||a.kind==="return")&&(i=!0))}return r}function Ue(e,t,n){switch(e.type){case"dialogue":return{kind:"dialogue",speaker:e.speaker,text:e.text,...e.style?{style:e.style}:{}};case"command":{let r=(0,Ke.transformCommandSource)(e,{segmentName:t,diagnostics:n});return r?{kind:"command",call:r}:null}case"assignment":{if(!e.value||!e.target)return null;let r=e.operator==="="?e.valueSource:`${e.target} ${e.operator[0]} (${e.valueSource})`;return{kind:"set",target:e.target,value:r}}case"delete":return e.target?{kind:"delete",target:e.target}:null;case"jump":return{kind:"jump",target:e.target};case"call":return{kind:"call",target:e.target};case"return":return{kind:"return"};case"choice":return{kind:"choice",...e.style?{style:e.style}:{},prompt:{speaker:e.prompt.speaker,text:e.prompt.text},blocks:e.blocks.map(r=>{if(r.type==="choiceOptionsBlock")return{kind:"options",options:X(r.options,t,n)};let i=r.branches.find(s=>s.keyword==="else");return{kind:"branch",cases:r.branches.flatMap(s=>s.keyword!=="else"&&s.condition&&s.rawCondition!==null?[{when:s.rawCondition,options:X(s.options,t,n)}]:[]),fallback:i?X(i.options,t,n):null}})};case"battle":{let r={};for(let i of e.outcomes)r[i.outcome]=M(i.statements,t,n);return{kind:"battle",battleId:e.battleId,outcomes:r}}case"if":return He(e,t,n)}}function X(e,t,n){return e.map(r=>({text:r.text,...r.condition&&r.rawCondition!==null?{when:r.rawCondition}:{},steps:M(r.statements,t,n)}))}function He(e,t,n){let r=[],i=null;for(let s of e.branches){let a=M(s.statements,t,n);s.keyword==="else"?i=a:s.condition&&s.rawCondition!==null&&r.push({when:s.rawCondition,steps:a})}return{kind:"branch",cases:r,fallback:i}}});var me=_(he=>{"use strict";Object.defineProperty(he,"__esModule",{value:!0})});var O=_(w=>{"use strict";Object.defineProperty(w,"__esModule",{value:!0});w.IDENTIFIER_PATTERN=w.IDENTIFIER_PART_SOURCE=w.IDENTIFIER_START_SOURCE=void 0;w.isIdentifierStart=Ve;w.isIdentifierPart=Ze;w.IDENTIFIER_START_SOURCE="[a-z_\\u3007\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff]";w.IDENTIFIER_PART_SOURCE="[a-z0-9_\\u3007\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff]";w.IDENTIFIER_PATTERN=new RegExp(`^${w.IDENTIFIER_START_SOURCE}${w.IDENTIFIER_PART_SOURCE}*$`,"u");var Ge=new RegExp(`^${w.IDENTIFIER_START_SOURCE}$`,"u"),Xe=new RegExp(`^${w.IDENTIFIER_PART_SOURCE}$`,"u");function Ve(e){return Ge.test(e)}function Ze(e){return Xe.test(e)}});var Ce=_(Q=>{"use strict";Object.defineProperty(Q,"__esModule",{value:!0});Q.convertXmlToStory=rt;var Ye=O(),ye=new Set(["win","lose","timeout"]),Qe=/\[\[([A-Za-z][\w-]*):([\s\S]*?)\]\]/gu,we=new Set(["newbie","touch"]),Je=new Set(["game_complete","game_over","huashan","main_menu","next_round","restart","tower","trial","refine","zhenlong"]),et={animation:"set_model",cost_day:"advance_days",cost_item:"remove_item",daode:"change_morality",effect:"sound",game:"minigame",gamefin:"game_complete",gameover:"game_over",get_money:"change_silver",get_exp:"grant_exp",get_point:"grant_points",grant_point:"grant_points",growtemplate:"set_growth",haogan:"change_favorability",item:"change_item",leave_follow:"leave_follower",levelup:"level_up",log:"journal",mainmenu:"main_menu",menpai:"set_sect",nextzhoumu:"next_round",nick:"unlock_achievement",random_item:"add_random_item",random_join:"join_random",select_head:"select_portrait",select_menpai:"select_sect",set_game_mode:"set_difficulty",set_map:"map",tutorial:"map",movie:"video",xiangzi:"chest",xilian:"refine",yuanbao:"change_yuanbao",zhenlongqiju:"zhenlong"},tt={advance_days:new Set([0]),arena:new Set,change_favorability:new Set([1]),change_item:new Set([1]),change_morality:new Set([0]),change_silver:new Set([0]),change_stat:new Set([2]),change_yuanbao:new Set([0]),follow:new Set,grant_exp:new Set([1]),grant_points:new Set([1]),input_name:new Set,join:new Set,learn_external:new Set([2]),learn_internal:new Set([2]),level_up:new Set([1]),maxlevel:new Set([1]),remove_item:new Set([1]),set_rank:new Set([0]),set_round:new Set([0]),set_time_key:new Set([1]),upgrade_external:new Set([2]),upgrade_internal:new Set([2]),shake:new Set([0,1]),wait:new Set([0]),fade:new Set([1]),flash:new Set([1,2]),filter:new Set([1,2]),distort:new Set([1,2]),tint:new Set([1,2]),clear_filter:new Set([0]),clear_distort:new Set([0]),clear_tint:new Set([0])},nt=new Set(["\u62F3\u638C","\u5251\u6CD5","\u5200\u6CD5","\u5947\u95E8","\u81C2\u529B","\u8EAB\u6CD5","\u609F\u6027","\u798F\u7F18","\u6839\u9AA8","\u5B9A\u529B","\u6B66\u5B66\u70B9","quanzhang","jianfa","daofa","qimen","bili","shenfa","wuxing","fuyuan","gengu","dingli","wuxue","maxhp","max_hp","maxmp","max_mp","attack","defence","evasion","accuracy","crit_chance","crit_mult","anti_crit_chance","lifesteal","anti_debuff","speed","movement"]);function rt(e){let t=it(e),n=[];return t.forEach((r,i)=>{i>0&&n.push(""),n.push(`# ${r.name}`),n.push(...at(r.entries))}),`${n.join(`
+`).trimEnd()}
+`}function it(e){let t=$t(e),n=D(t).find(i=>i.name==="root")??t;return D(n).filter(i=>i.name==="story").map(i=>({name:F(i,"name"),entries:D(i).flatMap(st)}))}function st(e){return e.name==="action"?[{kind:"action",type:F(e,"type"),value:q(e,"value")}]:e.name==="result"?[{kind:"result",type:F(e,"type"),ret:q(e,"ret"),value:q(e,"value"),conditions:D(e).filter(t=>t.name==="condition").map(t=>({type:F(t,"type"),value:q(t,"value")}))}]:[]}function at(e){let t=e.filter(a=>a.kind==="action"),n=e.filter(a=>a.kind==="result"),r=new Set,i=[];for(let a of t){let o=L(a.type);if(o==="select"){let l=n.filter(c=>!r.has(c)&&ot(c));l.forEach(c=>r.add(c)),i.push(...ut(a.value,l));continue}if(o==="battle"){let l=n.filter(c=>!r.has(c)&&ct(c));l.forEach(c=>r.add(c)),i.push(...pt(a.value,l));continue}i.push(...lt(a))}let s=n.filter(a=>!r.has(a));return i.push(...Z(s,{indentLevel:0})),i}function ot(e){return e.ret.length>0&&!ye.has(e.ret)}function ct(e){return ke(e.ret)!==null}function lt(e){if(L(e.type)==="dialog"){let[r,i]=Ee(e.value,"#");return[`${r}\uFF1A${j(i)}`]}let t=vt(e);if(t!==null)return[S("world_triggers",[t==="on"?"true":"false"])];let n=ve(e.type,e.value);return n===null?[]:[n]}function ut(e,t){let[n,r]=Ee(e,"#"),[i,...s]=r.split("#"),a=[`${n}\uFF1A${j(i.trim())}`],o=new Map,l=[];for(let c of t){let u=xe(c.ret);if(u!==null&&u<s.length){let d=o.get(u)??[];d.push(c),o.set(u,d)}else l.push(c)}s.forEach((c,u)=>{a.push(`- ${j(c.trim())}`),a.push(...Z(o.get(u)??[],{indentLevel:1}))});for(let c of l)a.push(`- ${j(c.ret.trim())}`),a.push(...Y(c,{indentLevel:1}));return a}function pt(e,t){let n=[`battle ${e.trim()}`],r=bt(t,i=>ke(i.ret)??i.ret);for(let i of["win","lose","timeout"]){let s=r.get(i);!s||s.length===0||(n.push(`- ${i}`),n.push(...Z(s,{indentLevel:1})))}return n}function Z(e,t){if(e=e.filter(a=>!we.has(kt(a.type))),e.length===0)return[];let n=new Set,r=e.filter(a=>a.conditions.length>0),i=e.filter(a=>a.conditions.length===0);r.forEach(a=>n.add(a));let s=dt(i,r.length>0);return s&&n.add(s),e.flatMap(a=>n.has(a)?Y(a,t):ft(a,t))}function dt(e,t){return e.length===0?null:t?e[e.length-1]:e.find(n=>xe(n.ret)!==null)??e[0]}function ke(e){return ye.has(e)?e:e==="0"?"win":e==="1"?"lose":e==="2"?"timeout":null}function Y(e,t){let n=ht(e),r=e.conditions.map(mt).join(" and "),i="  ".repeat(t.indentLevel);return r?[`${i}if ${r}`,`${i}  ${n}`]:[`${i}${n}`]}function ft(e,t){let n="  ".repeat(t.indentLevel);return Y(e,t).map(r=>r.startsWith(n)?`${n}// ${r.slice(n.length)}`:`// ${r}`)}function ht(e){return e.type==="story"?`jump ${e.value.trim()}`:ve(e.type,e.value)??""}function mt(e){let t=L(e.type),n=$e(e.value),r=a=>m(h(t,n,a)),i=a=>$(h(t,n,a),t),s=a=>{let o=h(t,n,0);return`${o==="\u4E3B\u89D2"?"":`in_team(${m(o)}) and `}${a}`};switch(t){case"should_finish":return`story_completed(${r(0)})`;case"should_not_finish":return`not story_completed(${r(0)})`;case"follow_story":return`last_story_is(${r(0)})`;case"have_item":case"has_item":return`item_count(${r(0)}) >= ${n[1]?i(1):"1"}`;case"not_have_item":return`item_count(${r(0)}) == 0`;case"have_money":return`silver >= ${i(0)}`;case"have_yuanbao":return`yuanbao >= ${i(0)}`;case"in_round":return`round == ${i(0)}`;case"game_mode":return`difficulty == ${r(0)}`;case"exceed_day":return`elapsed_days > ${i(0)}`;case"probability":return`chance(${wt(h(t,n,0))})`;case"in_team":case"key_in_team":return`in_team(${r(0)})`;case"not_in_team":case"key_not_in_team":return`not in_team(${r(0)})`;case"not_has_time_key":return`not has_time_key(${r(0)})`;case"level_greater_than":{let a=h(t,n,0);return s(`character_level(${m(a)}) >= ${i(1)}`)}case"skill_less_than":{let a=h(t,n,0);return s(`skill_level(${m(a)}, ${r(1)}) < ${i(2)}`)}case"daode_more_than":return`morality >= ${i(0)}`;case"daode_less_than":return`morality < ${i(0)}`;case"haogan_more_than":return n.length===1?`favorability('\u5973\u4E3B') >= ${i(0)}`:`favorability(${r(0)}) >= ${i(1)}`;case"haogan_less_than":return n.length===1?`favorability('\u5973\u4E3B') < ${i(0)}`:`favorability(${r(0)}) < ${i(1)}`;case"rank":return`rank != -1 and rank <= ${i(0)}`;default:return St(t,n)??S(t,n.map(m))}}function ve(e,t){let n=e.split(/[.…]+/u).map(L).filter(Boolean),r=n[0]??L(e);if(we.has(r))return null;let i=$e(t),s=et[r]??r;if(Je.has(s))return S(s,[]);switch(r){case"set_flag":return`${P(h(r,i,0),r)} = true`;case"clear_flag":case"remove_var":return`del ${P(h(r,i,0),r)}`;case"set_var":return`${P(h(r,i,0),r)} = ${m(h(r,i,1))}`;case"change_var":return`${P(h(r,i,0),r)} += ${$(h(r,i,1),r)}`;case"cost_money":{let a=Number(h(r,i,0));if(!Number.isFinite(a))throw new Error(`cost_money \u6570\u91CF\u4E0D\u662F\u6709\u6548\u6570\u5B57\uFF1A${i[0]??""}`);return S("change_silver",[$(String(-a),r)])}case"minus_maxpoints":{let a=h(r,i,0),o=$(h(r,i,1),r);if(a!=="\u4E3B\u89D2"||o!=="5")throw new Error(`minus_maxpoints \u4EC5\u80FD\u65E0\u635F\u8FC1\u79FB\u5DF2\u77E5\u5F62\u5F0F \u4E3B\u89D2#5\uFF0C\u5B9E\u9645\u4E3A\uFF1A${t}`);return S("scale_stats",[m(a),"0.5"])}case"head":{let[a,o]=i;return S("set_portrait",o?[m(a),m(o)]:[m("\u4E3B\u89D2"),m(h(r,i,0))])}case"change_female_name":return S("input_name",[m("\u5973\u4E3B"),m(h(r,i,0))]);case"select_head":return S("select_portrait",[m(i[0]||"\u4E3B\u89D2")]);case"world_trigger":return S("world_triggers",[ge(h(r,i,0),r)]);case"toast":case"set_no_regret":return S(s,[ge(h(r,i,0),r)]);case"random_item":{let a=_e(h(r,i,0)),o=i[1]?[a,$(i[1],r)]:[a];return S("add_random_item",o)}case"random_join":return S("join_random",[_e(h(r,i,0))]);case"learn":case"remove":return gt(r,n.slice(1),i);case"upgrade":return _t(n.slice(1),i);default:return S(s,yt(s,i))}}function gt(e,t,n){let r=t.length>0,i=be(r?t.join("_"):h(e,n,0)),s=r?0:1,a=h(e,n,s),o=h(e,n,s+1),l=`${e}_${i}`,c=[m(a),m(o)];return e==="learn"&&(i==="external"||i==="internal")&&n[s+2]&&c.push($(n[s+2],e)),S(l,c)}function _t(e,t){let n=e.length>0,r=L(n?e.join("_"):h("upgrade",t,0)),i=n?0:1,s=h("upgrade",t,i);if(nt.has(r)){let c=h("upgrade",t,i+1);return S("change_stat",[m(s),m(r),$(c,"upgrade")])}let a=be(r);if(a!=="external"&&a!=="internal")throw new Error(`upgrade \u4E0D\u652F\u6301 ${r} \u5206\u7C7B\uFF0C\u8BF7\u6539\u7528\u5BF9\u5E94\u7684 v3 \u6307\u4EE4`);let o=h("upgrade",t,i+1),l=t[i+2]??"1";return S(`upgrade_${a}`,[m(s),m(o),$(l,"upgrade")])}function be(e){switch(L(e)){case"skill":case"skilll":case"external":case"externalskill":case"external_skill":return"external";case"internal":case"internalskill":case"internal_skill":return"internal";case"special":case"specialskill":case"special_skill":return"special";case"talent":return"talent";default:throw new Error(`\u672A\u77E5\u7684\u6B66\u5B66\u5206\u7C7B\uFF1A${e}`)}}function St(e,t){let n=/^(quanzhang|jianfa|daofa|qimen|bili|shenfa|wuxing|fuyuan|gengu|dingli)_(greater|more|less)_than$/u.exec(e);if(!n)return null;let r=h(e,t,0),i=n[2]==="less"?"<":">=",s=`character_stat(${m(r)}, ${m(n[1])}) ${i} ${$(h(e,t,1),e)}`;return r==="\u4E3B\u89D2"?s:`in_team(${m(r)}) and ${s}`}function yt(e,t){let n=tt[e]??new Set;return t.map((r,i)=>n.has(i)?$(r,e):m(r))}function S(e,t){return`${e}(${t.join(", ")})`}function P(e,t){let n=e.trim();if(!Ye.IDENTIFIER_PATTERN.test(n))throw new Error(`${t} \u53D8\u91CF\u540D\u4E0D\u662F\u6709\u6548\u6807\u8BC6\u7B26\uFF1A${e}`);return n}function m(e){return`'${e.replace(/\\/gu,"\\\\").replace(/'/gu,"\\'").replace(/\r/gu,"\\r").replace(/\n/gu,"\\n").replace(/\t/gu,"\\t")}'`}function $(e,t){let n=Number(e.trim());if(!Number.isFinite(n))throw new Error(`${t} \u53C2\u6570\u4E0D\u662F\u6709\u6548\u6570\u5B57\uFF1A${e}`);return Object.is(n,-0)?"0":String(n)}function wt(e){let t=Number(e.trim());if(!Number.isFinite(t)||t<0||t>100)throw new Error(`probability \u5FC5\u987B\u4F4D\u4E8E 0..100\uFF1A${e}`);return String(t/100)}function ge(e,t){switch(e.trim().toLowerCase()){case"on":case"true":case"1":return"true";case"off":case"false":case"0":return"false";default:throw new Error(`${t} \u53C2\u6570\u4E0D\u662F Boolean\uFF1A${e}`)}}function _e(e){let t=e.trim();if(!t.startsWith("[")||!t.endsWith("]"))throw new Error(`\u5217\u8868\u53C2\u6570\u683C\u5F0F\u9519\u8BEF\uFF1A${e}`);let n=t.slice(1,-1).split(",").map(r=>r.trim()).filter(Boolean);if(n.length===0)throw new Error("\u5217\u8868\u53C2\u6570\u4E0D\u80FD\u4E3A\u7A7A");return`[${n.map(m).join(", ")}]`}function h(e,t,n){let r=t[n];if(!r)throw new Error(`${e} \u7F3A\u5C11\u7B2C ${n+1} \u4E2A\u53C2\u6570`);return r}function L(e){return e.trim().toLowerCase()}function kt(e){return L(e.split(".").find(t=>t.length>0)??e)}function vt(e){let t=e.type.trim().toUpperCase();if(e.value.trim()!=="NO_GLOBAL_EVENT")return null;switch(t){case"SET_FLAG":return"off";case"CLEAR_FLAG":return"on";default:return null}}function $e(e){return e.split("#").map(t=>t.trim()).filter(t=>t.length>0)}function j(e){return e.replace(Qe,(t,n,r)=>`[color=${n}]${r}[/color]`)}function Ee(e,t){let n=e.indexOf(t);return n<0?["",e.trim()]:[e.slice(0,n).trim(),e.slice(n+t.length).trim()]}function xe(e){return/^\d+$/u.test(e)?Number(e):null}function bt(e,t){let n=new Map;for(let r of e){let i=t(r),s=n.get(i)??[];s.push(r),n.set(i,s)}return n}function D(e){return e.children.filter(t=>t.kind==="element")}function F(e,t){let n=e.attributes[t];if(n===void 0)throw new Error(`<${e.name}> \u7F3A\u5C11 ${t} \u5C5E\u6027`);return n}function q(e,t){return e.attributes[t]??""}function $t(e){let t={kind:"element",name:"#document",attributes:{},children:[]},n=[t],r=/<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<\/?[A-Za-z_][\w:.-]*(?:\s+[^<>]*?)?\s*\/?>/gu,i=0,s;for(;(s=r.exec(e))!==null;){Se(e.slice(i,s.index),n[n.length-1]);let a=s[0];if(i=s.index+a.length,a.startsWith("<!--")||a.startsWith("<?"))continue;if(a.startsWith("</")){let p=a.slice(2,-1).trim(),v=n.pop();if(!v||v.name!==p)throw new Error(`XML \u7ED3\u675F\u6807\u7B7E\u4E0D\u5339\u914D\uFF1A${a}`);continue}let o=a.endsWith("/>"),l=a.slice(1,o?-2:-1).trim(),{name:c,attributes:u}=Et(l),d={kind:"element",name:c,attributes:u,children:[]};n[n.length-1].children.push(d),o||n.push(d)}if(Se(e.slice(i),n[n.length-1]),n.length!==1){let a=n.slice(1).map(o=>`<${o.name}>`).join(", ");throw new Error(`XML \u6807\u7B7E\u672A\u95ED\u5408\uFF1A${a}`)}return t}function Se(e,t){e.trim().length!==0&&t.children.push({kind:"text",text:Le(e)})}function Et(e){let t=/^([A-Za-z_][\w:.-]*)/u.exec(e);if(!t)throw new Error(`XML \u6807\u7B7E\u683C\u5F0F\u9519\u8BEF\uFF1A${e}`);let n=t[1],r={},i=e.slice(n.length),s=/([A-Za-z_][\w:.-]*)\s*=\s*("([^"]*)"|'([^']*)')/gu,a=0,o;for(;(o=s.exec(i))!==null;){if(i.slice(a,o.index).trim().length>0)throw new Error(`XML \u5C5E\u6027\u683C\u5F0F\u9519\u8BEF\uFF1A${e}`);r[o[1]]=Le(o[3]??o[4]??""),a=o.index+o[0].length}if(i.slice(a).trim().length>0)throw new Error(`XML \u5C5E\u6027\u683C\u5F0F\u9519\u8BEF\uFF1A${e}`);return{name:n,attributes:r}}function Le(e){return e.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/gu,(t,n)=>{switch(n){case"amp":return"&";case"lt":return"<";case"gt":return">";case"quot":return'"';case"apos":return"'";default:return n.startsWith("#x")?String.fromCodePoint(Number.parseInt(n.slice(2),16)):String.fromCodePoint(Number.parseInt(n.slice(1),10))}})}});var B=_(N=>{"use strict";Object.defineProperty(N,"__esModule",{value:!0});N.parseExpression=Te;N.parseCall=Ct;N.isReservedExpressionWord=It;var J=O(),xt=new Set(["true","false","in","not","and","or"]);function Ie(e,t){return{line:e.line,column:e.column+t,offset:e.offset+t}}function T(e,t,n){return{start:Ie(e,t),end:Ie(e,Math.max(t+1,n))}}function Re(e,t){return{start:e.start,end:t.end}}function Lt(e){let t=[],n=0,r=(i,s)=>{t.push({type:i,lexeme:e.slice(n,n+s),start:n,end:n+s}),n+=s};for(;n<e.length;){let i=e[n];if(/\s/u.test(i)){n+=1;continue}let s=e.slice(n,n+2),a={"&&":"and","||":"or","==":"eq","!=":"ne",">=":"gte","<=":"lte","!i":"invalid"};if(e.startsWith("!in",n)&&!(0,J.isIdentifierPart)(e[n+3]??"")){r("notIn",3);continue}if(a[s]&&s!=="!i"){r(a[s],2);continue}let o={"(":"lparen",")":"rparen","[":"lbracket","]":"rbracket",",":"comma","+":"plus","-":"minus","*":"star","/":"slash","%":"percent","!":"not",">":"gt","<":"lt"};if(o[i]){r(o[i],1);continue}if(i==="'"||i==='"'){let c=n,u=i;n+=1;let d="",p;for(;n<e.length&&e[n]!==u;){if(e[n]!=="\\"){d+=e[n++];continue}if(n+=1,n>=e.length){p="\u5B57\u7B26\u4E32\u8F6C\u4E49\u4E0D\u5B8C\u6574";break}let v=e[n++],x={"\\":"\\","'":"'",'"':'"',b:"\b",f:"\f",n:`
+`,r:"\r",t:"	"};if(v==="u"){let R=e.slice(n,n+4);if(!/^[0-9a-fA-F]{4}$/u.test(R)){p="Unicode \u8F6C\u4E49\u5FC5\u987B\u5305\u542B 4 \u4F4D\u5341\u516D\u8FDB\u5236\u6570\u5B57";break}d+=String.fromCharCode(Number.parseInt(R,16)),n+=4}else if(x[v]!==void 0)d+=x[v];else{p=`\u4E0D\u652F\u6301\u7684\u5B57\u7B26\u4E32\u8F6C\u4E49 '\\${v}'`;break}}!p&&e[n]===u?n+=1:p||(p=`\u5B57\u7B26\u4E32\u7F3A\u5C11\u7ED3\u675F\u5F15\u53F7 ${u}`),t.push({type:p?"invalid":"string",lexeme:e.slice(c,n),start:c,end:n,value:d,error:p});continue}if(/\d/u.test(i)||i==="."&&/\d/u.test(e[n+1]??"")){let c=n,d=/^(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?/u.exec(e.slice(n))?.[0]??i;n+=d.length;let p=Number(d);t.push({type:Number.isFinite(p)?"number":"invalid",lexeme:d,start:c,end:n,value:p,error:Number.isFinite(p)?void 0:"\u6570\u503C\u5FC5\u987B\u662F\u6709\u9650 Number"});continue}if((0,J.isIdentifierStart)(i)){let c=n++;for(;(0,J.isIdentifierPart)(e[n]??"");)n+=1;let u=e.slice(c,n),p={true:"true",false:"false",and:"and",or:"or",not:"not",in:"in"}[u]??"identifier";t.push({type:p,lexeme:u,start:c,end:n,value:p==="true"?!0:p==="false"?!1:void 0});continue}let l=n++;for(;n<e.length&&!/\s/u.test(e[n])&&!"()[],+-*/%!<>=&|".includes(e[n]);)n+=1;t.push({type:"invalid",lexeme:e.slice(l,n),start:l,end:n,error:"\u6807\u8BC6\u7B26\u53EA\u80FD\u4F7F\u7528\u5C0F\u5199 ASCII\u3001\u6C49\u5B57\u3001\u6570\u5B57\u548C\u4E0B\u5212\u7EBF\uFF0C\u4E14\u4E0D\u80FD\u4EE5\u6570\u5B57\u5F00\u5934"})}return t.push({type:"eof",lexeme:"",start:e.length,end:e.length}),t}var ee=class{text;base;tokens;diagnostics=[];index=0;constructor(t,n){this.text=t,this.base=n,this.tokens=Lt(t)}parse(){let t=this.parseOr();return!t&&this.peek().type==="eof"&&this.error(this.peek(),"\u8868\u8FBE\u5F0F\u4E0D\u80FD\u4E3A\u7A7A"),this.peek().type!=="eof"&&this.error(this.peek(),"\u8868\u8FBE\u5F0F\u5B58\u5728\u65E0\u6CD5\u89E3\u6790\u7684\u5C3E\u968F\u5185\u5BB9"),{expr:t,diagnostics:this.diagnostics}}parseOr(){return this.parseBinary(()=>this.parseAnd(),[["or","or"]])}parseAnd(){return this.parseBinary(()=>this.parseEquality(),[["and","and"]])}parseEquality(){return this.parseBinary(()=>this.parseComparison(),[["eq","=="],["ne","!="]])}parseComparison(){return this.parseBinary(()=>this.parseAdditive(),[["lte","<="],["gte",">="],["lt","<"],["gt",">"],["in","in"],["notIn","not in"]],!0)}parseAdditive(){return this.parseBinary(()=>this.parseMultiplicative(),[["plus","+"],["minus","-"]])}parseMultiplicative(){return this.parseBinary(()=>this.parseUnary(),[["star","*"],["slash","/"],["percent","%"]])}parseBinary(t,n,r=!1){let i=t();for(;;){let s=n.find(([c])=>this.peek().type===c),a=!1;if(!s&&r&&this.peek().type==="not"&&this.peek(1).type==="in"&&(s=["notIn","not in"],a=!0),!s)return i;let o=this.advance();a&&this.advance();let l=t();if(!i||!l)return this.error(o,"\u4E8C\u5143\u8FD0\u7B97\u7B26\u4E24\u4FA7\u90FD\u5FC5\u987B\u6709\u8868\u8FBE\u5F0F"),i??l;i={type:"binary",operator:s[1],rawOperator:a?"not in":o.lexeme,left:i,right:l,span:Re(i.span,l.span)}}}parseUnary(){let n={not:"not",plus:"+",minus:"-"}[this.peek().type];if(!n)return this.parsePrimary();let r=this.advance(),i=this.parseUnary();return i?{type:"unary",operator:n,rawOperator:r.lexeme,operand:i,span:Re(T(this.base,r.start,r.end),i.span)}:(this.error(r,"\u4E00\u5143\u8FD0\u7B97\u7B26\u540E\u7F3A\u5C11\u8868\u8FBE\u5F0F"),null)}parsePrimary(){let t=this.peek();if(t.type==="invalid")return this.error(t,t.error??`\u65E0\u6CD5\u8BC6\u522B '${t.lexeme}'`),this.advance(),null;if(this.match("true")||this.match("false")||this.match("number")||this.match("string")){let n=this.previous(),r=n.type==="number"?"number":n.type==="string"?"string":"boolean";return{type:"literal",value:n.value,valueType:r,span:T(this.base,n.start,n.end)}}if(this.match("identifier")){let n=this.previous();if(!this.match("lparen"))return{type:"identifier",name:n.lexeme,span:T(this.base,n.start,n.end)};let r=this.parseSeparated("rparen","\u51FD\u6570\u53C2\u6570"),i=this.previous().type==="rparen"?this.previous().end:n.end;return{type:"callExpr",name:n.lexeme,args:r,span:T(this.base,n.start,i)}}if(this.match("lbracket")){let n=this.previous(),r=this.parseSeparated("rbracket","\u5217\u8868"),i=this.previous().type==="rbracket"?this.previous().end:n.end;return{type:"list",items:r,span:T(this.base,n.start,i)}}if(this.match("lparen")){let n=this.parseOr();return this.match("rparen")||this.error(this.peek(),"\u7F3A\u5C11\u53F3\u62EC\u53F7 ')'"),n}return t.type!=="eof"&&t.type!=="rparen"&&t.type!=="rbracket"&&t.type!=="comma"&&(this.error(t,`\u65E0\u6CD5\u8BC6\u522B\u7684\u8868\u8FBE\u5F0F\u7247\u6BB5 '${t.lexeme}'`),this.advance()),null}parseSeparated(t,n){let r=[];if(this.match(t))return r;for(;this.peek().type!=="eof";){let i=this.parseOr();if(i&&r.push(i),this.match(t))return r;if(!this.match("comma")){this.error(this.peek(),`${n}\u4E4B\u95F4\u5FC5\u987B\u4F7F\u7528 ',' \u5206\u9694`),this.peek().type!=="eof"&&this.advance();continue}if(this.match(t))return this.error(this.previous(),`${n}\u5206\u9694\u7B26\u540E\u7F3A\u5C11\u8868\u8FBE\u5F0F`),r}return this.error(this.peek(),t==="rparen"?"\u7F3A\u5C11\u53F3\u62EC\u53F7 ')'":"\u5217\u8868\u7F3A\u5C11\u53F3\u65B9\u62EC\u53F7 ']'"),r}match(t){return this.peek().type!==t?!1:(this.advance(),!0)}advance(){let t=this.tokens[this.index];return this.index<this.tokens.length-1&&(this.index+=1),t}previous(){return this.tokens[Math.max(0,this.index-1)]}peek(t=0){return this.tokens[Math.min(this.index+t,this.tokens.length-1)]}error(t,n){this.diagnostics.push({message:n,severity:"error",code:"syntax",span:T(this.base,t.start,t.end)})}};function Te(e,t){return new ee(e,t).parse()}function Ct(e,t){let n=Te(e,t);return n.expr?.type==="callExpr"?{call:n.expr,diagnostics:n.diagnostics}:(n.expr&&n.diagnostics.length===0&&n.diagnostics.push({message:"\u547D\u4EE4\u5FC5\u987B\u662F\u51FD\u6570\u8C03\u7528",severity:"error",code:"syntax",span:n.expr.span}),{call:null,diagnostics:n.diagnostics})}function It(e){return xt.has(e)}});var C=_(b=>{"use strict";Object.defineProperty(b,"__esModule",{value:!0});b.LineCursor=void 0;b.position=ne;b.lineSpan=Rt;b.mergeSpans=Tt;b.zeroSpan=Ot;b.isSegmentHeader=Nt;b.isKeywordLine=Bt;b.isBranchLine=At;b.findDialogueSeparator=Mt;var te=class{lines;index=0;constructor(t){this.lines=Pt(t)}peek(){return this.lines[this.index]}peekNonBlank(t=0){let n=this.index,r=t;for(;n<this.lines.length;){let i=this.lines[n];if(!i.blank){if(r===0)return i;r-=1}n+=1}}skipBlankLines(){for(;this.peek()?.blank;)this.advance()}advance(){this.index+=1}};b.LineCursor=te;function ne(e,t){return{line:e.lineNumber,column:t,offset:e.lineStartOffset+t-1}}function Rt(e,t=1,n){let r=n??e.rawText.length+1;return{start:ne(e,t),end:ne(e,r)}}function Tt(e,t){return{start:e.start,end:t.end}}function Ot(){return{start:{line:1,column:1,offset:0},end:{line:1,column:1,offset:0}}}function Nt(e){return e.indentSpaces===0&&e.trimmed.startsWith("#")}function Bt(e,t){return e.trimmed===t||e.trimmed.startsWith(`${t} `)}function At(e){return e.trimmed.startsWith("-")}function Mt(e){let t=e.indexOf(":"),n=e.indexOf("\uFF1A");return t===-1&&n===-1?null:t===-1?{marker:"\uFF1A",index:n}:n===-1?{marker:":",index:t}:t<n?{marker:":",index:t}:{marker:"\uFF1A",index:n}}function Pt(e){let t=e.split(/\r?\n/u),n=[],r=0;return t.forEach((i,s)=>{let a=qt(i),o=0;for(;o<a.length&&a[o]===" ";)o+=1;let l=a.slice(o),c=l.trimEnd();n.push({lineNumber:s+1,rawText:i,text:l,trimmed:c,indentSpaces:o,indentLevel:Math.floor(o/2),blank:c.trim().length===0,lineStartOffset:r}),r+=i.length+1}),n}function qt(e){let t=null,n=!1;for(let r=0;r<e.length-1;r+=1){let i=e[r];if(n){n=!1;continue}if(t&&i==="\\"){n=!0;continue}if(i==="'"||i==='"'){t=t===i?null:t??i;continue}if(!t&&i==="/"&&e[r+1]==="/")return e.slice(0,r)}return e}});var Oe=_(re=>{"use strict";Object.defineProperty(re,"__esModule",{value:!0});re.parseBattleStatement=jt;var E=C();function jt(e,t,n){let r=e.peek(),i=r.trimmed.slice(6).trim();i||e.report("battle \u4E4B\u540E\u5FC5\u987B\u63D0\u4F9B\u6218\u6597\u540D",(0,E.lineSpan)(r),"syntax"),e.advance();let s=[],a=new Set;for(;;){e.skipBlankLines();let o=e.peek();if(!o||o.indentLevel!==t||!(0,E.isBranchLine)(o))break;let l=(/^-\s*(.*)$/u.exec(o.trimmed)?.[1]??"").trim(),c=(0,E.lineSpan)(o);if(e.advance(),l!=="win"&&l!=="lose"&&l!=="timeout"){e.report("battle \u5206\u652F\u53EA\u5141\u8BB8 win / lose / timeout",c,"semantic"),n(t+1,d=>d.indentLevel===t&&(0,E.isBranchLine)(d));continue}a.has(l)&&e.report(`battle \u7ED3\u679C\u5206\u652F '${l}' \u91CD\u590D`,c,"duplicate"),a.add(l);let u=n(t+1,d=>d.indentLevel===t&&(0,E.isBranchLine)(d));s.push({type:"battleOutcome",outcome:l,statements:u,span:u.length>0?(0,E.mergeSpans)(c,u[u.length-1].span):c})}return{type:"battle",battleId:i,outcomes:s,raw:r.trimmed,span:s.length>0?(0,E.mergeSpans)((0,E.lineSpan)(r),s[s.length-1].span):(0,E.lineSpan)(r)}}});var se=_(ie=>{"use strict";Object.defineProperty(ie,"__esModule",{value:!0});ie.parseConditionHeader=Ft;var Dt=B(),Ne=C();function Ft(e,t){let n=e.trimmed.slice(t.length).trim();if(!n)return{condition:null,rawCondition:n,diagnostics:[{message:`${t} \u540E\u7F3A\u5C11\u6761\u4EF6\u8868\u8FBE\u5F0F`,span:(0,Ne.lineSpan)(e),code:"syntax",severity:"error"}]};let r=e.indentSpaces+1+e.text.indexOf(n),i=(0,Dt.parseExpression)(n,(0,Ne.position)(e,r+1));return{condition:i.expr,rawCondition:n,diagnostics:i.diagnostics}}});var ae=_(z=>{"use strict";Object.defineProperty(z,"__esModule",{value:!0});z.parsePresentationStyle=zt;z.reportOptionPresentationStyle=Wt;var K=C(),Kt=/^[\p{L}\p{N}_.-]+$/u;function zt(e,t,n,r){let i=n,s=0,a=null;for(;i.startsWith("[#");){let l=i.indexOf("]");if(l<0)return e.report("\u5C55\u793A\u6837\u5F0F\u6807\u7B7E\u7F3A\u5C11\u53F3\u65B9\u62EC\u53F7 ']'",(0,K.lineSpan)(t,r+s),"syntax"),{text:"",style:a};let c=i.slice(0,l+1),u=(0,K.lineSpan)(t,r+s,r+s+c.length),d=c.slice(2,-1).trim(),p=d.indexOf("=");if(p<0)e.report("\u5C55\u793A\u6807\u7B7E\u5FC5\u987B\u4F7F\u7528 '[#key=value]' \u683C\u5F0F",u,"syntax");else{let x=d.slice(0,p).trim(),R=d.slice(p+1).trim();x!=="style"?e.report(`\u6682\u4E0D\u652F\u6301\u5C55\u793A\u6807\u7B7E '${x||"\u7A7A"}'`,u,"semantic"):R?Kt.test(R)?a!==null?e.report("\u540C\u4E00\u6761\u8BED\u53E5\u53EA\u80FD\u914D\u7F6E\u4E00\u4E2A style \u6807\u7B7E",u,"semantic"):a=R:e.report("\u6837\u5F0F ID \u53EA\u80FD\u5305\u542B\u4E2D\u82F1\u6587\u3001\u6570\u5B57\u3001\u70B9\u3001\u4E0B\u5212\u7EBF\u548C\u77ED\u6A2A\u7EBF\uFF0C\u4E14\u4E0D\u80FD\u5305\u542B\u7A7A\u767D",u,"syntax"):e.report("style \u6807\u7B7E\u5FC5\u987B\u63D0\u4F9B\u6837\u5F0F ID",u,"syntax")}s+=c.length,i=i.slice(c.length);let v=/^\s*/u.exec(i)?.[0].length??0;s+=v,i=i.slice(v)}let o=i.indexOf("[#");if(o>=0){let l=i.indexOf("]",o),c=l>=0?l+1:i.length;e.report("\u5C55\u793A\u6807\u7B7E\u53EA\u80FD\u51FA\u73B0\u5728\u5BF9\u767D\u6B63\u6587\u5F00\u5934",(0,K.lineSpan)(t,r+s+o,r+s+c),"structure")}return{text:i.trim(),style:a}}function Wt(e,t,n){if(n.indexOf("[#")<0)return;let i=t.trimmed.indexOf("[#",1),s=t.indentSpaces+Math.max(i,0)+1,a=t.trimmed.indexOf("]",Math.max(i,0));e.report("\u9009\u9879\u6682\u4E0D\u652F\u6301\u5C55\u793A\u6837\u5F0F\u6807\u7B7E\uFF1Bstyle \u53EA\u80FD\u914D\u7F6E\u5728 choice \u7684\u63D0\u793A\u5BF9\u767D\u4E0A",(0,K.lineSpan)(t,s,a>=0?t.indentSpaces+a+2:void 0),"structure")}});var Ae=_(oe=>{"use strict";Object.defineProperty(oe,"__esModule",{value:!0});oe.parseChoiceStatement=Xt;var Ut=se(),Ht=B(),Gt=ae(),g=C();function Xt(e,t,n,r){let i=[];for(;;){e.skipBlankLines();let s=e.peek();if(!s||s.indentLevel!==n)break;if((0,g.isBranchLine)(s)){let a=Yt(e,n,r);i.push({type:"choiceOptionsBlock",options:a,span:(0,g.mergeSpans)(a[0].span,a[a.length-1].span)});continue}if(Vt(e,n)){i.push(en(e,n,r));continue}break}return i.length===0?e.report("choice \u81F3\u5C11\u9700\u8981\u4E00\u4E2A '- \u9009\u9879' \u5206\u652F",t.span,"structure"):i.some(Zt)||e.report("choice \u65E0\u6CD5\u9759\u6001\u4FDD\u8BC1\u81F3\u5C11\u5B58\u5728\u4E00\u4E2A\u53EF\u7528\u9009\u9879",t.span,"semantic","warning"),{type:"choice",style:t.style,prompt:{...t,style:null},blocks:i,span:i.length>0?(0,g.mergeSpans)(t.span,i[i.length-1].span):t.span}}function Vt(e,t){let n=e.peekNonBlank();if(!n||n.indentLevel!==t||!(0,g.isKeywordLine)(n,"if"))return!1;let r=e.peekNonBlank(1);return r?.indentLevel===t+1&&(0,g.isBranchLine)(r)}function Zt(e){return e.type==="choiceOptionsBlock"?e.options.some(n=>n.condition===null):e.branches.find(n=>n.keyword==="else")!==void 0&&e.branches.every(n=>n.options.some(r=>r.condition===null))}function Yt(e,t,n){let r=[];for(;;){e.skipBlankLines();let i=e.peek();if(!i||i.indentLevel!==t||!(0,g.isBranchLine)(i))break;r.push(Be(e,t,n))}return r}function Be(e,t,n){let r=e.peek(),i=/^-\s*(.*)$/u.exec(r.trimmed)?.[1]??"",s=Qt(e,r,i);(0,Gt.reportOptionPresentationStyle)(e,r,s.text);let a=(0,g.lineSpan)(r);e.advance();let o=n(t+1,l=>l.indentLevel===t&&(0,g.isBranchLine)(l));return{type:"choiceOption",text:s.text,condition:s.condition,rawCondition:s.rawCondition,statements:o,span:o.length>0?(0,g.mergeSpans)(a,o[o.length-1].span):a}}function Qt(e,t,n){let r=Jt(n);if(r<0)return{text:n,condition:null,rawCondition:null};let i=n.slice(r+2).trim(),a=t.trimmed.indexOf(n)+r+2,o=/^\s*/u.exec(n.slice(r+2))?.[0].length??0,l=(0,Ht.parseExpression)(i,(0,g.position)(t,t.indentSpaces+a+o+1));return e.addDiagnostics(l.diagnostics),{text:n.slice(0,r).trimEnd(),condition:l.expr,rawCondition:i}}function Jt(e){let t=null,n=!1,r=0,i=-1;for(let s=0;s<e.length-1;s+=1){let a=e[s];if(n){n=!1;continue}if(t&&a==="\\"){n=!0;continue}if(a==="'"||a==='"'){t=t===a?null:t??a;continue}if(!t){if(a==="["){r+=1;continue}if(a==="]"&&r>0){r-=1;continue}r===0&&e.slice(s,s+2)==="if"&&s>0&&/\s/u.test(e[s-1])&&(s+2===e.length||/\s/u.test(e[s+2]))&&(i=s,s+=1)}}return i}function en(e,t,n){let r=[],i=e.peek();for(;;){e.skipBlankLines();let s=e.peek();if(!s||s.indentLevel!==t)break;let a=nn(s);if(!a||r.length===0&&a!=="if")break;r.some(p=>p.keyword==="else")&&e.report("else \u5FC5\u987B\u662F choice \u6761\u4EF6\u5206\u652F\u7684\u6700\u540E\u4E00\u9879",(0,g.lineSpan)(s),"structure");let o=null,l=null,c=s.trimmed.slice(a.length).trim();if(a==="else")c&&e.report("else \u540E\u4E0D\u80FD\u518D\u8DDF\u6761\u4EF6\u8868\u8FBE\u5F0F",(0,g.lineSpan)(s),"syntax");else{let p=(0,Ut.parseConditionHeader)(s,a);e.addDiagnostics(p.diagnostics),o=p.condition,l=p.rawCondition}e.advance();let u=tn(e,t,n,a,s);r.push({type:"choiceBranchCase",keyword:a,condition:o,rawCondition:l,options:u,span:u.length>0?(0,g.mergeSpans)((0,g.lineSpan)(s),u[u.length-1].span):(0,g.lineSpan)(s)});let d=e.peekNonBlank();if(!d||d.indentLevel!==t||!(0,g.isKeywordLine)(d,"elif")&&!(0,g.isKeywordLine)(d,"else"))break}return{type:"choiceBranchBlock",branches:r,span:(0,g.mergeSpans)((0,g.lineSpan)(i),r[r.length-1].span)}}function tn(e,t,n,r,i){let s=t+1,a=[];for(;;){e.skipBlankLines();let o=e.peek();if(!o||o.indentLevel<=t)break;if(o.indentLevel===s&&(0,g.isBranchLine)(o)){a.push(Be(e,s,n));continue}e.report(o.indentLevel===s?`${r} choice \u5206\u652F\u53EA\u80FD\u5305\u542B '- \u9009\u9879'`:`${r} choice \u5206\u652F\u4E2D\u51FA\u73B0\u4E86\u610F\u5916\u7684\u7F29\u8FDB\u5C42\u7EA7`,(0,g.lineSpan)(o),o.indentLevel===s?"structure":"indentation"),e.advance()}return a.length===0&&e.report(`${r} choice \u5206\u652F\u81F3\u5C11\u9700\u8981\u4E00\u4E2A\u7F29\u8FDB\u7684 '- \u9009\u9879'`,(0,g.lineSpan)(i),"structure"),a}function nn(e){return(0,g.isKeywordLine)(e,"if")?"if":(0,g.isKeywordLine)(e,"elif")?"elif":(0,g.isKeywordLine)(e,"else")?"else":null}});var Me=_(ce=>{"use strict";Object.defineProperty(ce,"__esModule",{value:!0});ce.parseIfStatement=sn;var rn=se(),y=C();function sn(e,t,n){let r=[],i=e.peek();for(;;){e.skipBlankLines();let s=e.peek();if(!s||s.indentLevel!==t)break;let a=an(s);if(!a)break;r.length===0&&a!=="if"&&e.report("\u6761\u4EF6\u5206\u652F\u5FC5\u987B\u4ECE if \u5F00\u59CB",(0,y.lineSpan)(s),"structure"),r.some(p=>p.keyword==="else")&&e.report("else \u5FC5\u987B\u662F\u6761\u4EF6\u5206\u652F\u7684\u6700\u540E\u4E00\u9879",(0,y.lineSpan)(s),"structure");let o=s.trimmed.slice(a.length).trim(),l=null,c=null;if(a==="else")o.length>0&&e.report("else \u540E\u4E0D\u80FD\u518D\u8DDF\u6761\u4EF6\u8868\u8FBE\u5F0F",(0,y.lineSpan)(s),"syntax");else{let p=(0,rn.parseConditionHeader)(s,a);l=p.condition,c=p.rawCondition,e.addDiagnostics(p.diagnostics)}e.advance();let u=n(t+1,p=>p.indentLevel===t&&((0,y.isKeywordLine)(p,"elif")||(0,y.isKeywordLine)(p,"else")));r.push({type:"conditionalBranch",keyword:a,condition:l,rawCondition:c,statements:u,span:u.length>0?(0,y.mergeSpans)((0,y.lineSpan)(s),u[u.length-1].span):(0,y.lineSpan)(s)});let d=e.peekNonBlank();if(!d||d.indentLevel!==t||!(0,y.isKeywordLine)(d,"elif")&&!(0,y.isKeywordLine)(d,"else"))break}return{type:"if",branches:r,span:r.length>0?(0,y.mergeSpans)((0,y.lineSpan)(i),r[r.length-1].span):(0,y.lineSpan)(i)}}function an(e){return(0,y.isKeywordLine)(e,"if")?"if":(0,y.isKeywordLine)(e,"elif")?"elif":(0,y.isKeywordLine)(e,"else")?"else":null}});var Pe=_(W=>{"use strict";Object.defineProperty(W,"__esModule",{value:!0});W.ParserContext=void 0;var on=C(),le=class extends on.LineCursor{diagnostics=[];report(t,n,r,i="error"){this.diagnostics.push({message:t,span:n,code:r,severity:i})}addDiagnostics(t){this.diagnostics.push(...t)}};W.ParserContext=le});var je=_(A=>{"use strict";Object.defineProperty(A,"__esModule",{value:!0});A.StoryParser=void 0;A.parseStory=mn;var cn=Oe(),ln=Ae(),un=Me(),pn=ae(),f=C(),U=O(),dn=Pe(),qe=B(),fn=new Set(["if","elif","else","battle","jump","call","return","del","win","lose","timeout"]),hn=new RegExp(`^(${U.IDENTIFIER_START_SOURCE}${U.IDENTIFIER_PART_SOURCE}*)\\s*(\\+=|-=|=(?!=))\\s*(.*)$`,"u"),H=class{context;constructor(t){this.context=new dn.ParserContext(t),this.validateIndentation()}parse(){let t=[],n=new Map;for(;;){this.context.skipBlankLines();let r=this.context.peek();if(!r)break;if(!(0,f.isSegmentHeader)(r)){this.context.report("\u5267\u60C5\u6BB5\u5FC5\u987B\u4EE5\u9876\u683C '# \u6BB5\u540D' \u5F00\u59CB",(0,f.lineSpan)(r),"structure"),this.context.advance();continue}let i=this.parseSegment();i&&(n.has(i.name)?this.context.report(`\u91CD\u590D\u7684\u5267\u60C5\u6BB5\u540D '${i.name}'`,i.headerSpan,"duplicate"):n.set(i.name,i.headerSpan),t.push(i))}return{ast:{type:"script",span:t.length>0?(0,f.mergeSpans)(t[0].span,t[t.length-1].span):(0,f.zeroSpan)(),segments:t},diagnostics:this.context.diagnostics}}validateIndentation(){for(let t of this.context.lines)t.rawText.includes("	")&&this.context.report("\u7981\u6B62\u4F7F\u7528 Tab \u7F29\u8FDB\uFF0C\u8BF7\u7EDF\u4E00\u4F7F\u7528 2 \u4E2A\u7A7A\u683C",(0,f.lineSpan)(t),"indentation"),t.indentSpaces%2!==0&&this.context.report("\u7F29\u8FDB\u5FC5\u987B\u662F 2 \u4E2A\u7A7A\u683C\u7684\u6574\u6570\u500D",(0,f.lineSpan)(t),"indentation")}parseSegment(){let t=this.context.peek();if(!t)return null;let n=t.trimmed.slice(1),r=n.trim();r||this.context.report("\u5267\u60C5\u6BB5\u540D\u4E0D\u80FD\u4E3A\u7A7A",(0,f.lineSpan)(t),"syntax"),this.context.advance();let i=this.parseStatements(0,a=>(0,f.isSegmentHeader)(a)),s=i.length>0?i[i.length-1].span:(0,f.lineSpan)(t);return{type:"segment",name:r,rawName:n,headerSpan:(0,f.lineSpan)(t),span:(0,f.mergeSpans)((0,f.lineSpan)(t),s),statements:i}}parseStatements(t,n){let r=[];for(;;){this.context.skipBlankLines();let i=this.context.peek();if(!i||n(i)||i.indentLevel<t)break;if(i.indentLevel>t){this.context.report("\u51FA\u73B0\u4E86\u610F\u5916\u7684\u7F29\u8FDB\u5C42\u7EA7",(0,f.lineSpan)(i),"indentation"),this.context.advance();continue}let s=this.parseStatement(t);s&&r.push(s)}return r}parseStatement(t){let n=this.context.peek();if(!n)return null;if((0,f.isKeywordLine)(n,"elif")||(0,f.isKeywordLine)(n,"else"))return this.context.report("elif/else \u5FC5\u987B\u7D27\u8DDF\u5728\u540C\u7EA7 if \u4E4B\u540E",(0,f.lineSpan)(n),"structure"),this.context.advance(),null;if((0,f.isKeywordLine)(n,"if"))return(0,un.parseIfStatement)(this.context,t,(i,s)=>this.parseStatements(i,s));if((0,f.isKeywordLine)(n,"when"))return this.context.report("choice \u7684 when \u6761\u4EF6\u7EC4\u5DF2\u79FB\u9664\uFF0C\u8BF7\u6539\u7528 if / elif / else",(0,f.lineSpan)(n),"structure"),this.context.advance(),null;if((0,f.isKeywordLine)(n,"battle"))return(0,cn.parseBattleStatement)(this.context,t,(i,s)=>this.parseStatements(i,s));if((0,f.isBranchLine)(n))return this.context.report("'- xxx' \u53EA\u80FD\u4F5C\u4E3A choice \u6216 battle \u7684\u5B50\u7ED3\u6784\u51FA\u73B0",(0,f.lineSpan)(n),"structure"),this.context.advance(),null;let r=this.parseSimpleStatement(n);if(this.context.advance(),r?.type==="dialogue"){let i=this.context.peekNonBlank();if(i&&i.indentLevel===t&&((0,f.isBranchLine)(i)||this.isChoiceIfStart(i,t)))return(0,ln.parseChoiceStatement)(this.context,r,t,(s,a)=>this.parseStatements(s,a))}return r}parseSimpleStatement(t){let n=/^del(?:\s+(.*))?$/u.exec(t.trimmed);if(n){let u=n[1]?.trim()??"";return u?U.IDENTIFIER_PATTERN.test(u)||this.context.report("del \u53EA\u80FD\u5220\u9664\u4E00\u4E2A\u6709\u6548\u53D8\u91CF\u6807\u8BC6\u7B26",(0,f.lineSpan)(t),"syntax"):this.context.report("del \u4E4B\u540E\u5FC5\u987B\u63D0\u4F9B\u53D8\u91CF\u540D",(0,f.lineSpan)(t),"syntax"),{type:"delete",target:U.IDENTIFIER_PATTERN.test(u)?u:"",raw:t.trimmed,span:(0,f.lineSpan)(t)}}let r=hn.exec(t.trimmed);if(r){let u=r[1],d=r[2],p=r[3],v=t.trimmed.length-p.length,x=(0,qe.parseExpression)(p,(0,f.position)(t,t.indentSpaces+v+1));return this.context.addDiagnostics(x.diagnostics),{type:"assignment",target:u,operator:d,value:x.expr,valueSource:p,raw:t.trimmed,span:(0,f.lineSpan)(t)}}let i=(0,f.findDialogueSeparator)(t.trimmed),s=/^[a-z_][a-z0-9_]*\s*\(/u.test(t.trimmed);if(i&&!s){let u=t.trimmed.slice(i.index+1),d=/^\s*/u.exec(u)?.[0].length??0,p=(0,pn.parsePresentationStyle)(this.context,t,u.slice(d),t.indentSpaces+i.index+2+d);return{type:"dialogue",speaker:t.trimmed.slice(0,i.index).trim(),text:p.text,style:p.style,marker:i.marker,raw:t.trimmed,span:(0,f.lineSpan)(t)}}let a=/^(\S+)(?:\s+(.*))?$/u.exec(t.trimmed);if(!a)return null;let o=a[1];if(o==="jump"){let u=t.trimmed.slice(o.length).trim();return u||this.context.report("jump \u4E4B\u540E\u5FC5\u987B\u63D0\u4F9B\u76EE\u6807\u6BB5\u540D",(0,f.lineSpan)(t),"syntax"),{type:"jump",target:u,raw:t.trimmed,span:(0,f.lineSpan)(t)}}if(o==="call"){let u=t.trimmed.slice(o.length).trim();return u||this.context.report("call \u4E4B\u540E\u5FC5\u987B\u63D0\u4F9B\u76EE\u6807\u6BB5\u540D",(0,f.lineSpan)(t),"syntax"),{type:"call",target:u,raw:t.trimmed,span:(0,f.lineSpan)(t)}}if(o==="return")return t.trimmed.slice(o.length).trim()&&this.context.report("return \u540E\u4E0D\u80FD\u8DDF\u53C2\u6570",(0,f.lineSpan)(t),"syntax"),{type:"return",raw:t.trimmed,span:(0,f.lineSpan)(t)};let l=t.trimmed,c=(0,qe.parseCall)(l,(0,f.position)(t,t.indentSpaces+1));return this.context.addDiagnostics(c.diagnostics),c.call&&fn.has(c.call.name)&&this.context.report(`'${c.call.name}' \u662F DSL \u4FDD\u7559\u5B57\uFF0C\u4E0D\u80FD\u4F5C\u4E3A\u547D\u4EE4\u540D`,c.call.span,"semantic"),{type:"command",call:c.call,callSource:l,raw:t.trimmed,span:(0,f.lineSpan)(t)}}isChoiceIfStart(t,n){if(!(0,f.isKeywordLine)(t,"if"))return!1;let r=this.context.peekNonBlank(1);return r?.indentLevel===n+1&&(0,f.isBranchLine)(r)}};A.StoryParser=H;function mn(e){return new H(e).parse()}});var _n=_(k=>{var gn=k&&k.__createBinding||(Object.create?(function(e,t,n,r){r===void 0&&(r=n);var i=Object.getOwnPropertyDescriptor(t,n);(!i||("get"in i?!t.__esModule:i.writable||i.configurable))&&(i={enumerable:!0,get:function(){return t[n]}}),Object.defineProperty(e,r,i)}):(function(e,t,n,r){r===void 0&&(r=n),e[r]=t[n]})),I=k&&k.__exportStar||function(e,t){for(var n in e)n!=="default"&&!Object.prototype.hasOwnProperty.call(t,n)&&gn(t,e,n)};Object.defineProperty(k,"__esModule",{value:!0});I(pe(),k);I(fe(),k);I(me(),k);I(Ce(),k);I(O(),k);I(B(),k);I(je(),k)});return _n();})();
+  </script>
 
   <!-- 内联独立全能脚本 -->
   <script>
@@ -6895,6 +6937,126 @@ class BattleView {
 }
 
 /**
+ * StoryDslTools: DSL 源码与 IR 的双向桥接
+ * DSL 引擎来自原作者工具链 github.com/jyx-remake/story-dsl (MIT)，编译目标与本游戏 JSON IR v3 完全同构。
+ * irToStoryText 负责把存量 IR 反编译为 DSL 草稿；compile 负责把 DSL 编译回 IR。
+ */
+const StoryDslTools = {
+  irToStoryText(doc) {
+    const lines = [];
+    const warnings = [];
+    for (const seg of doc.segments || []) {
+      lines.push(`# ${seg.name}`);
+      this._steps(seg.steps || [], 0, lines, warnings, `段落《${seg.name}》`);
+      lines.push('');
+    }
+    return { text: lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n', warnings };
+  },
+
+  _steps(steps, depth, lines, warnings, where) {
+    const pad = '  '.repeat(depth);
+    for (const st of steps) {
+      switch (st.kind) {
+        case 'dialogue': {
+          const stylePrefix = st.style ? `[#style=${st.style}]` : '';
+          lines.push(`${pad}${st.speaker || ''}：${stylePrefix}${st.text || ''}`);
+          break;
+        }
+        case 'command':
+          lines.push(`${pad}${st.call}`);
+          break;
+        case 'jump':
+          lines.push(`${pad}jump ${st.target}`);
+          break;
+        case 'call':
+          lines.push(`${pad}call ${st.target}`);
+          break;
+        case 'return':
+          lines.push(`${pad}return`);
+          break;
+        case 'set':
+          lines.push(`${pad}${st.target} = ${st.value}`);
+          break;
+        case 'delete':
+          lines.push(`${pad}del ${st.target}`);
+          break;
+        case 'battle': {
+          lines.push(`${pad}battle ${st.battleId || ''}`);
+          const oc = st.outcomes || {};
+          for (const key of ['win', 'lose', 'timeout']) {
+            if (Array.isArray(oc[key])) {
+              lines.push(`${pad}- ${key}`);
+              this._steps(oc[key], depth + 1, lines, warnings, where);
+            }
+          }
+          break;
+        }
+        case 'branch': {
+          (st.cases || []).forEach((c, i) => {
+            lines.push(`${pad}${i === 0 ? 'if' : 'elif'} ${c.when}`);
+            this._steps(c.steps, depth + 1, lines, warnings, where);
+          });
+          if (Array.isArray(st.fallback) && st.fallback.length > 0) {
+            lines.push(`${pad}else`);
+            this._steps(st.fallback, depth + 1, lines, warnings, where);
+          }
+          break;
+        }
+        case 'choice': {
+          const p = st.prompt;
+          const choiceStylePrefix = st.style ? `[#style=${st.style}]` : '';
+          if (p) {
+            lines.push(`${pad}${p.speaker || ''}：${choiceStylePrefix}${p.text || ''}`);
+          } else {
+            warnings.push(`${where}：存在无题干的抉择，DSL 要求抉择必须紧跟对白，已生成空对白占位`);
+            lines.push(`${pad}：${choiceStylePrefix}`);
+          }
+          for (const b of st.blocks || []) {
+            if (b.kind === 'options') {
+              this._choiceOptions(b.options, depth, lines, warnings, where);
+            } else if (b.kind === 'branch') {
+              (b.cases || []).forEach((c, i) => {
+                lines.push(`${pad}${i === 0 ? 'if' : 'elif'} ${c.when}`);
+                this._choiceOptions(c.options, depth + 1, lines, warnings, where);
+              });
+              if (Array.isArray(b.fallback)) {
+                lines.push(`${pad}else`);
+                this._choiceOptions(b.fallback, depth + 1, lines, warnings, where);
+              }
+            }
+          }
+          break;
+        }
+        default:
+          warnings.push(`${where}：未知步骤类型 "${st.kind}" 已跳过，保存前请回可视化模式处理`);
+      }
+    }
+  },
+
+  _choiceOptions(options, depth, lines, warnings, where) {
+    const pad = '  '.repeat(depth);
+    for (const o of options || []) {
+      lines.push(`${pad}- ${o.text}${o.when ? ` if ${o.when}` : ''}`);
+      this._steps(o.steps, depth + 1, lines, warnings, where);
+    }
+  },
+
+  // DSL -> IR；存在 error 级诊断时 ir 为 null
+  compile(text) {
+    const parseResult = StoryDSL.parseStory(text);
+    const compileResult = StoryDSL.compileScript(parseResult.ast);
+    const diagnostics = [...parseResult.diagnostics, ...compileResult.diagnostics].map(d => ({
+      severity: d.severity,
+      code: d.code,
+      message: d.message,
+      line: d.span && d.span.start && d.span.start.line != null ? d.span.start.line : null
+    }));
+    const hasError = diagnostics.some(d => d.severity === 'error');
+    return { ir: hasError ? null : compileResult.ir, diagnostics };
+  }
+};
+
+/**
  * StoryView: 剧情对白流编排器 (适配真实 IR v3 结构)
  * 步骤类型: dialogue {speaker,text} / command {call} / jump {target} /
  *           battle {battleId, outcomes{win,lose?}} / branch {cases, fallback} /
@@ -6919,6 +7081,12 @@ class StoryView {
     this.selectedSegment = null;
     this.searchKeyword = '';
     this.container = null;
+    // DSL 源码模式状态（按文件独立）
+    this.viewModes = {};       // fileId -> 'visual' | 'dsl'
+    this.dslTexts = {};        // fileId -> DSL 源码草稿
+    this.dslResults = {};      // fileId -> { ir, diagnostics }
+    this.dslDirty = {};        // fileId -> 是否有未编译保存的编辑
+    this.dslTimer = null;
   }
 
   render(parentEl) {
@@ -6981,15 +7149,12 @@ class StoryView {
   }
 
   _renderLayout() {
+    if (this.viewModes[this.activeFile] === 'dsl') {
+      this._renderDslLayout();
+      return;
+    }
     this.container.innerHTML = `
-      <div class="story-file-tabs">
-        <span style="font-size:12px; color:var(--text-muted); margin-right:4px;">剧本文件:</span>
-        ${StoryView.FILES.map(f => `
-          <button class="story-file-btn ${f === this.activeFile ? 'active' : ''}" data-file="${f}">
-            📜 ${f}.story.json (${(this.docs[f].segments || []).length}段)
-          </button>
-        `).join('')}
-      </div>
+      ${this._renderFileTabsHtml()}
       <div class="view-split-layout">
         <div class="sidebar-panel">
           <div class="sidebar-header">
@@ -7006,6 +7171,203 @@ class StoryView {
       </div>
     `;
     this._bindEvents();
+  }
+
+  _renderFileTabsHtml() {
+    const isDsl = this.viewModes[this.activeFile] === 'dsl';
+    return `
+      <div class="story-file-tabs">
+        <span style="font-size:12px; color:var(--text-muted); margin-right:4px;">剧本文件:</span>
+        ${StoryView.FILES.map(f => `
+          <button class="story-file-btn ${f === this.activeFile ? 'active' : ''}" data-file="${f}">
+            📜 ${f}.story.json (${(this.docs[f].segments || []).length}段)
+          </button>
+        `).join('')}
+        <span style="flex:1;"></span>
+        <div class="story-mode-toggle">
+          <button class="story-mode-btn ${!isDsl ? 'active' : ''}" data-mode="visual" title="卡片式步骤编排">📋 可视化编排</button>
+          <button class="story-mode-btn ${isDsl ? 'active' : ''}" data-mode="dsl" title="原作者 Story DSL 源码模式，像写剧本一样创作">⌨️ DSL 源码</button>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindCommonStoryTabs() {
+    this.container.querySelectorAll('.story-file-btn').forEach(btn => {
+      btn.onclick = () => {
+        this.activeFile = btn.dataset.file;
+        this._restoreSelection();
+        this._renderLayout();
+      };
+    });
+    this.container.querySelectorAll('.story-mode-btn').forEach(btn => {
+      btn.onclick = () => this._switchMode(btn.dataset.mode);
+    });
+  }
+
+  _switchMode(mode) {
+    const file = this.activeFile;
+    if (this.viewModes[file] === mode) return;
+    if (mode === 'visual' && this.viewModes[file] === 'dsl' && this.dslDirty[file]) {
+      if (!confirm('DSL 源码有未编译保存的修改，切回可视化模式将丢弃这些修改，继续吗？')) return;
+      this.dslTexts[file] = null;
+      this.dslResults[file] = null;
+      this.dslDirty[file] = false;
+    }
+    if (mode === 'dsl') {
+      // 以当前 IR 数据为准反编译一份新草稿
+      const de = StoryDslTools.irToStoryText(this.docs[file]);
+      this.dslTexts[file] = de.text;
+      this.dslResults[file] = null;
+      this.dslDirty[file] = false;
+      if (de.warnings.length > 0) {
+        this.notify(`反编译完成，${de.warnings.length} 条提示：${de.warnings[0]}`, 'warning');
+      }
+    }
+    this.viewModes[file] = mode;
+    this._renderLayout();
+  }
+
+  _renderDslLayout() {
+    const file = this.activeFile;
+    if (this.dslTexts[file] == null) {
+      const de = StoryDslTools.irToStoryText(this.docs[file]);
+      this.dslTexts[file] = de.text;
+      this.dslResults[file] = null;
+      this.dslDirty[file] = false;
+      if (de.warnings.length > 0) {
+        this.notify(`反编译完成，${de.warnings.length} 条提示：${de.warnings[0]}`, 'warning');
+      }
+    }
+    if (!this.dslResults[file]) this._compileDsl(file);
+    const res = this.dslResults[file] || { diagnostics: [] };
+    const errCount = res.diagnostics.filter(d => d.severity === 'error').length;
+    const warnCount = res.diagnostics.length - errCount;
+
+    this.container.innerHTML = `
+      ${this._renderFileTabsHtml()}
+      <div class="story-dsl-wrap">
+        <div class="story-dsl-toolbar">
+          <span class="story-dsl-badge ${errCount > 0 ? 'bad' : 'ok'}" id="dslStatusBadge">
+            ${errCount > 0 ? `❌ ${errCount} 个错误，修正后才能编译` : (warnCount > 0 ? `⚠️ ${warnCount} 个警告，可编译` : `✅ 语法检查通过，可编译${res.ir ? ` (${res.ir.segments.length} 段)` : ''}`)}
+          </span>
+          <button id="dslSaveBtn" class="btn btn-primary" ${errCount > 0 ? 'disabled' : ''}>💾 编译并保存</button>
+          <button id="dslBackBtn" class="btn btn-secondary">↩️ 返回可视化</button>
+          <details class="story-dsl-help">
+            <summary>📖 DSL 语法速查</summary>
+            <pre># 段落名（顶格，全文件唯一）
+角色名：对白文本          # 对白（冒号全半角均可，可空）
+指令名('参数', 1)        # 命令，如 change_item('木剑', 1)
+jump 目标段落名           # 强跳转
+call 公共片段            # 调用子程序，配合 return
+变量名 = 1 / += 1 / del  # 剧情变量
+
+角色名：题干对白
+- 选项文本                # 抉择选项（紧跟对白）
+  缩进写选项内步骤
+- 隐藏选项 if 表达式      # 单项条件
+
+if 表达式                 # 条件分支
+  步骤...
+elif 表达式
+  步骤...
+else
+  步骤...
+
+battle 战役ID            # 战斗分支
+- win
+  胜利步骤...
+- lose</pre>
+          </details>
+        </div>
+        <textarea id="storyDslEditor" class="story-dsl-editor" spellcheck="false" placeholder="# 在这里像写剧本一样创作剧情..."></textarea>
+        <div class="story-dsl-diags" id="storyDslDiags">${this._diagsHtml(res.diagnostics)}</div>
+      </div>
+    `;
+    this._bindCommonStoryTabs();
+    this._bindDslEvents();
+  }
+
+  _diagsHtml(diagnostics) {
+    if (!diagnostics || diagnostics.length === 0) {
+      return '<div class="dsl-diag ok">暂无诊断信息</div>';
+    }
+    return diagnostics.map(d => `
+      <div class="dsl-diag ${d.severity}">
+        ${d.line != null ? `<strong>第 ${d.line} 行</strong> · ` : ''}[${d.code}] ${d.message}
+      </div>
+    `).join('');
+  }
+
+  _compileDsl(file) {
+    this.dslResults[file] = StoryDslTools.compile(this.dslTexts[file] || '');
+  }
+
+  _refreshDslStatus() {
+    const badge = this.container.querySelector('#dslStatusBadge');
+    const diags = this.container.querySelector('#storyDslDiags');
+    const res = this.dslResults[this.activeFile] || { diagnostics: [] };
+    const errCount = res.diagnostics.filter(d => d.severity === 'error').length;
+    const warnCount = res.diagnostics.length - errCount;
+    if (badge) {
+      badge.className = `story-dsl-badge ${errCount > 0 ? 'bad' : 'ok'}`;
+      badge.innerText = errCount > 0
+        ? `❌ ${errCount} 个错误，修正后才能编译`
+        : (warnCount > 0 ? `⚠️ ${warnCount} 个警告，可编译` : `✅ 语法检查通过，可编译${res.ir ? ` (${res.ir.segments.length} 段)` : ''}`);
+    }
+    if (diags) diags.innerHTML = this._diagsHtml(res.diagnostics);
+    const saveBtn = this.container.querySelector('#dslSaveBtn');
+    if (saveBtn) saveBtn.disabled = errCount > 0;
+  }
+
+  _bindDslEvents() {
+    const file = this.activeFile;
+    const ta = this.container.querySelector('#storyDslEditor');
+    if (ta) {
+      ta.value = this.dslTexts[file] || '';
+      ta.oninput = () => {
+        this.dslTexts[file] = ta.value;
+        this.dslDirty[file] = true;
+        clearTimeout(this.dslTimer);
+        this.dslTimer = setTimeout(() => {
+          this._compileDsl(file);
+          this._refreshDslStatus();
+        }, 350);
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#dslSaveBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        this._compileDsl(file);
+        const res = this.dslResults[file];
+        if (!res || !res.ir) {
+          this.notify('DSL 存在语法错误，无法编译。请查看下方诊断信息。', 'error');
+          this._refreshDslStatus();
+          return;
+        }
+        saveBtn.innerText = '⏳ 编译保存中...';
+        this.docs[file] = res.ir;
+        const r = await this.adapter.saveStoryFile(file, res.ir);
+        saveBtn.innerText = '💾 编译并保存';
+        if (r.success) {
+          this.notify(`DSL 编译成功，已保存 ${res.ir.segments.length} 段至 stories/${file}.story.json！${describeSaveState(r)}`, saveToastType(r));
+          this.dslTexts[file] = null;
+          this.dslResults[file] = null;
+          this.dslDirty[file] = false;
+          this.viewModes[file] = 'visual';
+          this._restoreSelection();
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (r.error || '未知错误'), 'error');
+        }
+      };
+    }
+
+    const backBtn = this.container.querySelector('#dslBackBtn');
+    if (backBtn) {
+      backBtn.onclick = () => this._switchMode('visual');
+    }
   }
 
   _renderSegmentListHtml() {
@@ -7240,13 +7602,7 @@ class StoryView {
   // ===== 事件绑定 =====
 
   _bindEvents() {
-    this.container.querySelectorAll('.story-file-btn').forEach(btn => {
-      btn.onclick = () => {
-        this.activeFile = btn.dataset.file;
-        this._restoreSelection();
-        this._renderLayout();
-      };
-    });
+    this._bindCommonStoryTabs();
 
     const searchInput = this.container.querySelector('#segSearch');
     if (searchInput) {
