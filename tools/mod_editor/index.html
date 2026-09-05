@@ -1100,6 +1100,25 @@ textarea.input-field {
 }
 #dirtyStateBar .dsb-btn:hover { background: rgba(252, 211, 150, 0.22); }
 #dirtyStateBar .dsb-btn.primary { background: var(--accent-gold); color: #1f2937; border-color: var(--accent-gold); font-weight: 600; }
+.affix-row { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.affix-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.affix-row-head .affix-type { width: 200px; font-size: 12.5px; }
+.affix-row-head label.affix-lv, .affix-row-head label.affix-eq { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.affix-row-head label.affix-lv input { width: 64px; }
+.affix-row-body { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.affix-row-body .input-field { font-size: 12.5px; }
+.affix-row-body textarea.input-field { width: 100%; min-height: 60px; font-family: monospace; }
+.affix-add-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.affix-add-row .affix-new-type { width: 200px; font-size: 12.5px; }
+
+/* 工坊内子页签 (武学 Hub 等) */
+.hub-subtabs { display: flex; gap: 8px; padding: 10px 16px 0; flex-wrap: wrap; }
+.hub-subtab-btn {
+  padding: 8px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13.5px;
+  border: 1px solid var(--border-color); border-bottom: none;
+  background: var(--bg-dark); color: var(--text-muted);
+}
+.hub-subtab-btn.active { background: var(--bg-card); color: var(--accent-gold); font-weight: 600; border-color: var(--accent-gold); }
   </style>
 </head>
 <body>
@@ -2415,6 +2434,9 @@ class JsonDataAdapter {
   loadExternalSkills() { return this.fs.readJson('external-skills.json') || []; }
   async saveExternalSkills(skills) { return await this.fs.writeJson('external-skills.json', skills); }
 
+  loadInternalSkills() { return this.fs.readJson('internal-skills.json') || []; }
+  async saveInternalSkills(skills) { return await this.fs.writeJson('internal-skills.json', skills); }
+
   loadCharacters() { return this.fs.readJson('characters.json') || []; }
   async saveCharacters(characters) { return await this.fs.writeJson('characters.json', characters); }
 
@@ -2423,6 +2445,215 @@ class JsonDataAdapter {
 
   loadMainStory() { return this.fs.readJson('stories/main.story.json') || { version: 3, segments: [] }; }
   async saveMainStory(storyObj) { return await this.fs.writeJson('stories/main.story.json', storyObj); }
+}
+
+/**
+ * AffixEditor: 词条 (Affix) 通用行编辑器
+ * 内功 / 天赋 / Buff / 战场效果等所有携带 affixes 数组的数据共用。
+ * affix 结构: { effect: {...}, minimumLevel, requiresEquippedInternalSkill? }
+ */
+class AffixEditor {
+  constructor(refIndex) {
+    this.refIndex = refIndex;
+  }
+
+  static STATS = [
+    'attack', 'defence', 'speed', 'bili', 'gengu', 'shenfa', 'wuxing', 'dingli',
+    'fuyuan', 'accuracy', 'crit_chance', 'crit_mult', 'anti_crit_chance', 'anti_debuff', 'lifesteal'
+  ];
+  static STAT_LABELS = {
+    attack: '攻击', defence: '防御', speed: '行动速度', bili: '臂力', gengu: '根骨',
+    shenfa: '身法', wuxing: '悟性', dingli: '定力', fuyuan: '福缘', accuracy: '命中',
+    crit_chance: '暴击率', crit_mult: '暴击倍率', anti_crit_chance: '抗暴击', anti_debuff: '抗异常', lifesteal: '吸血'
+  };
+  static TYPES = [
+    { value: 'stat_modifier', label: '属性修正 (stat_modifier)' },
+    { value: 'skill_bonus_modifier', label: '武学加成 (skill_bonus_modifier)' },
+    { value: 'legend_skill_chance_modifier', label: '传奇技触发率 (legend_skill_chance)' },
+    { value: 'grant_talent', label: '授予天赋 (grant_talent)' },
+    { value: 'grant_model', label: '化身模型 (grant_model)' }
+  ];
+
+  static defaultEffect(type) {
+    switch (type) {
+      case 'stat_modifier': return { type: 'stat_modifier', stat: 'attack', value: { op: 'add', delta: 1 } };
+      case 'skill_bonus_modifier': return { type: 'skill_bonus_modifier', skillId: '', value: { op: 'add', delta: 0.05 } };
+      case 'legend_skill_chance_modifier': return { type: 'legend_skill_chance_modifier', skillId: '', value: { op: 'add', delta: 0.05 } };
+      case 'grant_talent': return { type: 'grant_talent', talentId: '' };
+      case 'grant_model': return { type: 'grant_model', modelId: '', priority: 0, description: '' };
+      default: return { type: 'stat_modifier', stat: 'attack', value: { op: 'add', delta: 1 } };
+    }
+  }
+
+  render(affixes, opts = {}) {
+    const list = Array.isArray(affixes) ? affixes : [];
+    return `
+      <div class="affix-editor" data-affix-host="1">
+        ${list.length === 0 ? '<div class="empty-hint" style="font-size:12.5px; padding:8px; color:var(--text-muted);">暂无词条，点击下方添加</div>' : list.map((af, i) => this._rowHtml(af, i, opts)).join('')}
+        <div class="affix-add-row">
+          <select class="input-field affix-new-type">
+            ${AffixEditor.TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
+          </select>
+          <button class="btn btn-secondary btn-sm affix-add-btn" type="button">+ 添加词条</button>
+        </div>
+      </div>
+    `;
+  }
+
+  _rowHtml(af, i, opts) {
+    const e = af.effect || {};
+    const t = e.type || 'stat_modifier';
+    const known = AffixEditor.TYPES.some(x => x.value === t);
+    const val = e.value || {};
+    const typeLabel = known ? '' : `<option value="${t}" selected>自定义 (${t})</option>`;
+
+    let body = '';
+    if (t === 'stat_modifier') {
+      const statOptions = AffixEditor.STATS.includes(e.stat) || !e.stat
+        ? AffixEditor.STATS
+        : AffixEditor.STATS.concat([e.stat]);
+      body = `
+        <select class="input-field affix-f-stat" data-idx="${i}" style="width:150px;">
+          ${statOptions.map(s => `<option value="${s}" ${e.stat === s ? 'selected' : ''}>${AffixEditor.STAT_LABELS[s] || s} (${s})</option>`).join('')}
+        </select>
+        <label class="affix-eq">数值 <input type="number" step="0.01" class="input-field affix-f-delta" data-idx="${i}" value="${val.delta != null ? val.delta : 0}" style="width:90px;"></label>
+      `;
+    } else if (t === 'skill_bonus_modifier' || t === 'legend_skill_chance_modifier') {
+      body = `
+        <input type="text" class="input-field affix-f-skillid" data-idx="${i}" value="${e.skillId || ''}" placeholder="武学ID" style="width:170px;" list="affixSkillIdList">
+        <label class="affix-eq">数值 <input type="number" step="0.01" class="input-field affix-f-delta" data-idx="${i}" value="${val.delta != null ? val.delta : 0}" style="width:90px;"></label>
+      `;
+    } else if (t === 'grant_talent') {
+      const talentIds = this.refIndex.talents.map(x => x.id);
+      const options = talentIds.includes(e.talentId) || !e.talentId
+        ? talentIds
+        : talentIds.concat([e.talentId]);
+      body = `
+        <select class="input-field affix-f-talentid" data-idx="${i}" style="width:220px;">
+          ${options.map(id => `<option value="${id}" ${e.talentId === id ? 'selected' : ''}>${id}</option>`).join('')}
+        </select>
+      `;
+    } else if (t === 'grant_model') {
+      body = `
+        <input type="text" class="input-field affix-f-modelid" data-idx="${i}" value="${e.modelId || ''}" placeholder="模型ID 如 guoxiang" style="width:150px;">
+        <label class="affix-eq">优先级 <input type="number" class="input-field affix-f-priority" data-idx="${i}" value="${e.priority != null ? e.priority : 0}" style="width:64px;"></label>
+        <input type="text" class="input-field affix-f-desc" data-idx="${i}" value="${e.description || ''}" placeholder="化身描述" style="width:170px;">
+      `;
+    } else {
+      body = `
+        <textarea class="input-field affix-f-raw" data-idx="${i}" placeholder="effect JSON">${JSON.stringify(e, null, 2)}</textarea>
+      `;
+    }
+
+    return `
+      <div class="affix-row" data-idx="${i}">
+        <div class="affix-row-head">
+          <select class="input-field affix-type" data-idx="${i}">
+            ${typeLabel}${AffixEditor.TYPES.map(x => `<option value="${x.value}" ${t === x.value ? 'selected' : ''}>${x.label}</option>`).join('')}
+          </select>
+          <label class="affix-lv">Lv≥ <input type="number" class="input-field affix-min-level" data-idx="${i}" value="${af.minimumLevel != null ? af.minimumLevel : 0}" min="0"></label>
+          ${opts.showRequiresEquipped !== false ? `<label class="affix-eq"><input type="checkbox" class="affix-req-eq" data-idx="${i}" ${af.requiresEquippedInternalSkill ? 'checked' : ''}> 需装备内功</label>` : ''}
+          <button class="btn btn-danger btn-sm affix-del" data-idx="${i}" type="button">✕ 删除</button>
+        </div>
+        <div class="affix-row-body">${body}</div>
+      </div>
+    `;
+  }
+
+  // onChange(rebuild): 结构性变更(类型切换/增删/JSON应用)传 true 让宿主重绘；字段微调传 false
+  bind(rootEl, affixes, onChange) {
+    const host = rootEl.querySelector('[data-affix-host]') || rootEl;
+    if (!host || !Array.isArray(affixes)) return;
+
+    const ensure = (i) => {
+      if (!affixes[i].effect) affixes[i].effect = AffixEditor.defaultEffect('stat_modifier');
+      return affixes[i];
+    };
+
+    host.querySelectorAll('.affix-add-btn').forEach(btn => {
+      btn.onclick = () => {
+        const typeSel = host.querySelector('.affix-new-type');
+        const created = { effect: AffixEditor.defaultEffect(typeSel ? typeSel.value : 'stat_modifier'), minimumLevel: 1 };
+        affixes.push(created);
+        onChange(true);
+      };
+    });
+
+    host.querySelectorAll('.affix-del').forEach(btn => {
+      btn.onclick = () => {
+        affixes.splice(parseInt(btn.dataset.idx, 10), 1);
+        onChange(true);
+      };
+    });
+
+    host.querySelectorAll('.affix-type').forEach(sel => {
+      sel.onchange = () => {
+        const af = ensure(parseInt(sel.dataset.idx, 10));
+        af.effect = AffixEditor.defaultEffect(sel.value);
+        onChange(true);
+      };
+    });
+
+    host.querySelectorAll('.affix-min-level').forEach(inp => {
+      inp.onchange = () => { ensure(parseInt(inp.dataset.idx, 10)).minimumLevel = parseFloat(inp.value) || 0; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-req-eq').forEach(chk => {
+      chk.onchange = () => {
+        const af = ensure(parseInt(chk.dataset.idx, 10));
+        if (chk.checked) af.requiresEquippedInternalSkill = true;
+        else delete af.requiresEquippedInternalSkill;
+        onChange(false);
+      };
+    });
+
+    host.querySelectorAll('.affix-f-stat').forEach(sel => {
+      sel.onchange = () => { ensure(parseInt(sel.dataset.idx, 10)).effect.stat = sel.value; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-delta').forEach(inp => {
+      inp.onchange = () => {
+        const e = ensure(parseInt(inp.dataset.idx, 10)).effect;
+        if (!e.value || typeof e.value !== 'object') e.value = { op: 'add', delta: 0 };
+        e.value.op = e.value.op || 'add';
+        e.value.delta = parseFloat(inp.value) || 0;
+        onChange(false);
+      };
+    });
+
+    host.querySelectorAll('.affix-f-skillid').forEach(inp => {
+      inp.onchange = () => { ensure(parseInt(inp.dataset.idx, 10)).effect.skillId = inp.value.trim() || undefined; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-talentid').forEach(sel => {
+      sel.onchange = () => { ensure(parseInt(sel.dataset.idx, 10)).effect.talentId = sel.value; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-modelid').forEach(inp => {
+      inp.onchange = () => { ensure(parseInt(inp.dataset.idx, 10)).effect.modelId = inp.value.trim() || undefined; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-priority').forEach(inp => {
+      inp.onchange = () => { ensure(parseInt(inp.dataset.idx, 10)).effect.priority = parseInt(inp.value, 10) || 0; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-desc').forEach(inp => {
+      inp.onchange = () => { ensure(parseInt(inp.dataset.idx, 10)).effect.description = inp.value.trim() || undefined; onChange(false); };
+    });
+
+    host.querySelectorAll('.affix-f-raw').forEach(ta => {
+      ta.onchange = () => {
+        try {
+          const parsed = JSON.parse(ta.value);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('effect 必须是 JSON 对象');
+          affixes[parseInt(ta.dataset.idx, 10)].effect = parsed;
+          onChange(true);
+        } catch (err) {
+          alert('effect JSON 解析失败: ' + err.message);
+        }
+      };
+    });
+  }
 }
 
 /**
@@ -3311,6 +3542,338 @@ class SkillView {
           this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
         }
       };
+    }
+  }
+}
+
+/**
+ * InternalSkillView: 内功心法工坊
+ * 编辑 internal-skills.json：阴阳硬属性、三维成长系数、内嵌招式与技能词条 (affixes)。
+ */
+class InternalSkillView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.affixEditor = new AffixEditor(refIndex);
+    this.notify = onSaveNotification;
+    this.skills = [];
+    this.selectedSkill = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.skills = this.adapter.loadInternalSkills();
+    if (this.skills.length > 0 && !this.selectedSkill) {
+      this.selectedSkill = this.skills[0];
+    }
+    this._renderLayout();
+  }
+
+  _getFiltered() {
+    return this.skills.filter(s => {
+      return !this.searchKeyword ||
+        (s.name && s.name.includes(this.searchKeyword)) ||
+        (s.id && s.id.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="internalSkillSearch" class="search-input" placeholder="🔍 搜索内功名称或ID..." value="${this.searchKeyword}">
+            <button id="addInternalSkillBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新创内功心法</button>
+          </div>
+          <div class="item-list-scroll" id="internalSkillList">
+            ${this._renderListHtml()}
+          </div>
+        </div>
+        <div class="detail-panel" id="internalSkillDetail">
+          ${this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一门内功进行调校</div>'}
+        </div>
+      </div>
+    `;
+    this._bindEvents();
+  }
+
+  _renderListHtml() {
+    const list = this._getFiltered();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的内功</div>';
+    return list.map(s => {
+      const isSelected = this.selectedSkill && s.id === this.selectedSkill.id;
+      const affixCount = (s.affixes || []).length;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${s.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${s.name || s.id}</span>
+              <span class="item-badge badge-purple">${affixCount}词条</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${s.id}</span>
+              <span>阴${s.yin ?? 0} · 阳${s.yang ?? 0} · 刚${s.hard ?? 1}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(s) {
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header">
+          <h2>${s.name || s.id} <span class="img-placeholder" style="display:inline-flex; width:36px; height:36px; vertical-align:middle;"><span>🧘</span></span></h2>
+          <div class="detail-subtitle">ID: <code>${s.id}</code> · 内嵌招式 ${(s.formSkills || []).length} 个 · 词条 ${(s.affixes || []).length} 条</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveInternalSkillsBtn" class="btn btn-primary">💾 保存更改</button>
+            <button id="dupInternalSkillBtn" class="btn btn-secondary">⧉ 克隆</button>
+            <button id="delInternalSkillBtn" class="btn btn-danger">🗑️ 删除</button>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🧾 基础信息</h3>
+          <div class="form-row">
+            <div class="form-group"><label>名称 (name)</label><input type="text" class="input-field" id="is_name" value="${s.name || ''}"></div>
+            <div class="form-group"><label>唯一ID (id)</label><input type="text" class="input-field" id="is_id" value="${s.id || ''}"></div>
+            <div class="form-group">
+              <label>图标 (icon)</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" class="input-field" id="is_icon" value="${s.icon || ''}" placeholder="icon/icon_neigong_001" style="flex:1;">
+                <button class="btn btn-secondary btn-sm" id="pickInternalIconBtn">🖼️ 挑选</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>说明 (description)</label>
+            <textarea class="input-field" id="is_description" rows="2">${s.description || ''}</textarea>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>⚖️ 阴阳刚柔与成长系数</h3>
+          <div class="form-row">
+            <div class="form-group"><label>刚 (hard)</label><input type="number" step="0.1" class="input-field" id="is_hard" value="${s.hard != null ? s.hard : 1}"></div>
+            <div class="form-group"><label>阴 (yin)</label><input type="number" class="input-field" id="is_yin" value="${s.yin != null ? s.yin : 0}"></div>
+            <div class="form-group"><label>阳 (yang)</label><input type="number" class="input-field" id="is_yang" value="${s.yang != null ? s.yang : 0}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>攻击系数 (attackScale)</label><input type="number" step="0.01" class="input-field" id="is_attack" value="${s.attackScale != null ? s.attackScale : 0}"></div>
+            <div class="form-group"><label>防御系数 (defenceScale)</label><input type="number" step="0.01" class="input-field" id="is_defence" value="${s.defenceScale != null ? s.defenceScale : 0}"></div>
+            <div class="form-group"><label>暴击系数 (criticalScale)</label><input type="number" step="0.01" class="input-field" id="is_critical" value="${s.criticalScale != null ? s.criticalScale : 0}"></div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>⚔️ 内嵌招式 (formSkills) — <span style="font-size:12px; color:var(--text-muted);">${(s.formSkills || []).length} 个，JSON 编辑</span></h3>
+          <details>
+            <summary style="cursor:pointer; font-size:13px; color:var(--accent-gold); margin-bottom:6px;">展开 JSON 编辑（数组，元素为完整招式定义）</summary>
+            <textarea class="input-field" id="is_formSkills" rows="10" style="font-family:monospace; font-size:12px;">${JSON.stringify(s.formSkills || [], null, 2)}</textarea>
+            <button class="btn btn-secondary btn-sm" id="applyFormSkillsBtn" style="margin-top:6px;">✔️ 应用招式 JSON</button>
+          </details>
+        </div>
+
+        <div class="form-card">
+          <h3>✨ 技能词条 (affixes) — 按等级/装备条件生效</h3>
+          <div id="internalAffixHost">${this.affixEditor.render(s.affixes, { showRequiresEquipped: true })}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#internalSkillSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#internalSkillList').innerHTML = this._renderListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addInternalSkillBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const ns = {
+          id: 'new_neigong_' + Date.now().toString().slice(-4),
+          name: '新内功心法',
+          description: '',
+          icon: null,
+          hard: 1, yin: 0, yang: 0,
+          attackScale: 0, defenceScale: 0, criticalScale: 0,
+          formSkills: [],
+          affixes: []
+        };
+        this.skills.unshift(ns);
+        this.selectedSkill = ns;
+        this._renderLayout();
+        this.notify('已新建内功心法，请调校后保存！');
+      };
+    }
+
+    this._bindListClickEvents();
+
+    if (!this.selectedSkill) return;
+    const s = this.selectedSkill;
+    const self = this;
+
+    const pickIconBtn = this.container.querySelector('#pickInternalIconBtn');
+    if (pickIconBtn) {
+      pickIconBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'icon',
+          title: '挑选内功图标',
+          current: s.icon,
+          refIndex: this.refIndex,
+          resourceResolver: this.resolver,
+          onSelect: (ref) => {
+            s.icon = ref;
+            this._renderLayout();
+          }
+        });
+      };
+    }
+
+    const applyFsBtn = this.container.querySelector('#applyFormSkillsBtn');
+    if (applyFsBtn) {
+      applyFsBtn.onclick = () => {
+        try {
+          const parsed = JSON.parse(this.container.querySelector('#is_formSkills').value);
+          if (!Array.isArray(parsed)) throw new Error('必须是 JSON 数组');
+          s.formSkills = parsed;
+          this.notify(`内嵌招式已应用（${parsed.length} 个），记得保存`);
+        } catch (err) {
+          alert('招式 JSON 解析失败: ' + err.message);
+        }
+      };
+    }
+
+    const affixHost = this.container.querySelector('#internalAffixHost');
+    if (affixHost) {
+      this.affixEditor.bind(affixHost, s.affixes, (r) => this._onAffixChange(affixHost, s, r));
+    }
+
+    const dupBtn = this.container.querySelector('#dupInternalSkillBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(s));
+        cloned.id = s.id + '_copy';
+        cloned.name = (s.name || s.id) + ' (副本)';
+        this.skills.unshift(cloned);
+        this.selectedSkill = cloned;
+        this._renderLayout();
+        this.notify('内功克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#delInternalSkillBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (!confirm(`确定删除内功《${s.name || s.id}》吗？`)) return;
+        const idx = this.skills.findIndex(x => x.id === s.id);
+        if (idx !== -1) this.skills.splice(idx, 1);
+        this.selectedSkill = this.skills[0] || null;
+        this._renderLayout();
+        this.notify('内功已删除');
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveInternalSkillsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        s.name = this.container.querySelector('#is_name').value.trim();
+        s.id = this.container.querySelector('#is_id').value.trim() || s.id;
+        s.icon = this.container.querySelector('#is_icon').value.trim() || null;
+        s.description = this.container.querySelector('#is_description').value;
+        s.hard = parseFloat(this.container.querySelector('#is_hard').value) || 0;
+        s.yin = parseFloat(this.container.querySelector('#is_yin').value) || 0;
+        s.yang = parseFloat(this.container.querySelector('#is_yang').value) || 0;
+        s.attackScale = parseFloat(this.container.querySelector('#is_attack').value) || 0;
+        s.defenceScale = parseFloat(this.container.querySelector('#is_defence').value) || 0;
+        s.criticalScale = parseFloat(this.container.querySelector('#is_critical').value) || 0;
+
+        const res = await this.adapter.saveInternalSkills(self.skills);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${self.skills.length} 门内功至 internal-skills.json！${describeSaveState(res)}`, saveToastType(res));
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _onAffixChange(affixHost, s, rebuild) {
+    if (rebuild) {
+      affixHost.innerHTML = this.affixEditor.render(s.affixes, { showRequiresEquipped: true });
+      this.affixEditor.bind(affixHost, s.affixes, (r) => this._onAffixChange(affixHost, s, r));
+    }
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedSkill = this.skills.find(s => s.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#internalSkillDetail').innerHTML = this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '';
+        this._bindEvents();
+      };
+    });
+  }
+}
+
+/**
+ * MartialArtsHubView: 武学工坊 Hub — 外功/内功/绝技/传奇技 子页签容器
+ */
+class MartialArtsHubView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.notify = onSaveNotification;
+    this.activeMode = 'external';
+  }
+
+  _modes() {
+    return [
+      { key: 'external', label: '🗡️ 外功招式', create: () => new SkillView(this.adapter, this.refIndex, this.notify) },
+      { key: 'internal', label: '🧘 内功心法', create: () => new InternalSkillView(this.adapter, this.refIndex, this.notify) }
+    ];
+  }
+
+  render(parentEl) {
+    const modes = this._modes();
+    if (!modes.some(m => m.key === this.activeMode)) this.activeMode = 'external';
+    parentEl.innerHTML = `
+      <div class="hub-subtabs">
+        ${modes.map(m => `<button class="hub-subtab-btn ${m.key === this.activeMode ? 'active' : ''}" data-mode="${m.key}">${m.label}</button>`).join('')}
+      </div>
+      <div id="martialSubContainer"></div>
+    `;
+    parentEl.querySelectorAll('.hub-subtab-btn').forEach(btn => {
+      btn.onclick = () => {
+        this.activeMode = btn.dataset.mode;
+        parentEl.querySelectorAll('.hub-subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === this.activeMode));
+        this._renderActive(parentEl);
+      };
+    });
+    this._renderActive(parentEl);
+  }
+
+  _renderActive(parentEl) {
+    const mode = this._modes().find(m => m.key === this.activeMode) || this._modes()[0];
+    const sub = parentEl.querySelector('#martialSubContainer');
+    if (sub) {
+      sub.innerHTML = '';
+      mode.create().render(sub);
     }
   }
 }
@@ -5415,7 +5978,7 @@ class ModStudioApp {
   _createViews() {
     return {
       items: new ItemView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
-      skills: new SkillView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      skills: new MartialArtsHubView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       characters: new CharacterView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       battles: new BattleView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       stories: new StoryView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
