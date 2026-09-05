@@ -1119,6 +1119,20 @@ textarea.input-field {
   background: var(--bg-dark); color: var(--text-muted);
 }
 .hub-subtab-btn.active { background: var(--bg-card); color: var(--accent-gold); font-weight: 600; border-color: var(--accent-gold); }
+.story-step-card .nested-steps {
+  margin: 8px 0 0 10px; padding: 8px 10px;
+  border-left: 2px dashed var(--border-color);
+  background: rgba(0,0,0,0.15); border-radius: 0 8px 8px 0;
+}
+.nested-steps .nested-title { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display:flex; align-items:center; gap:8px; }
+.story-file-tabs { display: flex; gap: 6px; padding: 10px 16px 0; flex-wrap: wrap; align-items: center; }
+.story-file-tabs .story-file-btn {
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12.5px;
+  border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-muted);
+}
+.story-file-tabs .story-file-btn.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); font-weight: 600; }
+.story-step-card .step-move-btns { display: flex; gap: 4px; }
+.story-step-card .step-move-btns button { padding: 2px 8px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -1168,6 +1182,9 @@ textarea.input-field {
   <datalist id="affixExtSkillIdList"></datalist>
   <datalist id="affixBuffIdList"></datalist>
   <datalist id="affixItemIdList"></datalist>
+  <datalist id="storyTargetList"></datalist>
+  <datalist id="storyBattleList"></datalist>
+  <datalist id="storyCallList"></datalist>
 
   <!-- 内联独立全能脚本 -->
   <script>
@@ -2469,6 +2486,9 @@ class JsonDataAdapter {
 
   loadMainStory() { return this.fs.readJson('stories/main.story.json') || { version: 3, segments: [] }; }
   async saveMainStory(storyObj) { return await this.fs.writeJson('stories/main.story.json', storyObj); }
+
+  loadStoryFile(fileId) { return this.fs.readJson(`stories/${fileId}.story.json`) || { version: 3, segments: [] }; }
+  async saveStoryFile(fileId, storyObj) { return await this.fs.writeJson(`stories/${fileId}.story.json`, storyObj); }
 }
 
 /**
@@ -6711,14 +6731,27 @@ class BattleView {
 }
 
 /**
- * StoryView: 剧情对白流编排器
+ * StoryView: 剧情对白流编排器 (适配真实 IR v3 结构)
+ * 步骤类型: dialogue {speaker,text} / command {call} / jump {target} /
+ *           battle {battleId, outcomes{win,lose?}} / branch {cases, fallback} /
+ *           choice {prompt{speaker,text}, blocks[{kind:'options', options[{text, when?, steps}]}]}
+ * 选项/胜负/分支内均为可继续嵌套的 steps 数组，编辑器递归渲染。
  */
 class StoryView {
+  static FILES = ['main', 'py', 'cg', 'jyxr', 'debug', 'starting-quiz'];
+  static CALL_HINTS = [
+    'item', 'change_item', 'change_silver', 'change_yuanbao', 'change_stat', 'change_morality',
+    'change_favorability', 'grant_points', 'learn_external', 'learn_internal', 'learn_talent',
+    'upgrade_external', 'maxlevel', 'journal', 'advance_days', 'unlock_achievement', 'join',
+    'leave', 'map', 'music', 'background', 'intertitle', 'set_flag', 'clear_flag', 'set_time_key'
+  ];
+
   constructor(adapter, refIndex, onSaveNotification) {
     this.adapter = adapter;
     this.refIndex = refIndex;
     this.notify = onSaveNotification;
-    this.storyDoc = null;
+    this.docs = {};            // fileId -> {version, segments}
+    this.activeFile = 'main';
     this.selectedSegment = null;
     this.searchKeyword = '';
     this.container = null;
@@ -6726,26 +6759,74 @@ class StoryView {
 
   render(parentEl) {
     this.container = parentEl;
-    this.storyDoc = this.adapter.loadMainStory();
-    if (this.storyDoc && Array.isArray(this.storyDoc.segments) && this.storyDoc.segments.length > 0) {
-      if (!this.selectedSegment) {
-        this.selectedSegment = this.storyDoc.segments[0];
-      }
+    for (const f of StoryView.FILES) {
+      this.docs[f] = this.adapter.loadStoryFile(f);
     }
+    if (!this.docs[this.activeFile]) this.activeFile = StoryView.FILES[0];
+    this._restoreSelection();
+    this._populateStoryDatalists();
     this._renderLayout();
   }
 
-  _getFilteredSegments() {
-    if (!this.storyDoc || !Array.isArray(this.storyDoc.segments)) return [];
-    return this.storyDoc.segments.filter(s => {
-      return !this.searchKeyword || (s.name && s.name.includes(this.searchKeyword));
-    });
+  // 剧情编辑下拉数据源：全库段落名 / 战役ID / 指令名（内建 + 数据中实际出现过的前缀）
+  _populateStoryDatalists() {
+    const fill = (id, values) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = [...new Set(values)].map(v => `<option value="${v}"></option>`).join('');
+    };
+    fill('storyTargetList', this._allSegmentNames());
+    fill('storyBattleList', (this.refIndex.battles || []).map(b => b.id));
+    const observed = [];
+    for (const f of StoryView.FILES) {
+      const segs = this.docs[f].segments || [];
+      const walk = (steps) => {
+        for (const st of steps || []) {
+          if (st.kind === 'command' && typeof st.call === 'string') observed.push(st.call.split('(')[0]);
+          if (st.kind === 'battle') {
+            const oc = st.outcomes || {};
+            walk(oc.win); walk(oc.lose);
+          }
+          if (st.kind === 'branch') {
+            for (const c of st.cases || []) walk(c.steps);
+            walk(st.fallback);
+          }
+          if (st.kind === 'choice') {
+            for (const b of st.blocks || []) for (const o of b.options || []) walk(o.steps);
+          }
+        }
+      };
+      for (const s of segs) walk(s.steps);
+    }
+    fill('storyCallList', StoryView.CALL_HINTS.concat(observed));
+  }
+
+  _restoreSelection() {
+    const doc = this.docs[this.activeFile];
+    const segs = doc && Array.isArray(doc.segments) ? doc.segments : [];
+    if (this.selectedSegment && segs.includes(this.selectedSegment)) return;
+    this.selectedSegment = segs[0] || null;
+  }
+
+  _allSegmentNames() {
+    const names = [];
+    for (const f of StoryView.FILES) {
+      const segs = this.docs[f] && this.docs[f].segments;
+      if (Array.isArray(segs)) for (const s of segs) if (s && s.name) names.push(s.name);
+    }
+    return names;
   }
 
   _renderLayout() {
     this.container.innerHTML = `
+      <div class="story-file-tabs">
+        <span style="font-size:12px; color:var(--text-muted); margin-right:4px;">剧本文件:</span>
+        ${StoryView.FILES.map(f => `
+          <button class="story-file-btn ${f === this.activeFile ? 'active' : ''}" data-file="${f}">
+            📜 ${f}.story.json (${(this.docs[f].segments || []).length}段)
+          </button>
+        `).join('')}
+      </div>
       <div class="view-split-layout">
-        <!-- 左侧段落列表 -->
         <div class="sidebar-panel">
           <div class="sidebar-header">
             <input type="text" id="segSearch" class="search-input" placeholder="🔍 搜索剧情段落名称..." value="${this.searchKeyword}">
@@ -6755,19 +6836,18 @@ class StoryView {
             ${this._renderSegmentListHtml()}
           </div>
         </div>
-
-        <!-- 右侧对白时间线画布 -->
         <div class="detail-panel" id="storyTimeline">
           ${this.selectedSegment ? this._renderTimelineHtml(this.selectedSegment) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一个剧情段落展开对话流</div>'}
         </div>
       </div>
     `;
-
     this._bindEvents();
   }
 
   _renderSegmentListHtml() {
-    const list = this._getFilteredSegments();
+    const doc = this.docs[this.activeFile];
+    const segs = doc && Array.isArray(doc.segments) ? doc.segments : [];
+    const list = segs.filter(s => !this.searchKeyword || (s.name && s.name.includes(this.searchKeyword)));
     if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的剧情段落</div>';
     return list.map(s => {
       const isSelected = this.selectedSegment && this.selectedSegment.name === s.name;
@@ -6782,86 +6862,228 @@ class StoryView {
     }).join('');
   }
 
+  // ===== 递归步骤渲染 =====
+
+  _renderStepsHtml(steps, pathStr, depth) {
+    const list = Array.isArray(steps) ? steps : [];
+    if (list.length === 0) {
+      return `<div style="font-size:12px; color:var(--text-muted); padding:4px 0;">（空步骤流）</div>`;
+    }
+    return list.map((step, idx) => this._renderStepHtml(step, `${pathStr}.${idx}`, depth)).join('');
+  }
+
+  _renderStepHtml(step, pathStr, depth) {
+    const kind = step.kind || 'dialogue';
+    const kindLabel = { dialogue: '对白', command: '指令', jump: '跳转', battle: '战斗', branch: '条件分支', choice: '抉择' }[kind] || kind;
+    const kindBadge = { dialogue: 'badge-purple', command: 'badge-blue', jump: 'badge-green', battle: 'badge-red', branch: 'badge-gold', choice: 'badge-gold' }[kind] || 'badge-blue';
+
+    let body = '';
+    if (kind === 'dialogue') {
+      body = `
+        <div class="form-row">
+          <div class="form-group" style="max-width:260px;">
+            <label>说话者 (speaker)</label>
+            <input type="text" class="input-field st-field" data-target="${pathStr}.speaker" value="${step.speaker || ''}" placeholder="小虾米 / 南贤 / ...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>台词 (text)</label>
+          <textarea class="input-field st-field" data-target="${pathStr}.text" style="min-height:52px;">${step.text || ''}</textarea>
+        </div>
+      `;
+    } else if (kind === 'command') {
+      body = `
+        <div class="form-group">
+          <label>指令调用 (call) — 形如 item('物品ID', 数量)、change_silver(500)</label>
+          <input type="text" class="input-field st-field" data-target="${pathStr}.call" value="${step.call || ''}" list="storyCallList" placeholder="change_item('木剑', 1)">
+        </div>
+      `;
+    } else if (kind === 'jump') {
+      body = `
+        <div class="form-group">
+          <label>跳转目标段落 (target)</label>
+          <input type="text" class="input-field st-field" data-target="${pathStr}.target" value="${step.target || ''}" list="storyTargetList" placeholder="目标段落名">
+        </div>
+      `;
+    } else if (kind === 'battle') {
+      const oc = step.outcomes || {};
+      body = `
+        <div class="form-group">
+          <label>战斗ID (battleId)</label>
+          <input type="text" class="input-field st-field" data-target="${pathStr}.battleId" value="${step.battleId || ''}" list="storyBattleList">
+        </div>
+        <div class="nested-steps">
+          <div class="nested-title">🏆 胜利后步骤 (outcomes.win)</div>
+          ${this._renderStepsHtml(oc.win, `${pathStr}.outcomes.win`, depth + 1)}
+        </div>
+        <div class="nested-steps">
+          <div class="nested-title">💀 失败后步骤 (outcomes.lose)
+            ${Array.isArray(oc.lose) ? '' : `<button class="btn btn-secondary btn-sm st-add-lose" data-path="${pathStr}" type="button">+ 添加失败分支</button>`}
+          </div>
+          ${Array.isArray(oc.lose) ? this._renderStepsHtml(oc.lose, `${pathStr}.outcomes.lose`, depth + 1) : '<div style="font-size:12px; color:var(--text-muted);">失败将直接进入全局失败流程</div>'}
+        </div>
+      `;
+    } else if (kind === 'branch') {
+      const cases = Array.isArray(step.cases) ? step.cases : [];
+      body = `
+        ${cases.map((c, ci) => `
+          <div class="nested-steps">
+            <div class="nested-title">
+              条件分支 #${ci + 1} (when)
+              <input type="text" class="input-field st-field" style="flex:1; min-width:220px;" data-target="${pathStr}.cases.${ci}.when" value="${c.when || ''}" placeholder="character_level('主角') >= 5">
+              <button class="btn btn-danger btn-sm st-del-case" data-path="${pathStr}" data-idx="${ci}" type="button">✕ 删除分支</button>
+            </div>
+            ${this._renderStepsHtml(c.steps, `${pathStr}.cases.${ci}.steps`, depth + 1)}
+          </div>
+        `).join('')}
+        <div style="display:flex; gap:6px; margin:6px 0;">
+          <button class="btn btn-secondary btn-sm st-add-case" data-path="${pathStr}" type="button">+ 添加条件分支</button>
+        </div>
+        <div class="nested-steps">
+          <div class="nested-title">🪂 兜底步骤 (fallback，无条件执行)</div>
+          ${this._renderStepsHtml(step.fallback, `${pathStr}.fallback`, depth + 1)}
+        </div>
+      `;
+    } else if (kind === 'choice') {
+      const prompt = step.prompt || {};
+      const blocks = Array.isArray(step.blocks) ? step.blocks : [];
+      body = `
+        <div class="form-row">
+          <div class="form-group" style="max-width:220px;">
+            <label>提问者 (prompt.speaker)</label>
+            <input type="text" class="input-field st-field" data-target="${pathStr}.prompt.speaker" value="${prompt.speaker || ''}">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>题干 (prompt.text)</label>
+            <input type="text" class="input-field st-field" data-target="${pathStr}.prompt.text" value="${prompt.text || ''}">
+          </div>
+        </div>
+        ${blocks.map((b, bi) => `
+          <div class="nested-steps">
+            <div class="nested-title">
+              选项块 #${bi + 1} (kind: ${b.kind || 'options'})
+              <button class="btn btn-danger btn-sm st-del-block" data-path="${pathStr}" data-idx="${bi}" type="button">✕ 删除选项块</button>
+            </div>
+            ${(b.options || []).map((o, oi) => `
+              <div class="affix-row">
+                <div class="affix-row-head">
+                  <input type="text" class="input-field st-field" style="flex:1; min-width:200px;" data-target="${pathStr}.blocks.${bi}.options.${oi}.text" value="${o.text || ''}" placeholder="选项描述">
+                  <input type="text" class="input-field st-field" style="width:200px;" data-target="${pathStr}.blocks.${bi}.options.${oi}.when" value="${o.when || ''}" placeholder="显示条件 when (可空)">
+                  <button class="btn btn-danger btn-sm st-del-option" data-path="${pathStr}" data-bidx="${bi}" data-oidx="${oi}" type="button">✕</button>
+                </div>
+                <div class="nested-steps">
+                  <div class="nested-title">该选项被选中后的步骤</div>
+                  ${this._renderStepsHtml(o.steps, `${pathStr}.blocks.${bi}.options.${oi}.steps`, depth + 1)}
+                </div>
+              </div>
+            `).join('')}
+            <button class="btn btn-secondary btn-sm st-add-option" data-path="${pathStr}" data-bidx="${bi}" type="button">+ 添加选项</button>
+          </div>
+        `).join('')}
+        <button class="btn btn-secondary btn-sm st-add-block" data-path="${pathStr}" type="button">+ 添加选项块</button>
+      `;
+    }
+
+    return `
+      <div class="story-step-card">
+        <div class="step-header">
+          <div>
+            <span class="step-tag ${kindBadge}">#${pathStr.split('.').pop()} · ${kindLabel}</span>
+          </div>
+          <div class="btn-group" style="display:flex; gap:4px; align-items:center;">
+            <div class="step-move-btns">
+              <button class="btn btn-secondary st-move" data-path="${pathStr}" data-dir="-1" type="button" title="上移">↑</button>
+              <button class="btn btn-secondary st-move" data-path="${pathStr}" data-dir="1" type="button" title="下移">↓</button>
+            </div>
+            <button class="btn btn-danger btn-sm st-remove" data-path="${pathStr}" type="button">删除</button>
+          </div>
+        </div>
+        ${body}
+      </div>
+    `;
+  }
+
   _renderTimelineHtml(seg) {
-    const steps = seg.steps || [];
     return `
       <div class="form-scroll-wrapper">
         <div class="detail-header-bar">
           <div>
             <h2 class="detail-title text-purple">${seg.name}</h2>
-            <div class="detail-subtitle">剧情节点 · 共 ${steps.length} 个执行步骤</div>
+            <div class="detail-subtitle">剧本文件: ${this.activeFile}.story.json · 共 ${(seg.steps || []).length} 个执行步骤</div>
           </div>
           <div class="btn-group">
-            <button id="addDialogueStepBtn" class="btn btn-secondary">+ 插入对白 (Dialogue)</button>
-            <button id="addChoiceStepBtn" class="btn btn-secondary">+ 插入抉择 (Choice)</button>
-            <button id="addCommandStepBtn" class="btn btn-secondary">+ 插入指令 (Command)</button>
+            <button id="addDialogueStepBtn" class="btn btn-secondary">+ 对白</button>
+            <button id="addChoiceStepBtn" class="btn btn-secondary">+ 抉择</button>
+            <button id="addCommandStepBtn" class="btn btn-secondary">+ 指令</button>
+            <button id="addJumpStepBtn" class="btn btn-secondary">+ 跳转</button>
+            <button id="addBattleStepBtn" class="btn btn-secondary">+ 战斗</button>
+            <button id="addBranchStepBtn" class="btn btn-secondary">+ 条件分支</button>
             <button id="saveStoryBtn" class="btn btn-primary">💾 保存剧本</button>
           </div>
         </div>
 
         <div class="timeline-step-list" id="stepListContainer">
-          ${steps.length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center; padding:60px 0;">当前段落暂无对话或步骤，请点击上方按钮插入对白</div>' : steps.map((step, idx) => `
-            <div class="story-step-card" data-idx="${idx}">
-              <div class="step-header">
-                <div>
-                  <span class="step-tag ${step.kind === 'dialogue' ? 'badge-purple' : (step.kind === 'choice' ? 'badge-gold' : 'badge-blue')}">
-                    #${idx + 1} · ${step.kind.toUpperCase()}
-                  </span>
-                </div>
-                <div class="btn-group">
-                  <button class="btn btn-danger btn-sm remove-step-btn" data-idx="${idx}">删除此幕</button>
-                </div>
-              </div>
-
-              ${step.kind === 'dialogue' ? `
-                <div class="form-row">
-                  <div class="form-group" style="flex:1;">
-                    <label>说话者姓名/ID (speaker)</label>
-                    <input type="text" class="input-field step-speaker-input" data-idx="${idx}" value="${step.speaker || ''}" placeholder="例如: 小虾米、南贤、mysterious">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>台词文本 (text)</label>
-                  <textarea class="input-field step-text-input" data-idx="${idx}" style="min-height:60px;">${step.text || ''}</textarea>
-                </div>
-              ` : ''}
-
-              ${step.kind === 'choice' ? `
-                <div class="form-group">
-                  <label>题干引言 (prompt)</label>
-                  <input type="text" class="input-field step-prompt-input" data-idx="${idx}" value="${step.prompt || ''}">
-                </div>
-                <div style="margin-top:8px;">
-                  <label style="font-size:12px; color:var(--text-muted);">选择题分支选项 (Options)</label>
-                  ${((step.groups && step.groups[0] && step.groups[0].options) || []).map((opt, oIdx) => `
-                    <div style="display:flex; gap:6px; margin-top:6px;">
-                      <input type="text" class="input-field opt-text-input" data-idx="${idx}" data-oidx="${oIdx}" value="${opt.text || ''}" style="flex:1;" placeholder="选项描述">
-                      <input type="text" class="input-field opt-target-input" data-idx="${idx}" data-oidx="${oIdx}" value="${opt.target || ''}" style="width:180px;" placeholder="跳转段落 (target)">
-                    </div>
-                  `).join('')}
-                </div>
-              ` : ''}
-
-              ${step.kind === 'command' ? `
-                <div class="form-row">
-                  <div class="form-group" style="flex:1;">
-                    <label>指令名称 (command)</label>
-                    <input type="text" class="input-field step-cmd-name" data-idx="${idx}" value="${step.command || 'item'}">
-                  </div>
-                  <div class="form-group" style="flex:2;">
-                    <label>指令参数 (args: 以空格或逗号分隔)</label>
-                    <input type="text" class="input-field step-cmd-args" data-idx="${idx}" value="${Array.isArray(step.args) ? step.args.join(' ') : (step.args || '')}">
-                  </div>
-                </div>
-              ` : ''}
-            </div>
-          `).join('')}
+          ${(seg.steps || []).length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center; padding:60px 0;">当前段落暂无步骤，请点击上方按钮插入对白</div>' : this._renderStepsHtml(seg.steps, 'steps', 0)}
         </div>
       </div>
     `;
   }
 
+  // ===== 数据寻址与结构操作 =====
+
+  _resolveContainer(pathStr) {
+    // pathStr 指向一个 steps 数组（如 "steps.3.blocks.0.options.1.steps"），返回该数组
+    const keys = pathStr.split('.');
+    let obj = this.selectedSegment;
+    for (const k of keys) {
+      const key = isNaN(k) ? k : parseInt(k, 10);
+      obj = obj[key];
+      if (obj == null) return null;
+    }
+    return obj;
+  }
+
+  _assign(targetStr, value) {
+    const keys = targetStr.split('.');
+    let obj = this.selectedSegment;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const k = keys[i];
+      obj = obj[isNaN(k) ? k : parseInt(k, 10)];
+    }
+    const last = keys[keys.length - 1];
+    obj[isNaN(last) ? last : parseInt(last, 10)] = value;
+  }
+
+  _ensureOutcomes(step) {
+    if (!step.outcomes) step.outcomes = {};
+    return step.outcomes;
+  }
+
+  _refreshTimeline() {
+    const tl = this.container.querySelector('#storyTimeline');
+    if (tl) {
+      tl.innerHTML = this._renderTimelineHtml(this.selectedSegment);
+      this._bindTimelineEvents();
+    }
+    // 结构可能变化，左侧段落数量徽标同步刷新
+    const listEl = this.container.querySelector('#segList');
+    if (listEl) {
+      listEl.innerHTML = this._renderSegmentListHtml();
+      this._bindListClickEvents();
+    }
+  }
+
+  // ===== 事件绑定 =====
+
   _bindEvents() {
+    this.container.querySelectorAll('.story-file-btn').forEach(btn => {
+      btn.onclick = () => {
+        this.activeFile = btn.dataset.file;
+        this._restoreSelection();
+        this._renderLayout();
+      };
+    });
+
     const searchInput = this.container.querySelector('#segSearch');
     if (searchInput) {
       searchInput.oninput = (e) => {
@@ -6876,17 +7098,13 @@ class StoryView {
       addSegBtn.onclick = () => {
         const segName = prompt('请输入新故事段落名称 (例如 "新手村_客栈对饮"):');
         if (segName && segName.trim()) {
-          const newSeg = {
-            name: segName.trim(),
-            steps: [
-              { kind: 'dialogue', speaker: '主角', text: '初入江湖，不知天高地厚……' }
-            ]
-          };
-          if (!this.storyDoc.segments) this.storyDoc.segments = [];
-          this.storyDoc.segments.push(newSeg);
+          const newSeg = { name: segName.trim(), steps: [] };
+          const doc = this.docs[this.activeFile];
+          if (!Array.isArray(doc.segments)) doc.segments = [];
+          doc.segments.push(newSeg);
           this.selectedSegment = newSeg;
           this._renderLayout();
-          this.notify(`已创建新段落《${newSeg.name}》`);
+          this.notify(`已在 ${this.activeFile}.story.json 创建新段落《${newSeg.name}》`);
         }
       };
     }
@@ -6899,10 +7117,11 @@ class StoryView {
     this.container.querySelectorAll('.list-item-card').forEach(card => {
       card.onclick = () => {
         const name = card.dataset.name;
-        this.selectedSegment = this.storyDoc.segments.find(s => s.name === name);
+        const segs = this.docs[this.activeFile].segments || [];
+        this.selectedSegment = segs.find(s => s.name === name);
         this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
-        this.container.querySelector('#storyTimeline').innerHTML = this._renderTimelineHtml(this.selectedSegment);
+        this.container.querySelector('#storyTimeline').innerHTML = this.selectedSegment ? this._renderTimelineHtml(this.selectedSegment) : '';
         this._bindTimelineEvents();
       };
     });
@@ -6912,106 +7131,121 @@ class StoryView {
     if (!this.selectedSegment) return;
     const seg = this.selectedSegment;
 
-    const addDiaBtn = this.container.querySelector('#addDialogueStepBtn');
-    if (addDiaBtn) {
-      addDiaBtn.onclick = () => {
-        if (!seg.steps) seg.steps = [];
-        seg.steps.push({ kind: 'dialogue', speaker: '小虾米', text: '请问阁下高姓大名？' });
-        this._renderLayout();
+    // 顶层插入按钮
+    const topAdd = (id, make) => {
+      const btn = this.container.querySelector(id);
+      if (btn) btn.onclick = () => {
+        if (!Array.isArray(seg.steps)) seg.steps = [];
+        seg.steps.push(make());
+        this._refreshTimeline();
       };
-    }
+    };
+    topAdd('#addDialogueStepBtn', () => ({ kind: 'dialogue', speaker: '小虾米', text: '' }));
+    topAdd('#addCommandStepBtn', () => ({ kind: 'command', call: '' }));
+    topAdd('#addJumpStepBtn', () => ({ kind: 'jump', target: '' }));
+    topAdd('#addBattleStepBtn', () => ({ kind: 'battle', battleId: '', outcomes: { win: [] } }));
+    topAdd('#addBranchStepBtn', () => ({ kind: 'branch', cases: [], fallback: [] }));
+    topAdd('#addChoiceStepBtn', () => ({
+      kind: 'choice',
+      prompt: { speaker: '', text: '你决定如何应对？' },
+      blocks: [{ kind: 'options', options: [{ text: '选项一', steps: [] }, { text: '选项二', steps: [] }] }]
+    }));
 
-    const addChoiceBtn = this.container.querySelector('#addChoiceStepBtn');
-    if (addChoiceBtn) {
-      addChoiceBtn.onclick = () => {
-        if (!seg.steps) seg.steps = [];
-        seg.steps.push({
-          kind: 'choice',
-          prompt: '你决定如何应对当下的局势？',
-          groups: [
-            {
-              options: [
-                { index: 0, text: '拔刀相助，绝不退缩！', target: '新手村_行侠仗义' },
-                { index: 1, text: '暂且隐忍，徐图后计。', target: '新手村_避其锋芒' }
-              ]
-            }
-          ]
-        });
-        this._renderLayout();
-      };
-    }
+    // 字段赋值（含嵌套 prompt.speaker 等）
+    this.container.querySelectorAll('.st-field').forEach(inp => {
+      inp.onchange = () => this._assign(inp.dataset.target, inp.value);
+    });
 
-    const addCmdBtn = this.container.querySelector('#addCommandStepBtn');
-    if (addCmdBtn) {
-      addCmdBtn.onclick = () => {
-        if (!seg.steps) seg.steps = [];
-        seg.steps.push({ kind: 'command', command: 'item', args: ['木刀', '1'] });
-        this._renderLayout();
-      };
-    }
-
-    this.container.querySelectorAll('.remove-step-btn').forEach(btn => {
+    // 结构操作（统一按 data-path 定位）
+    this.container.querySelectorAll('.st-move').forEach(btn => {
       btn.onclick = () => {
-        const idx = parseInt(btn.dataset.idx, 10);
-        seg.steps.splice(idx, 1);
-        this._renderLayout();
-      };
-    });
-
-    this.container.querySelectorAll('.step-speaker-input').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        if (seg.steps[idx]) seg.steps[idx].speaker = inp.value.trim();
-      };
-    });
-
-    this.container.querySelectorAll('.step-text-input').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        if (seg.steps[idx]) seg.steps[idx].text = inp.value.trim();
-      };
-    });
-
-    this.container.querySelectorAll('.step-prompt-input').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        if (seg.steps[idx]) seg.steps[idx].prompt = inp.value.trim();
-      };
-    });
-
-    this.container.querySelectorAll('.opt-text-input').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        const oidx = parseInt(inp.dataset.oidx, 10);
-        if (seg.steps[idx] && seg.steps[idx].groups && seg.steps[idx].groups[0].options[oidx]) {
-          seg.steps[idx].groups[0].options[oidx].text = inp.value.trim();
+        const arr = this._resolveContainer(btn.dataset.path.replace(/\.\d+$/, ''));
+        const idx = parseInt(btn.dataset.path.split('.').pop(), 10);
+        const dir = parseInt(btn.dataset.dir, 10);
+        const to = idx + dir;
+        if (arr && to >= 0 && to < arr.length) {
+          [arr[idx], arr[to]] = [arr[to], arr[idx]];
+          this._refreshTimeline();
         }
       };
     });
 
-    this.container.querySelectorAll('.opt-target-input').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        const oidx = parseInt(inp.dataset.oidx, 10);
-        if (seg.steps[idx] && seg.steps[idx].groups && seg.steps[idx].groups[0].options[oidx]) {
-          seg.steps[idx].groups[0].options[oidx].target = inp.value.trim();
+    this.container.querySelectorAll('.st-remove').forEach(btn => {
+      btn.onclick = () => {
+        const arr = this._resolveContainer(btn.dataset.path.replace(/\.\d+$/, ''));
+        const idx = parseInt(btn.dataset.path.split('.').pop(), 10);
+        if (arr) { arr.splice(idx, 1); this._refreshTimeline(); }
+      };
+    });
+
+    this.container.querySelectorAll('.st-add-option').forEach(btn => {
+      btn.onclick = () => {
+        const block = this._resolveContainer(`${btn.dataset.path}.blocks.${btn.dataset.bidx}`);
+        if (block) {
+          if (!Array.isArray(block.options)) block.options = [];
+          block.options.push({ text: '新选项', steps: [] });
+          this._refreshTimeline();
         }
       };
     });
 
-    this.container.querySelectorAll('.step-cmd-name').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        if (seg.steps[idx]) seg.steps[idx].command = inp.value.trim();
+    this.container.querySelectorAll('.st-del-option').forEach(btn => {
+      btn.onclick = () => {
+        const block = this._resolveContainer(`${btn.dataset.path}.blocks.${btn.dataset.bidx}`);
+        if (block && Array.isArray(block.options)) {
+          block.options.splice(parseInt(btn.dataset.oidx, 10), 1);
+          this._refreshTimeline();
+        }
       };
     });
 
-    this.container.querySelectorAll('.step-cmd-args').forEach(inp => {
-      inp.onchange = () => {
-        const idx = parseInt(inp.dataset.idx, 10);
-        if (seg.steps[idx]) {
-          const parts = inp.value.trim().split(/[\s,]+/).filter(Boolean);
-          seg.steps[idx].args = parts;
+    this.container.querySelectorAll('.st-add-block').forEach(btn => {
+      btn.onclick = () => {
+        const step = this._resolveContainer(btn.dataset.path.replace(/\.blocks\.\d+$/, ''));
+        if (step && Array.isArray(step.blocks)) {
+          step.blocks.push({ kind: 'options', options: [{ text: '新选项', steps: [] }] });
+          this._refreshTimeline();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.st-del-block').forEach(btn => {
+      btn.onclick = () => {
+        const step = this._resolveContainer(btn.dataset.path.replace(/\.blocks\.\d+$/, ''));
+        if (step && Array.isArray(step.blocks)) {
+          step.blocks.splice(parseInt(btn.dataset.idx, 10), 1);
+          this._refreshTimeline();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.st-add-case').forEach(btn => {
+      btn.onclick = () => {
+        const step = this._resolveContainer(btn.dataset.path.replace(/\.cases\.\d+$/, ''));
+        if (step && Array.isArray(step.cases)) {
+          step.cases.push({ when: '', steps: [] });
+          this._refreshTimeline();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.st-del-case').forEach(btn => {
+      btn.onclick = () => {
+        const step = this._resolveContainer(btn.dataset.path.replace(/\.cases\.\d+$/, ''));
+        if (step && Array.isArray(step.cases)) {
+          step.cases.splice(parseInt(btn.dataset.idx, 10), 1);
+          this._refreshTimeline();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.st-add-lose').forEach(btn => {
+      btn.onclick = () => {
+        const step = this._resolveContainer(btn.dataset.path);
+        if (step) {
+          const oc = this._ensureOutcomes(step);
+          if (!Array.isArray(oc.lose)) oc.lose = [];
+          this._refreshTimeline();
         }
       };
     });
@@ -7020,11 +7254,10 @@ class StoryView {
     if (saveBtn) {
       saveBtn.onclick = async () => {
         saveBtn.innerText = '⏳ 保存中...';
-        const res = await this.adapter.saveMainStory(this.storyDoc);
+        const res = await this.adapter.saveStoryFile(this.activeFile, this.docs[this.activeFile]);
         saveBtn.innerText = '💾 保存剧本';
         if (res.success) {
-          this.notify(`成功保存剧情段落至 stories/main.story.json！${describeSaveState(res)}`, saveToastType(res));
-          this._renderLayout();
+          this.notify(`成功保存剧本至 stories/${this.activeFile}.story.json！${describeSaveState(res)}`, saveToastType(res));
         } else {
           this.notify('剧本保存失败: ' + (res.error || '未知错误'), 'error');
         }
@@ -7032,6 +7265,7 @@ class StoryView {
     }
   }
 }
+
 
 /**
  * HealthView: 全局数据健康检查
