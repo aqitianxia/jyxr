@@ -1136,6 +1136,8 @@ textarea.input-field {
         <button class="nav-tab-btn active" data-tab="items">🗡️ 神兵与道具工坊</button>
         <button class="nav-tab-btn" data-tab="skills">🥋 武学与招式工坊</button>
         <button class="nav-tab-btn" data-tab="characters">👤 侠客与宗师工坊</button>
+        <button class="nav-tab-btn" data-tab="talents_buffs">🧩 天赋与状态工坊</button>
+        <button class="nav-tab-btn" data-tab="shops">🏪 商店工坊</button>
         <button class="nav-tab-btn" data-tab="battles">⚔️ 战棋与战场工坊</button>
         <button class="nav-tab-btn" data-tab="stories">📜 剧情对白流编排</button>
         <button class="nav-tab-btn" data-tab="health">🔍 全局健康检查</button>
@@ -1160,6 +1162,12 @@ textarea.input-field {
 
   <!-- 全局媒体/原画选择弹窗挂载点 -->
   <div id="mediaPickerModalContainer"></div>
+
+  <!-- 全局引用下拉数据源 -->
+  <datalist id="affixSkillIdList"></datalist>
+  <datalist id="affixExtSkillIdList"></datalist>
+  <datalist id="affixBuffIdList"></datalist>
+  <datalist id="affixItemIdList"></datalist>
 
   <!-- 内联独立全能脚本 -->
   <script>
@@ -1352,6 +1360,7 @@ class FileSystemDriver {
       'data/item-tags.json',
       'data/random-affix-tables.json',
       'data/sects.json',
+      'data/shops.json',
       'data/grow-templates.json',
       'data/towers.json',
       'data/game-tips.json',
@@ -2436,6 +2445,21 @@ class JsonDataAdapter {
 
   loadInternalSkills() { return this.fs.readJson('internal-skills.json') || []; }
   async saveInternalSkills(skills) { return await this.fs.writeJson('internal-skills.json', skills); }
+
+  loadTalents() { return this.fs.readJson('talents.json') || []; }
+  async saveTalents(talents) { return await this.fs.writeJson('talents.json', talents); }
+
+  loadBuffs() { return this.fs.readJson('buffs.json') || []; }
+  async saveBuffs(buffs) { return await this.fs.writeJson('buffs.json', buffs); }
+
+  loadSpecialSkills() { return this.fs.readJson('special-skills.json') || []; }
+  async saveSpecialSkills(skills) { return await this.fs.writeJson('special-skills.json', skills); }
+
+  loadLegendSkills() { return this.fs.readJson('legend-skills.json') || []; }
+  async saveLegendSkills(skills) { return await this.fs.writeJson('legend-skills.json', skills); }
+
+  loadShops() { return this.fs.readJson('shops.json') || []; }
+  async saveShops(shops) { return await this.fs.writeJson('shops.json', shops); }
 
   loadCharacters() { return this.fs.readJson('characters.json') || []; }
   async saveCharacters(characters) { return await this.fs.writeJson('characters.json', characters); }
@@ -3845,7 +3869,9 @@ class MartialArtsHubView {
   _modes() {
     return [
       { key: 'external', label: '🗡️ 外功招式', create: () => new SkillView(this.adapter, this.refIndex, this.notify) },
-      { key: 'internal', label: '🧘 内功心法', create: () => new InternalSkillView(this.adapter, this.refIndex, this.notify) }
+      { key: 'internal', label: '🧘 内功心法', create: () => new InternalSkillView(this.adapter, this.refIndex, this.notify) },
+      { key: 'special', label: '⚡ 绝技', create: () => new SpecialSkillView(this.adapter, this.refIndex, this.notify) },
+      { key: 'legend', label: '🌟 传奇技', create: () => new LegendSkillView(this.adapter, this.refIndex, this.notify) }
     ];
   }
 
@@ -3875,6 +3901,1293 @@ class MartialArtsHubView {
       sub.innerHTML = '';
       mode.create().render(sub);
     }
+  }
+}
+
+/**
+ * SimpleAffixDocView: 通用「名称+说明+简单字段+affix 词条」数据工坊视图
+ * 天赋 (talents) / 状态 (buffs) 等同构数据共用，由 cfg 驱动差异字段。
+ */
+class SimpleAffixDocView {
+  constructor(adapter, refIndex, onSaveNotification, cfg) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.affixEditor = new AffixEditor(refIndex);
+    this.notify = onSaveNotification;
+    this.cfg = cfg;
+    this.docs = [];
+    this.selectedDoc = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.docs = this.cfg.load();
+    if (this.docs.length > 0 && !this.selectedDoc) {
+      this.selectedDoc = this.docs[0];
+    }
+    this._renderLayout();
+  }
+
+  _getFiltered() {
+    return this.docs.filter(d => {
+      return !this.searchKeyword ||
+        (d.name && d.name.includes(this.searchKeyword)) ||
+        (d.id && d.id.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="sadSearch" class="search-input" placeholder="🔍 搜索${this.cfg.itemNoun}..." value="${this.searchKeyword}">
+            <button id="sadAddBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新建${this.cfg.itemNoun}</button>
+          </div>
+          <div class="item-list-scroll" id="sadList">
+            ${this._renderListHtml()}
+          </div>
+        </div>
+        <div class="detail-panel" id="sadDetail">
+          ${this.selectedDoc ? this._renderDetailHtml(this.selectedDoc) : `<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一个${this.cfg.itemNoun}</div>`}
+        </div>
+      </div>
+    `;
+    this._bindEvents();
+  }
+
+  _renderListHtml() {
+    const list = this._getFiltered();
+    if (list.length === 0) return `<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的${this.cfg.itemNoun}</div>`;
+    return list.map(d => {
+      const isSelected = this.selectedDoc && d.id === this.selectedDoc.id;
+      const meta = this.cfg.listMeta ? this.cfg.listMeta(d) : '';
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${d.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${d.name || d.id}</span>
+              <span class="item-badge badge-purple">${(d.affixes || []).length}词条</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${d.id}</span>
+              ${meta}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(d) {
+    const numberFields = (this.cfg.numbers || []).map(f => `
+      <div class="form-group">
+        <label>${f.label} (${f.key})</label>
+        <input type="number" step="${f.step || 1}" class="input-field sad-num" data-key="${f.key}" value="${d[f.key] != null ? d[f.key] : (f.def != null ? f.def : 0)}">
+      </div>
+    `).join('');
+
+    const selectFields = (this.cfg.selects || []).map(f => `
+      <div class="form-group">
+        <label>${f.label} (${f.key})</label>
+        <select class="input-field sad-sel" data-key="${f.key}">
+          ${f.options.map(o => `<option value="${String(o.value)}" ${String(d[f.key]) === String(o.value) ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+      </div>
+    `).join('');
+
+    const idListEditors = (this.cfg.idLists || []).map(f => {
+      const ids = Array.isArray(d[f.key]) ? d[f.key] : [];
+      const source = f.source() || [];
+      return `
+        <div class="form-group" style="margin-top:8px;">
+          <label>${f.label} (${f.key}) — ${ids.length} 个</label>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+            ${ids.map((tid, i) => `<span class="req-chip">${tid} <button class="sad-idlist-del btn btn-danger btn-sm" data-key="${f.key}" data-idx="${i}" style="padding:0 6px;">✕</button></span>`).join('') || '<span style="font-size:12px; color:var(--text-muted);">无</span>'}
+          </div>
+          <div style="display:flex; gap:6px;">
+            <select class="input-field sad-idlist-new" data-key="${f.key}" style="width:220px;">
+              ${source.map(id => `<option value="${id}">${id}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm sad-idlist-add" data-key="${f.key}" type="button">+ 添加</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header">
+          <h2>${d.name || d.id}</h2>
+          <div class="detail-subtitle">ID: <code>${d.id}</code> · 词条 ${(d.affixes || []).length} 条</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="sadSaveBtn" class="btn btn-primary">💾 保存更改</button>
+            <button id="sadDupBtn" class="btn btn-secondary">⧉ 克隆</button>
+            <button id="sadDelBtn" class="btn btn-danger">🗑️ 删除</button>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🧾 基础信息</h3>
+          <div class="form-row">
+            <div class="form-group"><label>名称 (name)</label><input type="text" class="input-field" id="sad_name" value="${d.name || ''}"></div>
+            <div class="form-group"><label>唯一ID (id)</label><input type="text" class="input-field" id="sad_id" value="${d.id || ''}"></div>
+          </div>
+          <div class="form-group">
+            <label>说明 (description)</label>
+            <textarea class="input-field" id="sad_description" rows="2">${d.description || ''}</textarea>
+          </div>
+        </div>
+
+        ${(this.cfg.numbers || []).length || (this.cfg.selects || []).length ? `
+        <div class="form-card">
+          <h3>⚙️ 参数</h3>
+          <div class="form-row">${numberFields}${selectFields}</div>
+        </div>` : ''}
+
+        ${idListEditors ? `<div class="form-card"><h3>🔗 关联</h3>${idListEditors}</div>` : ''}
+
+        <div class="form-card">
+          <h3>✨ 词条 (affixes)</h3>
+          <div id="sadAffixHost">${this.affixEditor.render(d.affixes, { showRequiresEquipped: this.cfg.showRequiresEquipped !== false })}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#sadSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#sadList').innerHTML = this._renderListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#sadAddBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const d = this.cfg.defaults();
+        this.docs.unshift(d);
+        this.selectedDoc = d;
+        this._renderLayout();
+        this.notify(`已新建${this.cfg.itemNoun}，请调校后保存！`);
+      };
+    }
+
+    this._bindListClickEvents();
+    if (!this.selectedDoc) return;
+    const d = this.selectedDoc;
+
+    const affixHost = this.container.querySelector('#sadAffixHost');
+    if (affixHost) {
+      this.affixEditor.bind(affixHost, d.affixes, (r) => this._onAffixChange(affixHost, d, r));
+    }
+
+    this.container.querySelectorAll('.sad-idlist-add').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.key;
+        const sel = this.container.querySelector(`.sad-idlist-new[data-key="${key}"]`);
+        if (sel && sel.value) {
+          if (!Array.isArray(d[key])) d[key] = [];
+          if (!d[key].includes(sel.value)) {
+            d[key].push(sel.value);
+            this._renderLayout();
+          }
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.sad-idlist-del').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.key;
+        d[key].splice(parseInt(btn.dataset.idx, 10), 1);
+        this._renderLayout();
+      };
+    });
+
+    const dupBtn = this.container.querySelector('#sadDupBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(d));
+        cloned.id = d.id + '_copy';
+        cloned.name = (d.name || d.id) + ' (副本)';
+        this.docs.unshift(cloned);
+        this.selectedDoc = cloned;
+        this._renderLayout();
+        this.notify('克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#sadDelBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (!confirm(`确定删除《${d.name || d.id}》吗？`)) return;
+        const idx = this.docs.findIndex(x => x.id === d.id);
+        if (idx !== -1) this.docs.splice(idx, 1);
+        this.selectedDoc = this.docs[0] || null;
+        this._renderLayout();
+        this.notify('已删除');
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#sadSaveBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        d.name = this.container.querySelector('#sad_name').value.trim();
+        d.id = this.container.querySelector('#sad_id').value.trim() || d.id;
+        d.description = this.container.querySelector('#sad_description').value;
+        (this.cfg.numbers || []).forEach(f => {
+          const el = this.container.querySelector(`.sad-num[data-key="${f.key}"]`);
+          if (el) d[f.key] = f.integer ? (parseInt(el.value, 10) || 0) : (parseFloat(el.value) || 0);
+        });
+        (this.cfg.selects || []).forEach(f => {
+          const el = this.container.querySelector(`.sad-sel[data-key="${f.key}"]`);
+          if (el) d[f.key] = f.parseBoolean ? el.value === 'true' : el.value;
+        });
+
+        const res = await this.cfg.save(this.docs);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.docs.length} 个${this.cfg.itemNoun}${describeSaveState(res)}`, saveToastType(res));
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _onAffixChange(affixHost, d, rebuild) {
+    if (rebuild) {
+      affixHost.innerHTML = this.affixEditor.render(d.affixes, { showRequiresEquipped: this.cfg.showRequiresEquipped !== false });
+      this.affixEditor.bind(affixHost, d.affixes, (r) => this._onAffixChange(affixHost, d, r));
+    }
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedDoc = this.docs.find(x => x.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#sadDetail').innerHTML = this.selectedDoc ? this._renderDetailHtml(this.selectedDoc) : '';
+        this._bindEvents();
+      };
+    });
+  }
+}
+
+/**
+ * BuffListEditor: 战斗状态 (buffs) 行编辑器
+ * 元素结构: { id, level, duration, chance? } — 绝技/传奇技共用。
+ */
+class BuffListEditor {
+  static html(arr, opts = {}) {
+    const list = Array.isArray(arr) ? arr : [];
+    return `
+      <div class="buff-list-editor" data-buff-host="1">
+        ${list.length === 0 ? '<div class="empty-hint" style="font-size:12.5px; padding:6px; color:var(--text-muted);">暂无状态条目</div>' : list.map((b, i) => `
+          <div class="affix-row" data-idx="${i}">
+            <div class="affix-row-body">
+              <input type="text" class="input-field bl-id" data-idx="${i}" value="${b.id || ''}" placeholder="状态ID" style="width:150px;" list="affixBuffIdList">
+              <label class="affix-eq">等级 <input type="number" class="input-field bl-level" data-idx="${i}" value="${b.level != null ? b.level : 1}" min="1" style="width:60px;"></label>
+              <label class="affix-eq">持续 <input type="number" class="input-field bl-duration" data-idx="${i}" value="${b.duration != null ? b.duration : 2}" min="1" style="width:60px;"></label>
+              <label class="affix-eq">几率% <input type="number" class="input-field bl-chance" data-idx="${i}" value="${b.chance != null ? b.chance : ''}" min="1" max="100" style="width:64px;"></label>
+              <button class="btn btn-danger btn-sm bl-del" data-idx="${i}" type="button">✕</button>
+            </div>
+          </div>
+        `).join('')}
+        <button class="btn btn-secondary btn-sm bl-add" type="button">+ 添加状态</button>
+      </div>
+    `;
+  }
+
+  static bind(rootEl, arr, onChange) {
+    const host = rootEl.querySelector('[data-buff-host]') || rootEl;
+    if (!host || !Array.isArray(arr)) return;
+    host.querySelectorAll('.bl-add').forEach(btn => {
+      btn.onclick = () => { arr.push({ id: '', level: 1, duration: 2 }); onChange(true); };
+    });
+    host.querySelectorAll('.bl-del').forEach(btn => {
+      btn.onclick = () => { arr.splice(parseInt(btn.dataset.idx, 10), 1); onChange(true); };
+    });
+    host.querySelectorAll('.bl-id').forEach(inp => {
+      inp.onchange = () => { const b = arr[parseInt(inp.dataset.idx, 10)]; if (b) b.id = inp.value.trim(); onChange(false); };
+    });
+    host.querySelectorAll('.bl-level').forEach(inp => {
+      inp.onchange = () => { const b = arr[parseInt(inp.dataset.idx, 10)]; if (b) b.level = parseInt(inp.value, 10) || 1; onChange(false); };
+    });
+    host.querySelectorAll('.bl-duration').forEach(inp => {
+      inp.onchange = () => { const b = arr[parseInt(inp.dataset.idx, 10)]; if (b) b.duration = parseInt(inp.value, 10) || 1; onChange(false); };
+    });
+    host.querySelectorAll('.bl-chance').forEach(inp => {
+      inp.onchange = () => {
+        const b = arr[parseInt(inp.dataset.idx, 10)];
+        if (!b) return;
+        const v = parseInt(inp.value, 10);
+        if (v > 0) b.chance = v; else delete b.chance;
+        onChange(false);
+      };
+    });
+  }
+}
+
+/**
+ * TalentBuffHubView: 天赋与状态工坊 — talents / buffs 子页签
+ */
+class TalentBuffHubView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.notify = onSaveNotification;
+    this.activeMode = 'talents';
+  }
+
+  _modes() {
+    return [
+      {
+        key: 'talents', label: '🌟 天赋', create: () => new SimpleAffixDocView(this.adapter, this.refIndex, this.notify, {
+          itemNoun: '天赋',
+          load: () => this.adapter.loadTalents(),
+          save: (docs) => this.adapter.saveTalents(docs),
+          listMeta: (d) => `<span>点数 ${d.point != null ? d.point : 1}</span>`,
+          numbers: [{ key: 'point', label: '解锁点数', step: 1, integer: true, def: 1 }],
+          idLists: [{ key: 'replaceTalentIds', label: '被替换/互斥天赋', source: () => this.refIndex.talents.map(t => t.id).filter(id => id !== (this.selectedDoc && this.selectedDoc.id)) }],
+          showRequiresEquipped: false,
+          defaults: () => ({ id: 'new_talent_' + Date.now().toString().slice(-4), name: '新天赋', description: '', point: 1, replaceTalentIds: [], affixes: [] })
+        })
+      },
+      {
+        key: 'buffs', label: '🌀 战斗状态', create: () => new SimpleAffixDocView(this.adapter, this.refIndex, this.notify, {
+          itemNoun: '战斗状态',
+          load: () => this.adapter.loadBuffs(),
+          save: (docs) => this.adapter.saveBuffs(docs),
+          listMeta: (d) => `<span>${d.isDebuff ? '🔻 减益' : '🔺 增益'}</span>`,
+          selects: [{
+            key: 'isDebuff', label: '类型', parseBoolean: true, options: [
+              { value: 'false', label: '🔺 增益 (isDebuff: false)' },
+              { value: 'true', label: '🔻 减益 (isDebuff: true)' }
+            ]
+          }],
+          showRequiresEquipped: false,
+          defaults: () => ({ id: 'new_buff_' + Date.now().toString().slice(-4), name: '新状态', description: '', isDebuff: false, affixes: [] })
+        })
+      }
+    ];
+  }
+
+  render(parentEl) {
+    const modes = this._modes();
+    if (!modes.some(m => m.key === this.activeMode)) this.activeMode = 'talents';
+    parentEl.innerHTML = `
+      <div class="hub-subtabs">
+        ${modes.map(m => `<button class="hub-subtab-btn ${m.key === this.activeMode ? 'active' : ''}" data-mode="${m.key}">${m.label}</button>`).join('')}
+      </div>
+      <div id="talentBuffSubContainer"></div>
+    `;
+    parentEl.querySelectorAll('.hub-subtab-btn').forEach(btn => {
+      btn.onclick = () => {
+        this.activeMode = btn.dataset.mode;
+        parentEl.querySelectorAll('.hub-subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === this.activeMode));
+        this._renderActive(parentEl);
+      };
+    });
+    this._renderActive(parentEl);
+  }
+
+  _renderActive(parentEl) {
+    const mode = this._modes().find(m => m.key === this.activeMode) || this._modes()[0];
+    const sub = parentEl.querySelector('#talentBuffSubContainer');
+    if (sub) {
+      sub.innerHTML = '';
+      mode.create().render(sub);
+    }
+  }
+}
+
+/**
+ * SpecialSkillView: 绝技工坊 (special-skills.json)
+ */
+class SpecialSkillView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.notify = onSaveNotification;
+    this.skills = [];
+    this.selectedSkill = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.skills = this.adapter.loadSpecialSkills();
+    if (this.skills.length > 0 && !this.selectedSkill) this.selectedSkill = this.skills[0];
+    this._renderLayout();
+  }
+
+  _getFiltered() {
+    return this.skills.filter(s => !this.searchKeyword ||
+      (s.name && s.name.includes(this.searchKeyword)) || (s.id && s.id.includes(this.searchKeyword)));
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="spSkillSearch" class="search-input" placeholder="🔍 搜索绝技名称或ID..." value="${this.searchKeyword}">
+            <button id="addSpSkillBtn" class="btn btn-primary" style="width:100%; margin-top:8px;">+ 新创绝技</button>
+          </div>
+          <div class="item-list-scroll" id="spSkillList">${this._renderListHtml()}</div>
+        </div>
+        <div class="detail-panel" id="spSkillDetail">
+          ${this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一门绝技</div>'}
+        </div>
+      </div>
+    `;
+    this._bindEvents();
+  }
+
+  _renderListHtml() {
+    const list = this._getFiltered();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的绝技</div>';
+    return list.map(s => {
+      const isSelected = this.selectedSkill && s.id === this.selectedSkill.id;
+      const t = s.targeting || {};
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${s.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${s.name || s.id}</span>
+              <span class="item-badge ${s.intent === 'Support' ? 'badge-green' : 'badge-red'}">${s.intent === 'Support' ? '支援' : '攻击'}</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${s.id}</span>
+              <span>射程${t.castSize ?? '-'} · CD${s.cooldown ?? '-'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(s) {
+    const cost = s.cost || {};
+    const t = s.targeting || {};
+    const impactTypes = ['single', 'line', 'plus', 'square', 'star', 'fan', 'all'];
+    const itOptions = (impactTypes.includes(t.impactType) || !t.impactType ? impactTypes : impactTypes.concat([t.impactType]));
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header">
+          <h2>${s.name || s.id}</h2>
+          <div class="detail-subtitle">ID: <code>${s.id}</code> · 状态 ${(s.buffs || []).length} · 效果 ${(s.effects || []).length}</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveSpSkillsBtn" class="btn btn-primary">💾 保存更改</button>
+            <button id="dupSpSkillBtn" class="btn btn-secondary">⧉ 克隆</button>
+            <button id="delSpSkillBtn" class="btn btn-danger">🗑️ 删除</button>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🧾 基础信息</h3>
+          <div class="form-row">
+            <div class="form-group"><label>名称 (name)</label><input type="text" class="input-field" id="sp_name" value="${s.name || ''}"></div>
+            <div class="form-group"><label>唯一ID (id)</label><input type="text" class="input-field" id="sp_id" value="${s.id || ''}"></div>
+            <div class="form-group">
+              <label>类型 (intent)</label>
+              <select class="input-field" id="sp_intent">
+                <option value="Offensive" ${s.intent !== 'Support' ? 'selected' : ''}>⚔️ 攻击 (Offensive)</option>
+                <option value="Support" ${s.intent === 'Support' ? 'selected' : ''}>🛡️ 支援 (Support)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>图标 (icon)</label>
+              <div style="display:flex; gap:6px;">
+                <input type="text" class="input-field" id="sp_icon" value="${s.icon || ''}" style="flex:1;">
+                <button class="btn btn-secondary btn-sm" id="pickSpIconBtn">🖼️</button>
+              </div>
+            </div>
+            <div class="form-group"><label>演出动画 (animation)</label><input type="text" class="input-field" id="sp_animation" value="${s.animation || ''}"></div>
+            <div class="form-group"><label>音效 (audio)</label><input type="text" class="input-field" id="sp_audio" value="${s.audio || ''}"></div>
+          </div>
+          <div class="form-group">
+            <label>说明 (description)</label>
+            <textarea class="input-field" id="sp_description" rows="2">${s.description || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>登场台词 (speech，每行一句)</label>
+            <textarea class="input-field" id="sp_speech" rows="2">${(s.speech && s.speech.lines || []).join('\n')}</textarea>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🎯 目标与消耗</h3>
+          <div class="form-row">
+            <div class="form-group"><label>施法射程 (castSize)</label><input type="number" class="input-field" id="sp_castSize" value="${t.castSize != null ? t.castSize : 1}" min="1" max="10"></div>
+            <div class="form-group">
+              <label>影响范围 (impactType)</label>
+              <select class="input-field" id="sp_impactType">
+                ${itOptions.map(v => `<option value="${v}" ${t.impactType === v ? 'selected' : ''}>${v}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group"><label>范围尺寸 (impactSize)</label><input type="number" class="input-field" id="sp_impactSize" value="${t.impactSize != null ? t.impactSize : 1}" min="1"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>允许自身为目标</label>
+              <select class="input-field" id="sp_canCastAtSelf">
+                <option value="true" ${t.canCastAtSelf ? 'selected' : ''}>是</option>
+                <option value="false" ${!t.canCastAtSelf ? 'selected' : ''}>否</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>范围可包含自身</label>
+              <select class="input-field" id="sp_canImpactSelf">
+                <option value="true" ${t.canImpactSelf ? 'selected' : ''}>是</option>
+                <option value="false" ${!t.canImpactSelf ? 'selected' : ''}>否</option>
+              </select>
+            </div>
+            <div class="form-group"><label>冷却 (cooldown)</label><input type="number" class="input-field" id="sp_cooldown" value="${s.cooldown != null ? s.cooldown : 0}" min="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>耗蓝 (cost.mp)</label><input type="number" class="input-field" id="sp_mp" value="${cost.mp != null ? cost.mp : 0}" min="0"></div>
+            <div class="form-group"><label>耗怒气 (cost.rage)</label><input type="number" class="input-field" id="sp_rage" value="${cost.rage != null ? cost.rage : 0}" min="0"></div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🌀 附加状态 (buffs)</h3>
+          ${BuffListEditor.html(s.buffs)}
+        </div>
+
+        <div class="form-card">
+          <h3>✨ 战斗效果 (effects) — JSON 编辑</h3>
+          <textarea class="input-field" id="sp_effects" rows="8" style="font-family:monospace; font-size:12px;">${JSON.stringify(s.effects || [], null, 2)}</textarea>
+          <button class="btn btn-secondary btn-sm" id="applySpEffectsBtn" style="margin-top:6px;">✔️ 应用效果 JSON</button>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#spSkillSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#spSkillList').innerHTML = this._renderListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addSpSkillBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const ns = {
+          id: 'new_jueji_' + Date.now().toString().slice(-4),
+          name: '新绝技', description: '', intent: 'Offensive', icon: null,
+          cooldown: 1, cost: { mp: 0, rage: 0 },
+          targeting: { castSize: 1, impactType: 'single', impactSize: 1 },
+          animation: null, audio: null, speech: null, buffs: [], effects: []
+        };
+        this.skills.unshift(ns);
+        this.selectedSkill = ns;
+        this._renderLayout();
+        this.notify('已新建绝技，请调校后保存！');
+      };
+    }
+
+    this._bindListClickEvents();
+    if (!this.selectedSkill) return;
+    const s = this.selectedSkill;
+
+    const pickIconBtn = this.container.querySelector('#pickSpIconBtn');
+    if (pickIconBtn) {
+      pickIconBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'icon', title: '挑选绝技图标', current: s.icon,
+          refIndex: this.refIndex, resourceResolver: this.resolver,
+          onSelect: (ref) => { s.icon = ref; this._renderLayout(); }
+        });
+      };
+    }
+
+    const applyEffectsBtn = this.container.querySelector('#applySpEffectsBtn');
+    if (applyEffectsBtn) {
+      applyEffectsBtn.onclick = () => {
+        try {
+          const parsed = JSON.parse(this.container.querySelector('#sp_effects').value);
+          if (!Array.isArray(parsed)) throw new Error('必须是 JSON 数组');
+          s.effects = parsed;
+          this.notify(`战斗效果已应用（${parsed.length} 条），记得保存`);
+        } catch (err) {
+          alert('效果 JSON 解析失败: ' + err.message);
+        }
+      };
+    }
+
+    BuffListEditor.bind(this.container, s.buffs, (r) => this._onBuffChange(s, r));
+
+    const dupBtn = this.container.querySelector('#dupSpSkillBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(s));
+        cloned.id = s.id + '_copy';
+        cloned.name = (s.name || s.id) + ' (副本)';
+        this.skills.unshift(cloned);
+        this.selectedSkill = cloned;
+        this._renderLayout();
+        this.notify('绝技克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#delSpSkillBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (!confirm(`确定删除绝技《${s.name || s.id}》吗？`)) return;
+        const idx = this.skills.findIndex(x => x.id === s.id);
+        if (idx !== -1) this.skills.splice(idx, 1);
+        this.selectedSkill = this.skills[0] || null;
+        this._renderLayout();
+        this.notify('绝技已删除');
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveSpSkillsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        s.name = this.container.querySelector('#sp_name').value.trim();
+        s.id = this.container.querySelector('#sp_id').value.trim() || s.id;
+        s.intent = this.container.querySelector('#sp_intent').value;
+        s.icon = this.container.querySelector('#sp_icon').value.trim() || null;
+        s.animation = this.container.querySelector('#sp_animation').value.trim() || null;
+        s.audio = this.container.querySelector('#sp_audio').value.trim() || null;
+        s.description = this.container.querySelector('#sp_description').value;
+        const speechLines = this.container.querySelector('#sp_speech').value.split('\n').map(x => x.trim()).filter(Boolean);
+        s.speech = speechLines.length ? { lines: speechLines } : null;
+        if (!s.targeting) s.targeting = {};
+        s.targeting.castSize = parseInt(this.container.querySelector('#sp_castSize').value, 10) || 1;
+        s.targeting.impactType = this.container.querySelector('#sp_impactType').value;
+        s.targeting.impactSize = parseInt(this.container.querySelector('#sp_impactSize').value, 10) || 1;
+        if (this.container.querySelector('#sp_canCastAtSelf').value === 'true') s.targeting.canCastAtSelf = true;
+        else delete s.targeting.canCastAtSelf;
+        if (this.container.querySelector('#sp_canImpactSelf').value === 'true') s.targeting.canImpactSelf = true;
+        else delete s.targeting.canImpactSelf;
+        s.cooldown = parseInt(this.container.querySelector('#sp_cooldown').value, 10) || 0;
+        if (!s.cost) s.cost = {};
+        s.cost.mp = parseInt(this.container.querySelector('#sp_mp').value, 10) || 0;
+        s.cost.rage = parseInt(this.container.querySelector('#sp_rage').value, 10) || 0;
+
+        const res = await this.adapter.saveSpecialSkills(this.skills);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.skills.length} 门绝技${describeSaveState(res)}`, saveToastType(res));
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _onBuffChange(s, rebuild) {
+    if (!rebuild) return;
+    const card = Array.from(this.container.querySelectorAll('.form-card h3')).find(h => h.innerText.includes('附加状态'));
+    if (card) {
+      const old = card.parentElement.querySelector('.buff-list-editor');
+      if (old) old.outerHTML = BuffListEditor.html(s.buffs);
+      BuffListEditor.bind(this.container, s.buffs, (r) => this._onBuffChange(s, r));
+    }
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedSkill = this.skills.find(s => s.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#spSkillDetail').innerHTML = this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '';
+        this._bindEvents();
+      };
+    });
+  }
+}
+
+/**
+ * LegendSkillView: 传奇技工坊 (legend-skills.json)
+ * 触发条件 (conditions)、概率、威力加成与附加状态编辑。
+ */
+class LegendSkillView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.notify = onSaveNotification;
+    this.skills = [];
+    this.selectedSkill = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.skills = this.adapter.loadLegendSkills();
+    if (this.skills.length > 0 && !this.selectedSkill) this.selectedSkill = this.skills[0];
+    this._renderLayout();
+  }
+
+  _getFiltered() {
+    return this.skills.filter(s => !this.searchKeyword ||
+      (s.name && s.name.includes(this.searchKeyword)) || (s.id && s.id.includes(this.searchKeyword)));
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="lgSkillSearch" class="search-input" placeholder="🔍 搜索传奇技..." value="${this.searchKeyword}">
+            <button id="addLgSkillBtn" class="btn btn-primary" style="width:100%; margin-top:8px;">+ 新创传奇技</button>
+          </div>
+          <div class="item-list-scroll" id="lgSkillList">${this._renderListHtml()}</div>
+        </div>
+        <div class="detail-panel" id="lgSkillDetail">
+          ${this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一个传奇技</div>'}
+        </div>
+      </div>
+    `;
+    this._bindEvents();
+  }
+
+  _renderListHtml() {
+    const list = this._getFiltered();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的传奇技</div>';
+    return list.map(s => {
+      const isSelected = this.selectedSkill && s.id === this.selectedSkill.id;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${s.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${s.name || s.id}</span>
+              <span class="item-badge badge-gold">${Math.round((s.probability || 0) * 100)}%</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">${s.startSkill || '未绑定外功'}</span>
+              <span>Lv${s.requiredLevel != null ? s.requiredLevel : '-'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(s) {
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header">
+          <h2>${s.name || s.id}</h2>
+          <div class="detail-subtitle">ID: <code>${s.id}</code> · 触发外功: <code>${s.startSkill || '未绑定'}</code> · 条件 ${(s.conditions || []).length}</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveLgSkillsBtn" class="btn btn-primary">💾 保存更改</button>
+            <button id="dupLgSkillBtn" class="btn btn-secondary">⧉ 克隆</button>
+            <button id="delLgSkillBtn" class="btn btn-danger">🗑️ 删除</button>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🧾 基础与触发</h3>
+          <div class="form-row">
+            <div class="form-group"><label>名称 (name)</label><input type="text" class="input-field" id="lg_name" value="${s.name || ''}"></div>
+            <div class="form-group"><label>唯一ID (id)</label><input type="text" class="input-field" id="lg_id" value="${s.id || ''}"></div>
+            <div class="form-group">
+              <label>绑定外功 (startSkill)</label>
+              <input type="text" class="input-field" id="lg_startSkill" value="${s.startSkill || ''}" list="affixExtSkillIdList">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>触发几率 (probability 0~1)</label><input type="number" step="0.05" min="0" max="1" class="input-field" id="lg_probability" value="${s.probability != null ? s.probability : 0.3}"></div>
+            <div class="form-group"><label>需求等级 (requiredLevel)</label><input type="number" class="input-field" id="lg_requiredLevel" value="${s.requiredLevel != null ? s.requiredLevel : 10}"></div>
+            <div class="form-group"><label>威力加成 (powerExtra)</label><input type="number" step="0.1" class="input-field" id="lg_powerExtra" value="${s.powerExtra != null ? s.powerExtra : 0}"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>演出动画 (animation)</label><input type="text" class="input-field" id="lg_animation" value="${s.animation || ''}"></div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>📜 触发条件 (conditions) — 满足全部条件才可触发</h3>
+          <div id="lgCondHost">${this._condHtml(s.conditions)}</div>
+        </div>
+
+        <div class="form-card">
+          <h3>🌀 附加状态 (buffs)</h3>
+          ${BuffListEditor.html(s.buffs)}
+        </div>
+      </div>
+    `;
+  }
+
+  _condHtml(conds) {
+    const list = Array.isArray(conds) ? conds : [];
+    const typeOptions = ['skill', 'internal_skill', 'talent', 'special_skill'];
+    return `
+      <div class="cond-list-editor" data-cond-host="1">
+        ${list.length === 0 ? '<div class="empty-hint" style="font-size:12.5px; padding:6px; color:var(--text-muted);">无前置条件</div>' : list.map((c, i) => `
+          <div class="affix-row" data-idx="${i}">
+            <div class="affix-row-body">
+              <select class="input-field cd-type" data-idx="${i}" style="width:150px;">
+                ${typeOptions.map(t => `<option value="${t}" ${c.type === t ? 'selected' : ''}>${{ skill: '外功', internal_skill: '内功', talent: '天赋', special_skill: '绝技' }[t] || t}</option>`).join('')}
+              </select>
+              <input type="text" class="input-field cd-target" data-idx="${i}" value="${c.targetId || ''}" placeholder="目标ID" style="width:170px;">
+              <label class="affix-eq">等级≥ <input type="number" class="input-field cd-level" data-idx="${i}" value="${c.level != null ? c.level : ''}" style="width:64px;"></label>
+              <button class="btn btn-danger btn-sm cd-del" data-idx="${i}" type="button">✕</button>
+            </div>
+          </div>
+        `).join('')}
+        <button class="btn btn-secondary btn-sm cd-add" type="button">+ 添加条件</button>
+      </div>
+    `;
+  }
+
+  _bindCondEvents(s) {
+    const host = this.container.querySelector('[data-cond-host]');
+    if (!host || !Array.isArray(s.conditions)) return;
+    host.querySelector('.cd-add').onclick = () => { s.conditions.push({ type: 'skill', targetId: '', level: 10 }); this._refreshConds(s); };
+    host.querySelectorAll('.cd-del').forEach(btn => {
+      btn.onclick = () => { s.conditions.splice(parseInt(btn.dataset.idx, 10), 1); this._refreshConds(s); };
+    });
+    host.querySelectorAll('.cd-type').forEach(sel => {
+      sel.onchange = () => { const c = s.conditions[parseInt(sel.dataset.idx, 10)]; if (c) { c.type = sel.value; this._refreshConds(s); } };
+    });
+    host.querySelectorAll('.cd-target').forEach(inp => {
+      inp.onchange = () => { const c = s.conditions[parseInt(inp.dataset.idx, 10)]; if (c) c.targetId = inp.value.trim(); };
+    });
+    host.querySelectorAll('.cd-level').forEach(inp => {
+      inp.onchange = () => {
+        const c = s.conditions[parseInt(inp.dataset.idx, 10)];
+        if (!c) return;
+        const v = parseInt(inp.value, 10);
+        if (v > 0) c.level = v; else delete c.level;
+      };
+    });
+  }
+
+  _refreshConds(s) {
+    const hostEl = this.container.querySelector('#lgCondHost');
+    if (hostEl) {
+      hostEl.innerHTML = this._condHtml(s.conditions);
+      this._bindCondEvents(s);
+    }
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#lgSkillSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#lgSkillList').innerHTML = this._renderListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addLgSkillBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const ns = {
+          id: 'new_legend_' + Date.now().toString().slice(-4),
+          name: '新传奇技', startSkill: '', probability: 0.3, requiredLevel: 10,
+          powerExtra: 0, animation: null, buffs: [], conditions: []
+        };
+        this.skills.unshift(ns);
+        this.selectedSkill = ns;
+        this._renderLayout();
+        this.notify('已新建传奇技，请绑定外功并配置条件！');
+      };
+    }
+
+    this._bindListClickEvents();
+    if (!this.selectedSkill) return;
+    const s = this.selectedSkill;
+
+    this._bindCondEvents(s);
+    BuffListEditor.bind(this.container, s.buffs, (r) => { if (r) this._refreshLegendBuffs(s); });
+
+    const dupBtn = this.container.querySelector('#dupLgSkillBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(s));
+        cloned.id = s.id + '_copy';
+        cloned.name = (s.name || s.id) + ' (副本)';
+        this.skills.unshift(cloned);
+        this.selectedSkill = cloned;
+        this._renderLayout();
+        this.notify('传奇技克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#delLgSkillBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (!confirm(`确定删除传奇技《${s.name || s.id}》吗？`)) return;
+        const idx = this.skills.findIndex(x => x.id === s.id);
+        if (idx !== -1) this.skills.splice(idx, 1);
+        this.selectedSkill = this.skills[0] || null;
+        this._renderLayout();
+        this.notify('传奇技已删除');
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveLgSkillsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        s.name = this.container.querySelector('#lg_name').value.trim();
+        s.id = this.container.querySelector('#lg_id').value.trim() || s.id;
+        s.startSkill = this.container.querySelector('#lg_startSkill').value.trim() || null;
+        s.probability = parseFloat(this.container.querySelector('#lg_probability').value) || 0;
+        s.requiredLevel = parseInt(this.container.querySelector('#lg_requiredLevel').value, 10) || 0;
+        s.powerExtra = parseFloat(this.container.querySelector('#lg_powerExtra').value) || 0;
+        s.animation = this.container.querySelector('#lg_animation').value.trim() || null;
+
+        const res = await this.adapter.saveLegendSkills(this.skills);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.skills.length} 个传奇技${describeSaveState(res)}`, saveToastType(res));
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _refreshLegendBuffs(s) {
+    const card = Array.from(this.container.querySelectorAll('.form-card h3')).find(h => h.innerText.includes('附加状态'));
+    if (card) {
+      const old = card.parentElement.querySelector('.buff-list-editor');
+      if (old) old.outerHTML = BuffListEditor.html(s.buffs);
+      BuffListEditor.bind(this.container, s.buffs, (r) => { if (r) this._refreshLegendBuffs(s); });
+    }
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedSkill = this.skills.find(s => s.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#lgSkillDetail').innerHTML = this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '';
+        this._bindEvents();
+      };
+    });
+  }
+}
+
+/**
+ * ShopView: 商店工坊 (shops.json)
+ * 商品行结构: { id, reward: {kind, itemId?|skillKind?+skillId?}, price?, premiumPrice?, maxClaims? }
+ */
+class ShopView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.notify = onSaveNotification;
+    this.shops = [];
+    this.selectedShop = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.shops = this.adapter.loadShops();
+    if (this.shops.length > 0 && !this.selectedShop) this.selectedShop = this.shops[0];
+    this._renderLayout();
+  }
+
+  _getFiltered() {
+    return this.shops.filter(s => !this.searchKeyword ||
+      (s.name && s.name.includes(this.searchKeyword)) || (s.id && s.id.includes(this.searchKeyword)));
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="shopSearch" class="search-input" placeholder="🔍 搜索商店名称..." value="${this.searchKeyword}">
+            <button id="addShopBtn" class="btn btn-primary" style="width:100%; margin-top:8px;">+ 新建商店</button>
+          </div>
+          <div class="item-list-scroll" id="shopList">${this._renderListHtml()}</div>
+        </div>
+        <div class="detail-panel" id="shopDetail">
+          ${this.selectedShop ? this._renderDetailHtml(this.selectedShop) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一家商店</div>'}
+        </div>
+      </div>
+    `;
+    this._bindEvents();
+  }
+
+  _renderListHtml() {
+    const list = this._getFiltered();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的商店</div>';
+    return list.map(s => {
+      const isSelected = this.selectedShop && s.id === this.selectedShop.id;
+      const count = (s.products || []).length;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${s.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${s.name || s.id}</span>
+              <span class="item-badge badge-gold">${count}商品</span>
+            </div>
+            <div class="item-meta-row"><span class="meta-id">ID: ${s.id}</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(s) {
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header">
+          <h2>${s.name || s.id}</h2>
+          <div class="detail-subtitle">ID: <code>${s.id}</code> · 商品 ${(s.products || []).length} 件</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveShopsBtn" class="btn btn-primary">💾 保存更改</button>
+            <button id="dupShopBtn" class="btn btn-secondary">⧉ 克隆</button>
+            <button id="delShopBtn" class="btn btn-danger">🗑️ 删除</button>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <h3>🏪 商店信息</h3>
+          <div class="form-row">
+            <div class="form-group"><label>名称 (name)</label><input type="text" class="input-field" id="sh_name" value="${s.name || ''}"></div>
+            <div class="form-group"><label>唯一ID (id)</label><input type="text" class="input-field" id="sh_id" value="${s.id || ''}"></div>
+            <div class="form-group"><label>背景音乐 (music)</label><input type="text" class="input-field" id="sh_music" value="${s.music || ''}"></div>
+          </div>
+          <div class="form-group"><label>背景场景 (background)</label><input type="text" class="input-field" id="sh_background" value="${s.background || ''}"></div>
+        </div>
+
+        <div class="form-card">
+          <h3>🛒 商品列表 (products)</h3>
+          <div id="shopProductHost">${this._productsHtml(s.products)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _productsHtml(products) {
+    const list = Array.isArray(products) ? products : [];
+    const itemIds = this.refIndex.items.map(i => i.id);
+    const skillIds = this.refIndex.skills.filter(x => x.category === 'external').map(x => x.id);
+    return `
+      <div data-product-host="1">
+        ${list.length === 0 ? '<div class="empty-hint" style="font-size:12.5px; padding:6px; color:var(--text-muted);">暂无商品</div>' : list.map((p, i) => {
+          const r = p.reward || {};
+          const kind = r.kind || 'item';
+          return `
+          <div class="affix-row" data-idx="${i}">
+            <div class="affix-row-head">
+              <select class="input-field pd-kind" data-idx="${i}" style="width:160px;">
+                <option value="item" ${kind === 'item' ? 'selected' : ''}>📦 物品 (item)</option>
+                <option value="skill_max_level" ${kind === 'skill_max_level' ? 'selected' : ''}>📈 武学升满 (skill_max_level)</option>
+                <option value="yuanbao" ${kind === 'yuanbao' ? 'selected' : ''}>💰 元宝 (yuanbao)</option>
+              </select>
+              <label class="affix-eq">银两 <input type="number" class="input-field pd-price" data-idx="${i}" value="${p.price != null ? p.price : ''}" min="0" style="width:90px;"></label>
+              <label class="affix-eq">元宝 <input type="number" class="input-field pd-premium" data-idx="${i}" value="${p.premiumPrice != null ? p.premiumPrice : ''}" min="0" style="width:64px;"></label>
+              <label class="affix-eq">限购 <input type="number" class="input-field pd-maxclaims" data-idx="${i}" value="${p.maxClaims != null ? p.maxClaims : ''}" min="0" style="width:64px;"></label>
+              <button class="btn btn-danger btn-sm pd-del" data-idx="${i}" type="button">✕</button>
+            </div>
+            <div class="affix-row-body">
+              <input type="text" class="input-field pd-productid" data-idx="${i}" value="${p.id || ''}" placeholder="商品显示ID" style="width:170px;">
+              ${kind === 'item' ? `
+                <input type="text" class="input-field pd-itemid" data-idx="${i}" value="${r.itemId || ''}" placeholder="物品ID" style="width:200px;" list="affixItemIdList">
+              ` : kind === 'skill_max_level' ? `
+                <select class="input-field pd-skillkind" data-idx="${i}" style="width:110px;">
+                  <option value="external" ${r.skillKind === 'external' ? 'selected' : ''}>外功</option>
+                  <option value="internal" ${r.skillKind === 'internal' ? 'selected' : ''}>内功</option>
+                </select>
+                <input type="text" class="input-field pd-skillid" data-idx="${i}" value="${r.skillId || ''}" placeholder="武学ID" style="width:180px;" list="affixExtSkillIdList">
+              ` : ''}
+            </div>
+          </div>
+        `; }).join('')}
+        <button class="btn btn-secondary btn-sm pd-add" type="button">+ 添加商品</button>
+      </div>
+    `;
+  }
+
+  _bindProductEvents(s) {
+    const host = this.container.querySelector('[data-product-host]');
+    if (!host || !Array.isArray(s.products)) return;
+
+    host.querySelector('.pd-add').onclick = () => {
+      s.products.push({ id: '', reward: { kind: 'item', itemId: '' }, price: 100 });
+      this._refreshProducts(s);
+    };
+    host.querySelectorAll('.pd-del').forEach(btn => {
+      btn.onclick = () => { s.products.splice(parseInt(btn.dataset.idx, 10), 1); this._refreshProducts(s); };
+    });
+    host.querySelectorAll('.pd-kind').forEach(sel => {
+      sel.onchange = () => {
+        const p = s.products[parseInt(sel.dataset.idx, 10)];
+        if (!p) return;
+        if (sel.value === 'item') p.reward = { kind: 'item', itemId: '' };
+        else if (sel.value === 'skill_max_level') p.reward = { kind: 'skill_max_level', skillKind: 'external', skillId: '' };
+        else p.reward = { kind: 'yuanbao' };
+        this._refreshProducts(s);
+      };
+    });
+    host.querySelectorAll('.pd-productid').forEach(inp => {
+      inp.onchange = () => { const p = s.products[parseInt(inp.dataset.idx, 10)]; if (p) p.id = inp.value.trim(); };
+    });
+    host.querySelectorAll('.pd-itemid').forEach(inp => {
+      inp.onchange = () => {
+        const p = s.products[parseInt(inp.dataset.idx, 10)];
+        if (p) { p.reward.itemId = inp.value.trim(); if (!p.id) { p.id = inp.value.trim(); this._refreshProducts(s); } }
+      };
+    });
+    host.querySelectorAll('.pd-skillkind').forEach(sel => {
+      sel.onchange = () => { const p = s.products[parseInt(sel.dataset.idx, 10)]; if (p) p.reward.skillKind = sel.value; };
+    });
+    host.querySelectorAll('.pd-skillid').forEach(inp => {
+      inp.onchange = () => {
+        const p = s.products[parseInt(inp.dataset.idx, 10)];
+        if (p) { p.reward.skillId = inp.value.trim(); if (!p.id) { p.id = inp.value.trim(); this._refreshProducts(s); } }
+      };
+    });
+    host.querySelectorAll('.pd-price').forEach(inp => {
+      inp.onchange = () => {
+        const p = s.products[parseInt(inp.dataset.idx, 10)];
+        if (!p) return;
+        const v = parseInt(inp.value, 10);
+        if (v > 0) p.price = v; else delete p.price;
+      };
+    });
+    host.querySelectorAll('.pd-premium').forEach(inp => {
+      inp.onchange = () => {
+        const p = s.products[parseInt(inp.dataset.idx, 10)];
+        if (!p) return;
+        const v = parseInt(inp.value, 10);
+        if (v > 0) p.premiumPrice = v; else delete p.premiumPrice;
+      };
+    });
+    host.querySelectorAll('.pd-maxclaims').forEach(inp => {
+      inp.onchange = () => {
+        const p = s.products[parseInt(inp.dataset.idx, 10)];
+        if (!p) return;
+        const v = parseInt(inp.value, 10);
+        if (v > 0) p.maxClaims = v; else delete p.maxClaims;
+      };
+    });
+  }
+
+  _refreshProducts(s) {
+    const hostEl = this.container.querySelector('#shopProductHost');
+    if (hostEl) {
+      hostEl.innerHTML = this._productsHtml(s.products);
+      this._bindProductEvents(s);
+    }
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#shopSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#shopList').innerHTML = this._renderListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addShopBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const ns = { id: 'new_shop_' + Date.now().toString().slice(-4), name: '新商店', music: null, background: null, products: [] };
+        this.shops.unshift(ns);
+        this.selectedShop = ns;
+        this._renderLayout();
+        this.notify('已新建商店，请上架商品后保存！');
+      };
+    }
+
+    this._bindListClickEvents();
+    if (!this.selectedShop) return;
+    const s = this.selectedShop;
+
+    this._bindProductEvents(s);
+
+    const dupBtn = this.container.querySelector('#dupShopBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(s));
+        cloned.id = s.id + '_copy';
+        cloned.name = (s.name || s.id) + ' (副本)';
+        this.shops.unshift(cloned);
+        this.selectedShop = cloned;
+        this._renderLayout();
+        this.notify('商店克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#delShopBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (!confirm(`确定删除商店《${s.name || s.id}》吗？`)) return;
+        const idx = this.shops.findIndex(x => x.id === s.id);
+        if (idx !== -1) this.shops.splice(idx, 1);
+        this.selectedShop = this.shops[0] || null;
+        this._renderLayout();
+        this.notify('商店已删除');
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveShopsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        s.name = this.container.querySelector('#sh_name').value.trim();
+        s.id = this.container.querySelector('#sh_id').value.trim() || s.id;
+        s.music = this.container.querySelector('#sh_music').value.trim() || null;
+        s.background = this.container.querySelector('#sh_background').value.trim() || null;
+
+        const res = await this.adapter.saveShops(this.shops);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.shops.length} 家商店${describeSaveState(res)}`, saveToastType(res));
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedShop = this.shops.find(s => s.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#shopDetail').innerHTML = this.selectedShop ? this._renderDetailHtml(this.selectedShop) : '';
+        this._bindEvents();
+      };
+    });
   }
 }
 
@@ -5980,10 +7293,24 @@ class ModStudioApp {
       items: new ItemView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       skills: new MartialArtsHubView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       characters: new CharacterView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      talents_buffs: new TalentBuffHubView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      shops: new ShopView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       battles: new BattleView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       stories: new StoryView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       health: new HealthView(this.validator, (tab) => this.switchTab(tab))
     };
+  }
+
+  // 页面级 datalist：为各工坊的 ID 输入框提供联想数据源
+  _populateDatalists() {
+    const fill = (id, values) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = values.map(v => `<option value="${v}"></option>`).join('');
+    };
+    fill('affixSkillIdList', this.refIndex.skills.map(s => s.id));
+    fill('affixExtSkillIdList', this.refIndex.skills.filter(s => s.category === 'external').map(s => s.id));
+    fill('affixBuffIdList', (this.refIndex.buffs || []).map(b => b.id));
+    fill('affixItemIdList', this.refIndex.items.map(i => i.id));
   }
 
   _onModLoaded(res) {
@@ -5994,7 +7321,8 @@ class ModStudioApp {
     this.views = this._createViews();
 
     this.switchTab(this.currentTab);
-    // 载入后立刻检查：同名 MOD 是否留有上次未落盘的草稿
+    // 页面级 ID 联想数据源 + 草稿检查
+    this._populateDatalists();
     this.refreshDirtyBar();
   }
 
