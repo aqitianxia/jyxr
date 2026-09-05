@@ -4,103 +4,1097 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金庸群侠传XR · MOD 创作者工坊 (JYXR Mod Studio)</title>
-  <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    /* 欢迎屏补充样式 */
-    .welcome-hero-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      padding: 40px;
-      overflow-y: auto;
-    }
-    .welcome-card {
-      max-width: 880px;
-      text-align: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 48px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-    .welcome-badge {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: bold;
-      color: var(--accent-gold);
-      background: rgba(229, 169, 60, 0.15);
-      border: 1px solid rgba(229, 169, 60, 0.3);
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin-bottom: 16px;
-    }
-    .welcome-card h1 {
-      font-size: 32px;
-      color: var(--text-main);
-      margin-bottom: 8px;
-      letter-spacing: 1px;
-    }
-    .welcome-subtitle {
-      color: var(--text-muted);
-      font-size: 15px;
-      margin-bottom: 36px;
-    }
-    .feature-card-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 40px;
-      text-align: left;
-    }
-    .f-card {
-      background: var(--bg-dark);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .f-icon {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    .f-card h4 {
-      font-size: 15px;
-      color: var(--text-main);
-      margin-bottom: 6px;
-    }
-    .f-card p {
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.5;
-    }
-    .welcome-action-box {
-      margin-top: 24px;
-    }
-    .btn-lg {
-      padding: 12px 28px;
-      font-size: 16px;
-    }
-    .welcome-hint {
-      margin-top: 12px;
-      font-size: 12px;
-      color: var(--text-dim);
-    }
+/* =========================================================
+   JYXR Mod Studio 核心样式规范 (Dark Wuxia Industrial)
+   ========================================================= */
+
+:root {
+  --bg-darker: #101216;
+  --bg-dark: #161920;
+  --bg-card: #20242e;
+  --bg-card-hover: #29303d;
+  --border-color: #313847;
+  --border-light: #444e63;
+
+  --text-main: #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim: #656d78;
+
+  --accent-gold: #e5a93c;
+  --accent-gold-hover: #f5ba4d;
+  --accent-blue: #58a6ff;
+  --accent-green: #3fb950;
+  --accent-purple: #bc8cff;
+  --accent-red: #f85149;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-darker);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部导航栏 */
+.top-navbar {
+  background-color: var(--bg-dark);
+  border-bottom: 1px solid var(--border-color);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent-gold);
+}
+
+.brand-badge {
+  font-size: 11px;
+  background-color: rgba(229, 169, 60, 0.2);
+  color: var(--accent-gold);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(229, 169, 60, 0.4);
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-tab-btn:hover {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}
+
+.nav-tab-btn.active {
+  background-color: var(--bg-card);
+  color: var(--accent-gold);
+  border-bottom: 2px solid var(--accent-gold);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mod-status-tag {
+  font-size: 13px;
+  color: var(--text-muted);
+  background-color: var(--bg-card);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* 主内容容器 */
+#mainAppContainer {
+  flex: 1;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  display: flex;
+}
+
+/* 左右分栏布局 */
+.view-split-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-panel {
+  width: 320px;
+  background-color: var(--bg-dark);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-input {
+  width: 100%;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent-blue);
+}
+
+.filter-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-chip {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.filter-chip.active {
+  background-color: var(--accent-gold);
+  color: #000;
+  font-weight: bold;
+  border-color: var(--accent-gold);
+}
+
+.item-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.list-item-card {
+  background-color: var(--bg-card);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.list-item-card:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+.list-item-card.active {
+  background-color: rgba(229, 169, 60, 0.12);
+  border-color: var(--accent-gold);
+}
+
+.item-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-name {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.badge-gold { background: rgba(229, 169, 60, 0.2); color: var(--accent-gold); }
+.badge-blue { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+.badge-green { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+.badge-purple { background: rgba(188, 140, 255, 0.2); color: var(--accent-purple); }
+.badge-red { background: rgba(248, 81, 73, 0.2); color: var(--accent-red); }
+.badge-gray { background: rgba(110, 118, 129, 0.2); color: var(--text-muted); }
+
+.item-meta-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.meta-id {
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 右侧详情主面板 */
+.detail-panel {
+  flex: 1;
+  background-color: var(--bg-darker);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.form-scroll-wrapper {
+  padding: 24px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.detail-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-title {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.detail-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.btn-primary {
+  background-color: var(--accent-gold);
+  color: #121418;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-gold-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+.btn-danger {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: var(--accent-red);
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+.btn-danger:hover {
+  background-color: rgba(248, 81, 73, 0.3);
+}
+
+/* 卡片与表单 */
+.form-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.form-card h3 {
+  font-size: 15px;
+  color: var(--accent-gold);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.input-field {
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  border-color: var(--accent-blue);
+}
+
+select.input-field {
+  cursor: pointer;
+}
+
+textarea.input-field {
+  min-height: 70px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* 资质与四维数值网格 */
+.stat-section-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-muted);
+  margin: 12px 0 8px 0;
+  border-left: 3px solid var(--accent-gold);
+  padding-left: 8px;
+}
+
+.stat-grid-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-cell {
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-cell label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stat-cell input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--accent-gold);
+  font-weight: bold;
+  font-size: 15px;
+  padding: 2px 0;
+  outline: none;
+}
+
+.stat-cell input:focus {
+  border-bottom-color: var(--accent-blue);
+}
+
+/* 图像与原画预览组件 */
+.media-thumb-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #14171d;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.media-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252b36;
+  color: var(--text-muted);
+  font-weight: bold;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  height: 100%;
+}
+
+.char-list-avatar { width: 38px; height: 38px; border-radius: 6px; margin-right: 10px; }
+.item-list-thumb { width: 38px; height: 38px; border-radius: 6px; margin-right: 10px; }
+.skill-list-thumb { width: 38px; height: 38px; border-radius: 6px; margin-right: 10px; }
+
+.media-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.avatar-large-preview { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent-gold); }
+.item-large-preview { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent-blue); }
+.skill-large-preview { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent-purple); }
+.bg-large-preview { width: 120px; height: 68px; border-radius: 6px; border: 2px solid var(--border-light); }
+
+/* 原画/素材选择弹窗 */
+.media-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.media-modal-box {
+  width: 840px;
+  max-width: 94vw;
+  height: 82vh;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.media-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.media-modal-header h3 {
+  font-size: 16px;
+  color: var(--accent-gold);
+}
+
+.media-modal-search {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-card);
+}
+
+.media-count-badge {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.media-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  gap: 12px;
+}
+
+.media-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.media-card:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.media-card.selected {
+  border-color: var(--accent-gold);
+  background: rgba(229, 169, 60, 0.15);
+}
+
+.media-card-img-wrap {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 6px auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-card-id {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.media-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.media-custom-input-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+/* 子表格组件 (内功/外功/词条等) */
+.sub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.sub-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sub-table td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.sub-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 标签拾取器 (特技/天赋多选) */
+.tag-picker-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  min-height: 40px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.tag-chip {
+  background: rgba(229, 169, 60, 0.15);
+  color: var(--accent-gold);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+  border-radius: 12px;
+  padding: 2px 9px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-chip-remove {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--accent-red);
+}
+
+/* =========================================================
+   11×4 战棋棋盘专用样式
+   ========================================================= */
+
+.battle-board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.battle-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-ally { background: var(--accent-blue); box-shadow: 0 0 6px rgba(88,166,255,0.6); }
+.dot-enemy { background: var(--accent-red); box-shadow: 0 0 6px rgba(248,81,73,0.6); }
+
+.battle-grid-container {
+  background: #0d1017;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  position: relative;
+  overflow-x: auto;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+  margin-bottom: 16px;
+}
+
+.battle-grid-board {
+  display: grid;
+  grid-template-columns: 40px repeat(11, 86px);
+  grid-template-rows: 28px repeat(4, 86px);
+  gap: 4px;
+  min-width: 990px;
+}
+
+.grid-axis-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.axis-col-label.zone-ally { color: var(--accent-blue); }
+.axis-col-label.zone-enemy { color: var(--accent-red); }
+
+.battle-cell {
+  position: relative;
+  background: #151921;
+  border: 1px solid #2a313d;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  overflow: hidden;
+}
+
+.battle-cell:hover {
+  border-color: var(--accent-gold);
+  background: #1c222c;
+}
+
+.battle-cell.selected-cell {
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.4);
+  background: rgba(229, 169, 60, 0.08);
+}
+
+.battle-cell.zone-ally {
+  background: rgba(88, 166, 255, 0.03);
+}
+
+.battle-cell.zone-enemy {
+  background: rgba(248, 81, 73, 0.03);
+}
+
+.cell-coord-tag {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 9px;
+  color: var(--text-dim);
+  font-family: monospace;
+  pointer-events: none;
+}
+
+.empty-cell-add {
+  font-size: 18px;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.battle-cell:hover .empty-cell-add {
+  opacity: 1;
+  color: var(--accent-gold);
+}
+
+.unit-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+}
+
+.unit-avatar-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.unit-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.unit-token.team-1 .unit-avatar-wrap { border-color: var(--accent-blue); box-shadow: 0 0 8px rgba(88, 166, 255, 0.4); }
+.unit-token.team-2 .unit-avatar-wrap { border-color: var(--accent-red); box-shadow: 0 0 8px rgba(248, 81, 73, 0.4); }
+
+.facing-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  font-size: 10px;
+  padding: 1px 3px;
+  border-radius: 3px 0 0 0;
+}
+.facing-badge.facing-right { color: var(--accent-gold); }
+.facing-badge.facing-left { color: var(--accent-blue); }
+
+.unit-name-label {
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  text-align: center;
+}
+.unit-token.team-1 .unit-name-label { color: #79c0ff; }
+.unit-token.team-2 .unit-name-label { color: #ff7b72; }
+
+/* 招式范围演练高亮 */
+.battle-cell.cell-range-hit {
+  background: rgba(229, 169, 60, 0.35) !important;
+  border-color: #f5ba4d !important;
+  box-shadow: inset 0 0 12px rgba(245, 186, 77, 0.6) !important;
+}
+.battle-cell.cell-range-origin {
+  border-color: #bc8cff !important;
+  box-shadow: 0 0 12px rgba(188, 140, 255, 0.8) !important;
+}
+
+/* 欢迎页与全局组件 */
+.welcome-hero-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+}
+
+.welcome-card {
+  max-width: 900px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.welcome-badge {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--accent-gold);
+  background: rgba(229, 169, 60, 0.15);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.welcome-card h1 {
+  font-size: 28px;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.welcome-subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+.feature-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 36px;
+  text-align: left;
+}
+
+.f-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.f-icon {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+.f-card h4 {
+  font-size: 14px;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.f-card p {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.welcome-action-box {
+  margin-top: 20px;
+}
+
+.btn-lg {
+  padding: 12px 28px;
+  font-size: 16px;
+}
+
+.welcome-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.protocol-tip {
+  background: rgba(229, 169, 60, 0.1);
+  border: 1px dashed var(--accent-gold);
+  color: var(--accent-gold);
+  padding: 10px 16px;
+  border-radius: 6px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* Toast */
+#toastNotification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-main);
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+#toastNotification.show {
+  display: flex;
+}
+
+#toastNotification.toast-success { border-color: var(--accent-green); }
+#toastNotification.toast-error { border-color: var(--accent-red); }
+
+/* 健康检查样式 */
+.health-check-layout { padding: 24px; max-width: 1000px; margin: 0 auto; }
+.health-header-card {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 20px; margin-bottom: 20px;
+}
+.health-title-group h2 { font-size: 20px; margin-bottom: 6px; }
+.health-title-group p { font-size: 13px; color: var(--text-muted); }
+.health-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.health-stat-card {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 16px; text-align: center;
+}
+.health-stat-card .stat-num { font-size: 28px; font-weight: bold; margin-bottom: 4px; }
+.health-stat-card .stat-desc { font-size: 12px; color: var(--text-muted); }
+.health-stat-card.card-error .stat-num { color: var(--accent-red); }
+.health-stat-card.card-warn .stat-num { color: var(--accent-gold); }
+.health-stat-card.card-ok .stat-num { color: var(--accent-green); }
+.issue-card {
+  background: var(--bg-card); border-left: 4px solid; border-radius: 0 6px 6px 0;
+  padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 12px;
+}
+.issue-error { border-left-color: var(--accent-red); }
+.issue-warn { border-left-color: var(--accent-gold); }
+.issue-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.06); }
+.issue-content h4 { font-size: 13px; margin-bottom: 2px; }
+.issue-content p { font-size: 12px; color: var(--text-muted); }
+.health-clean-box { text-align: center; padding: 60px; background: var(--bg-card); border-radius: 8px; }
+.health-clean-box .clean-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* 剧情时间线气泡 */
+.story-step-card {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 14px; margin-bottom: 12px; position: relative;
+}
+.step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.step-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.step-bubble {
+  background: var(--bg-dark); border-radius: 8px; padding: 12px;
+  border-left: 3px solid var(--accent-purple); margin-bottom: 8px;
+}
+.step-bubble-speaker { font-weight: bold; color: var(--accent-gold); margin-bottom: 4px; font-size: 13px; }
+.step-bubble-text { font-size: 14px; line-height: 1.5; color: var(--text-main); }
   </style>
 </head>
 <body>
+
+  <input type="file" id="directFolderPickerInput" webkitdirectory multiple style="display:none;">
 
   <!-- 顶部导航栏 -->
   <header class="top-navbar">
     <div class="nav-left">
       <div class="brand-title">
         <span>⚔️ JYXR Mod Studio</span>
-        <span class="brand-badge">v1.0 Pro</span>
+        <span class="brand-badge">v2.0 Pro</span>
       </div>
       <nav class="nav-tabs">
         <button class="nav-tab-btn active" data-tab="items">🗡️ 神兵与道具工坊</button>
         <button class="nav-tab-btn" data-tab="skills">🥋 武学与招式工坊</button>
         <button class="nav-tab-btn" data-tab="characters">👤 侠客与宗师工坊</button>
+        <button class="nav-tab-btn" data-tab="battles">⚔️ 战棋与战场工坊</button>
         <button class="nav-tab-btn" data-tab="stories">📜 剧情对白流编排</button>
         <button class="nav-tab-btn" data-tab="health">🔍 全局健康检查</button>
       </nav>
@@ -108,19 +1102,4028 @@
 
     <div class="nav-right">
       <span class="mod-status-tag" id="currentModLabel">未打开 MOD 目录</span>
+      <button class="btn btn-secondary" id="quickLoadWuxiaBtn" title="一键极速载入《武侠传奇》MOD 数据">⚡ 载入《武侠传奇》</button>
       <button class="btn btn-primary" id="openModDirBtn">📂 打开 MOD 目录</button>
     </div>
   </header>
 
   <!-- 主编辑工作台 -->
-  <main id="mainAppContainer">
-    <!-- 由 JS 视图动态挂载 -->
-  </main>
+  <main id="mainAppContainer"></main>
 
   <!-- 全局通知 Toast -->
   <div id="toastNotification"></div>
 
-  <!-- 模块化前端脚本 -->
-  <script type="module" src="assets/js/app.js"></script>
+  <!-- 全局媒体/原画选择弹窗挂载点 -->
+  <div id="mediaPickerModalContainer"></div>
+
+  <!-- 内联独立全能脚本 -->
+  <script>
+
+/**
+ * FileSystemDriver: 纯前端文件访问与本地磁盘直写驱动 (首要原则：全浏览器兼容、自适应层级、原生直写与极速预设)
+ */
+class FileSystemDriver {
+  constructor() {
+    this.dirHandle = null;
+    this.memoryFiles = new Map();
+    this.isNativeAccessSupported = typeof window.showDirectoryPicker === 'function';
+    this.currentModName = '';
+    this.detectedDataPrefix = '';
+    this.mode = 'idle'; // 'native' | 'memory' | 'http' | 'idle'
+  }
+
+  // 检测当前运行环境是否支持原生目录直写
+  canUseNativePicker() {
+    return window.isSecureContext && typeof window.showDirectoryPicker === 'function' && location.protocol !== 'file:';
+  }
+
+  async selectDirectory() {
+    if (this.canUseNativePicker()) {
+      try {
+        const handle = await window.showDirectoryPicker({
+          id: 'jyxr-mod-dir',
+          mode: 'readwrite',
+          startIn: 'documents'
+        });
+        this.dirHandle = handle;
+        this.currentModName = handle.name;
+        await this._scanNativeDirectory();
+        this.mode = 'native';
+        return { success: true, mode: 'native', name: this.currentModName };
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return { success: false, cancelled: true };
+        }
+        console.warn('Native File System Access failed, fallback to input:', err);
+      }
+    }
+
+    return await this._selectDirectoryViaInput();
+  }
+
+  _selectDirectoryViaInput() {
+    return new Promise((resolve) => {
+      let input = document.getElementById('directFolderPickerInput');
+      if (!input) {
+        input = document.createElement('input');
+        input.id = 'directFolderPickerInput';
+        input.type = 'file';
+        input.webkitdirectory = true;
+        input.multiple = true;
+        // 关键：WebKit (Safari) 禁止对 display:none 的 input 触发 click()，采用透明脱标渲染
+        input.style.position = 'fixed';
+        input.style.top = '-9999px';
+        input.style.left = '-9999px';
+        input.style.width = '1px';
+        input.style.height = '1px';
+        input.style.opacity = '0.001';
+        input.style.pointerEvents = 'none';
+        input.setAttribute('aria-hidden', 'true');
+        input.tabIndex = -1;
+        document.body.appendChild(input);
+      }
+
+      // 重置 value，确保选择相同目录或重试时能正确触发 onchange
+      input.value = '';
+
+      let resolved = false;
+      const finish = (result) => {
+        if (resolved) return;
+        resolved = true;
+        window.removeEventListener('focus', onWindowFocus);
+        resolve(result);
+      };
+
+      input.onchange = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) {
+          finish({ success: false, cancelled: true });
+          return;
+        }
+
+        this.memoryFiles.clear();
+        this.dirHandle = null;
+        this.mode = 'memory';
+
+        const firstRel = files[0].webkitRelativePath || '';
+        const rootFolder = firstRel.split('/')[0] || 'MOD';
+        this.currentModName = rootFolder;
+
+        for (const file of files) {
+          const lower = file.name.toLowerCase();
+          if (!lower.endsWith('.json') && !lower.endsWith('.txt') && !lower.endsWith('.md')) {
+            continue;
+          }
+          const parts = file.webkitRelativePath.split('/');
+          parts.shift(); // 移除首层顶级目录名
+          const relPath = parts.join('/');
+          const text = await file.text();
+          this.memoryFiles.set(relPath, text);
+        }
+
+        this._detectDataPrefix();
+        finish({ success: true, mode: 'memory', name: this.currentModName });
+      };
+
+      input.oncancel = () => {
+        finish({ success: false, cancelled: true });
+      };
+
+      // 针对部分浏览器（如 Safari）不触发 oncancel 的窗口焦点看门狗
+      const onWindowFocus = () => {
+        setTimeout(() => {
+          if (!resolved && (!input.files || input.files.length === 0)) {
+            finish({ success: false, cancelled: true });
+          }
+        }, 800);
+      };
+      window.addEventListener('focus', onWindowFocus, { once: true });
+
+      input.click();
+    });
+  }
+
+  async _scanNativeDirectory() {
+    this.memoryFiles.clear();
+    const scanDir = async (dirHandle, currentPath = '') => {
+      for await (const entry of dirHandle.values()) {
+        const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+        if (entry.kind === 'file') {
+          const lower = entry.name.toLowerCase();
+          if (lower.endsWith('.json') || lower.endsWith('.txt') || lower.endsWith('.md')) {
+            const file = await entry.getFile();
+            const text = await file.text();
+            this.memoryFiles.set(entryPath, text);
+          }
+        } else if (entry.kind === 'directory') {
+          if (entry.name !== '.git' && entry.name !== '.godot' && entry.name !== 'node_modules' && entry.name !== '.gemini') {
+            await scanDir(entry, entryPath);
+          }
+        }
+      }
+    };
+    await scanDir(this.dirHandle);
+    this._detectDataPrefix();
+  }
+
+  _detectDataPrefix() {
+    this.detectedDataPrefix = '';
+    for (const key of this.memoryFiles.keys()) {
+      if (key === 'characters.json' || key === 'items.json') {
+        this.detectedDataPrefix = '';
+        return;
+      }
+      if (key.endsWith('/characters.json')) {
+        this.detectedDataPrefix = key.slice(0, key.length - 'characters.json'.length);
+        return;
+      }
+      if (key.endsWith('/items.json')) {
+        this.detectedDataPrefix = key.slice(0, key.length - 'items.json'.length);
+        return;
+      }
+    }
+  }
+
+  async loadPresetMod(modId = 'wuxia-legend') {
+    const modFiles = [
+      'mod.json',
+      'data/resources.json',
+      'data/items.json',
+      'data/characters.json',
+      'data/external-skills.json',
+      'data/internal-skills.json',
+      'data/special-skills.json',
+      'data/legend-skills.json',
+      'data/battles.json',
+      'data/buffs.json',
+      'data/talents.json',
+      'data/scoped-battle-effects.json',
+      'data/item-tags.json',
+      'data/random-affix-tables.json',
+      'data/sects.json',
+      'data/grow-templates.json',
+      'data/towers.json',
+      'data/game-tips.json',
+      'data/world-triggers.json',
+      'data/maps/large.json',
+      'data/maps/small.json',
+      'data/stories/main.story.json',
+      'data/stories/starting-quiz.story.json',
+      'data/stories/jyxr.story.json',
+      'data/stories/debug.story.json',
+      'data/stories/py.story.json',
+      'data/stories/cg.story.json'
+    ];
+
+    this.memoryFiles.clear();
+    this.dirHandle = null;
+    this.mode = 'http';
+    this.currentModName = modId === 'wuxia-legend' ? '武侠传奇 (wuxia-legend)' : modId;
+    this.detectedDataPrefix = 'data/';
+
+    let loadedCount = 0;
+    const baseUrl = `../../mods/${modId}`;
+
+    const fetchPromises = modFiles.map(async (fileRelPath) => {
+      try {
+        const resp = await fetch(`${baseUrl}/${fileRelPath}?_t=${Date.now()}`);
+        if (resp.ok) {
+          const text = await resp.text();
+          this.memoryFiles.set(fileRelPath, text);
+          loadedCount++;
+        }
+      } catch (e) {
+        // 可选文件缺失跳过
+      }
+    });
+
+    await Promise.all(fetchPromises);
+
+    if (loadedCount === 0) {
+      return {
+        success: false,
+        error: '未能通过 HTTP 获取预设 MOD。若您在本地运行，请双击运行 tools/mod_editor/启动MOD编辑器.command；若在外部环境请直接点击【打开 MOD 目录】选择文件夹。'
+      };
+    }
+
+    return { success: true, mode: 'http', name: this.currentModName, count: loadedCount };
+  }
+
+  readFile(relativePath) {
+    if (!relativePath) return null;
+    const clean = relativePath.replace(/^[\/]+/, '').replace(/\\/g, '/');
+
+    // 1. 直接全路径命中
+    if (this.memoryFiles.has(clean)) {
+      return this.memoryFiles.get(clean);
+    }
+
+    // 2. 去除 data/ 前缀命中
+    const noData = clean.replace(/^data\//, '');
+    if (this.memoryFiles.has(noData)) {
+      return this.memoryFiles.get(noData);
+    }
+
+    // 3. 补齐 data/ 前缀命中
+    const withData = `data/${noData}`;
+    if (this.memoryFiles.has(withData)) {
+      return this.memoryFiles.get(withData);
+    }
+
+    // 4. 使用自动检测的前缀命中
+    if (this.detectedDataPrefix) {
+      const withDetected = `${this.detectedDataPrefix}${noData}`;
+      if (this.memoryFiles.has(withDetected)) {
+        return this.memoryFiles.get(withDetected);
+      }
+    }
+
+    // 5. 后缀安全匹配
+    for (const [k, v] of this.memoryFiles.entries()) {
+      if (k.endsWith('/' + noData) || k === noData) {
+        return v;
+      }
+    }
+
+    return null;
+  }
+
+  readJson(relativePath) {
+    const raw = this.readFile(relativePath);
+    if (!raw) return null;
+    try {
+      const cleanJson = raw.replace(/^\s*\/\/.*$/gm, '');
+      return JSON.parse(cleanJson);
+    } catch (err) {
+      console.error(`Failed to parse JSON file: ${relativePath}`, err);
+      return null;
+    }
+  }
+
+  async writeFile(relativePath, contentString) {
+    if (!relativePath) return { success: false, error: 'Empty path' };
+    const clean = relativePath.replace(/^[\/]+/, '').replace(/\\/g, '/');
+    const noData = clean.replace(/^data\//, '');
+
+    let targetKey = clean;
+    if (this.memoryFiles.has(clean)) {
+      targetKey = clean;
+    } else if (this.memoryFiles.has(`data/${noData}`)) {
+      targetKey = `data/${noData}`;
+    } else if (this.memoryFiles.has(noData)) {
+      targetKey = noData;
+    } else if (this.detectedDataPrefix && this.memoryFiles.has(`${this.detectedDataPrefix}${noData}`)) {
+      targetKey = `${this.detectedDataPrefix}${noData}`;
+    } else {
+      for (const k of this.memoryFiles.keys()) {
+        if (k.endsWith('/' + noData) || k === noData) {
+          targetKey = k;
+          break;
+        }
+      }
+    }
+
+    this.memoryFiles.set(targetKey, contentString);
+
+    if (this.dirHandle && this.isNativeAccessSupported) {
+      try {
+        const parts = targetKey.split('/');
+        const fileName = parts.pop();
+        let curDir = this.dirHandle;
+
+        for (const dirName of parts) {
+          curDir = await curDir.getDirectoryHandle(dirName, { create: true });
+        }
+
+        const fileHandle = await curDir.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(contentString);
+        await writable.close();
+        return { success: true, mode: 'native', path: targetKey };
+      } catch (err) {
+        console.error(`Native write failed for ${targetKey}:`, err);
+        return { success: false, error: err.message, path: targetKey };
+      }
+    }
+
+    return { success: true, mode: this.mode, path: targetKey };
+  }
+
+  async writeJson(relativePath, dataObj) {
+    const formatted = JSON.stringify(dataObj, null, 2);
+    return await this.writeFile(relativePath, formatted);
+  }
+
+  exportFile(relativePath) {
+    const content = this.readFile(relativePath);
+    if (!content) return false;
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = relativePath.split('/').pop() || 'mod_data.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    return true;
+  }
+}
+
+/**
+ * ResourceResolver: 资源寻址与 Web 原画渲染器
+ */
+class ResourceResolver {
+  constructor(refIndex) {
+    this.refIndex = refIndex;
+  }
+
+  resolveArtUrl(reference) {
+    if (!reference) return null;
+    let path = reference.trim();
+    if (this.refIndex && this.refIndex.resourceMap && this.refIndex.resourceMap.has(path)) {
+      path = this.refIndex.resourceMap.get(path);
+    }
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+      return path;
+    }
+    path = path.replace(/^(\.\.\/)+/, '').replace(/^assets\/art\//, '').replace(/^art\//, '');
+    if (!path.includes('.')) {
+      if (path.startsWith('head/') || path.startsWith('item/') || path.startsWith('town/')) {
+        path += '.png';
+      } else if (path.startsWith('battle_bg/') || path.startsWith('map/')) {
+        path += '.jpg';
+      } else if (path.startsWith('icon/')) {
+        path += '.jpg';
+      } else {
+        path += '.png';
+      }
+    }
+    return `../../assets/art/${path}`;
+  }
+
+  renderImg(reference, alt = '', className = '', style = '') {
+    const url = this.resolveArtUrl(reference);
+    const initial = (alt || reference || '?').charAt(0);
+    if (!url) {
+      return `<div class="img-placeholder ${className}" style="${style}"><span>${initial}</span></div>`;
+    }
+    return `
+      <div class="media-thumb-box ${className}" style="${style}">
+        <img src="${url}" class="media-thumb-img" alt="${alt}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy">
+        <div class="img-placeholder" style="display:none; width:100%; height:100%;"><span>${initial}</span></div>
+      </div>
+    `;
+  }
+}
+
+/**
+ * MediaPickerModal: 可视化原画与素材挑选弹窗
+ */
+class MediaPickerModal {
+  static open({ type, title, current, refIndex, resourceResolver, onSelect }) {
+    const container = document.getElementById('mediaPickerModalContainer');
+    if (!container) return;
+
+    let items = [];
+    if (type === 'portrait') {
+      items = refIndex.portraits.map(p => ({
+        id: p.id,
+        name: p.name,
+        ref: p.id,
+        imgRef: p.id,
+        desc: p.path
+      }));
+    } else if (type === 'item') {
+      items = refIndex.itemResources.map(i => ({
+        id: i.id,
+        name: i.name,
+        ref: i.id,
+        imgRef: i.id,
+        desc: i.path
+      }));
+    } else if (type === 'icon') {
+      items = refIndex.skillIcons.map(ic => ({
+        id: ic.id,
+        name: ic.name,
+        ref: ic.id,
+        imgRef: ic.id,
+        desc: ic.id
+      }));
+    } else if (type === 'battle_bg') {
+      items = refIndex.battleBackgrounds.map(bg => ({
+        id: bg.id,
+        name: bg.name,
+        ref: bg.id,
+        imgRef: bg.id,
+        desc: bg.id
+      }));
+    }
+
+    let searchKeyword = '';
+
+    const renderModal = () => {
+      const filtered = items.filter(it => {
+        if (!searchKeyword) return true;
+        const kw = searchKeyword.toLowerCase();
+        return (it.name && it.name.toLowerCase().includes(kw)) ||
+               (it.id && it.id.toLowerCase().includes(kw));
+      });
+
+      container.innerHTML = `
+        <div class="media-modal-backdrop">
+          <div class="media-modal-box">
+            <div class="media-modal-header">
+              <h3>${title || '选择美术素材'}</h3>
+              <button class="btn btn-sm btn-secondary" id="closeMediaModalBtn">✕</button>
+            </div>
+            <div class="media-modal-search">
+              <input type="text" id="mediaModalSearchInput" class="search-input" placeholder="🔍 搜索素材名称或ID..." value="${searchKeyword}">
+              <span class="media-count-badge">共 ${filtered.length} 项</span>
+            </div>
+            <div class="media-modal-body">
+              ${filtered.length === 0 ? '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的美术资源</div>' : `
+                <div class="media-grid">
+                  ${filtered.map(it => {
+                    const isCur = current === it.ref || current === it.id;
+                    const url = resourceResolver.resolveArtUrl(it.imgRef);
+                    return `
+                      <div class="media-card ${isCur ? 'selected' : ''}" data-ref="${it.ref}" data-id="${it.id}">
+                        <div class="media-card-img-wrap">
+                          <img src="${url}" alt="${it.name}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy">
+                          <div class="img-placeholder" style="display:none;"><span>${(it.name || '?').charAt(0)}</span></div>
+                        </div>
+                        <div class="media-card-name" title="${it.name}">${it.name}</div>
+                        <div class="media-card-id" title="${it.id}">${it.id}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `}
+            </div>
+            <div class="media-modal-footer">
+              <div class="media-custom-input-row">
+                <input type="text" id="mediaCustomInput" class="input-field" placeholder="或手动输入自定义资源ID/路径..." value="${current || ''}">
+                <button class="btn btn-secondary" id="mediaCustomSubmitBtn">确认使用</button>
+              </div>
+              <button class="btn btn-secondary" id="cancelMediaModalBtn">取消</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const searchInput = container.querySelector('#mediaModalSearchInput');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.oninput = (e) => {
+          searchKeyword = e.target.value.trim();
+          renderCardsOnly();
+        };
+      }
+
+      const close = () => { container.innerHTML = ''; };
+      container.querySelector('#closeMediaModalBtn').onclick = close;
+      container.querySelector('#cancelMediaModalBtn').onclick = close;
+      container.querySelector('.media-modal-backdrop').onclick = (e) => {
+        if (e.target.classList.contains('media-modal-backdrop')) close();
+      };
+
+      const customInput = container.querySelector('#mediaCustomInput');
+      container.querySelector('#mediaCustomSubmitBtn').onclick = () => {
+        const val = customInput.value.trim();
+        if (val) {
+          onSelect(val);
+          close();
+        }
+      };
+
+      bindCardClicks();
+    };
+
+    const renderCardsOnly = () => {
+      const filtered = items.filter(it => {
+        if (!searchKeyword) return true;
+        const kw = searchKeyword.toLowerCase();
+        return (it.name && it.name.toLowerCase().includes(kw)) ||
+               (it.id && it.id.toLowerCase().includes(kw));
+      });
+      const body = container.querySelector('.media-modal-body');
+      const count = container.querySelector('.media-count-badge');
+      if (count) count.innerText = `共 ${filtered.length} 项`;
+      if (!body) return;
+      if (filtered.length === 0) {
+        body.innerHTML = '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的美术资源</div>';
+      } else {
+        body.innerHTML = `
+          <div class="media-grid">
+            ${filtered.map(it => {
+              const isCur = current === it.ref || current === it.id;
+              const url = resourceResolver.resolveArtUrl(it.imgRef);
+              return `
+                <div class="media-card ${isCur ? 'selected' : ''}" data-ref="${it.ref}" data-id="${it.id}">
+                  <div class="media-card-img-wrap">
+                    <img src="${url}" alt="${it.name}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy">
+                    <div class="img-placeholder" style="display:none;"><span>${(it.name || '?').charAt(0)}</span></div>
+                  </div>
+                  <div class="media-card-name" title="${it.name}">${it.name}</div>
+                  <div class="media-card-id" title="${it.id}">${it.id}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        bindCardClicks();
+      }
+    };
+
+    const bindCardClicks = () => {
+      container.querySelectorAll('.media-card').forEach(card => {
+        card.onclick = () => {
+          const ref = card.dataset.ref || card.dataset.id;
+          onSelect(ref);
+          container.innerHTML = '';
+        };
+      });
+    };
+
+    renderModal();
+  }
+}
+
+/**
+ * ReferenceIndex: 全局引用关系与 ID 索引网络
+ */
+class ReferenceIndex {
+  constructor() {
+    this.resourceMap = new Map();
+    this.portraits = [];
+    this.itemResources = [];
+    this.skillIcons = [];
+    this.battleBackgrounds = [];
+    this.battleMusic = [];
+    this.skills = [];
+    this.items = [];
+    this.talents = [];
+    this.characters = [];
+    this.specialSkills = [];
+    this.storySegments = [];
+    this.buffs = [];
+    this.battles = [];
+  }
+
+  rebuildIndex(fs) {
+    this.resourceMap.clear();
+    this.portraits = [];
+    this.itemResources = [];
+    this.skillIcons = [];
+    this.battleBackgrounds = [];
+    this.battleMusic = [];
+    this.skills = [];
+    this.items = [];
+    this.talents = [];
+    this.characters = [];
+    this.specialSkills = [];
+    this.storySegments = [];
+    this.buffs = [];
+    this.battles = [];
+
+    // 1. 资源表 (resources.json)
+    const resData = fs.readJson('resources.json');
+    if (Array.isArray(resData)) {
+      for (const item of resData) {
+        if (!item || !item.id) continue;
+        this.resourceMap.set(item.id, item.value || '');
+        if (item.group === '头像') {
+          this.portraits.push({
+            id: item.id,
+            name: item.id.replace(/^头像\./, ''),
+            path: item.value
+          });
+        } else if (item.group === '物品') {
+          this.itemResources.push({
+            id: item.id,
+            name: item.id.replace(/^物品\./, ''),
+            path: item.value
+          });
+        } else if (item.group === '战斗音乐') {
+          this.battleMusic.push({
+            id: item.id,
+            name: item.id.replace(/^战斗音乐\./, ''),
+            path: item.value
+          });
+        }
+      }
+    }
+
+    // 预置战斗背景库 (27大经典战棋战场场景)
+    const standardBgs = [
+      { id: 'battle_bg/city', name: '喧闹集市 (city)' },
+      { id: 'battle_bg/city2', name: '临安城镇 (city2)' },
+      { id: 'battle_bg/city3', name: '青石古街 (city3)' },
+      { id: 'battle_bg/zhulin', name: '青翠竹林 (zhulin)' },
+      { id: 'battle_bg/shinei', name: '典雅室内 (shinei)' },
+      { id: 'battle_bg/shinei2', name: '豪门大厅 (shinei2)' },
+      { id: 'battle_bg/heiyijiao', name: '黑衣神殿 (heiyijiao)' },
+      { id: 'battle_bg/dongxue', name: '阴暗洞穴 (dongxue)' },
+      { id: 'battle_bg/feixu', name: '断壁残垣 (feixu)' },
+      { id: 'battle_bg/haibian', name: '沧海之滨 (haibian)' },
+      { id: 'battle_bg/jianchi', name: '万剑之池 (jianchi)' },
+      { id: 'battle_bg/menpai', name: '名门正派 (menpai)' },
+      { id: 'battle_bg/menpai2', name: '巍峨山门 (menpai2)' },
+      { id: 'battle_bg/menpai3', name: '隐世古刹 (menpai3)' },
+      { id: 'battle_bg/mishi', name: '幽闭密室 (mishi)' },
+      { id: 'battle_bg/mojiao', name: '魔教总坛 (mojiao)' },
+      { id: 'battle_bg/shamo', name: '大漠狂沙 (shamo)' },
+      { id: 'battle_bg/shanding', name: '绝顶峰峦 (shanding)' },
+      { id: 'battle_bg/shanding2', name: '华山论剑台 (shanding2)' },
+      { id: 'battle_bg/shuizhan', name: '江河水战 (shuizhan)' },
+      { id: 'battle_bg/simiao', name: '古旧寺庙 (simiao)' },
+      { id: 'battle_bg/wanshang', name: '黑夜月色 (wanshang)' },
+      { id: 'battle_bg/xueshan', name: '冰封雪山 (xueshan)' },
+      { id: 'battle_bg/yewai', name: '郊外荒野 (yewai)' },
+      { id: 'battle_bg/yewai2', name: '落日旷野 (yewai2)' },
+      { id: 'battle_bg/yewai3', name: '古道风尘 (yewai3)' },
+      { id: 'battle_bg/zhanchang', name: '两军古战场 (zhanchang)' }
+    ];
+    this.battleBackgrounds = standardBgs;
+
+    // 预置武学图标库
+    for (let i = 1; i <= 228; i++) {
+      const idxStr = String(i).padStart(3, '0');
+      const iconId = `icon/icon_waigong_${idxStr}`;
+      this.skillIcons.push({
+        id: iconId,
+        name: `武学图标 #${idxStr}`
+      });
+    }
+
+    // 2. 物品/装备索引 (items.json)
+    const itemData = fs.readJson('items.json');
+    if (Array.isArray(itemData)) {
+      for (const item of itemData) {
+        if (item && item.id) {
+          this.items.push({
+            id: item.id,
+            name: item.name || item.id,
+            category: item.category || 'normal',
+            type: item.type || 'normal',
+            slotType: item.slotType || '',
+            picture: item.picture || ''
+          });
+        }
+      }
+    }
+
+    // 3. 武学技能索引 (external-skills.json / internal-skills.json)
+    const extSkills = fs.readJson('external-skills.json');
+    if (Array.isArray(extSkills)) {
+      for (const s of extSkills) {
+        if (s && s.id) {
+          this.skills.push({
+            id: s.id,
+            name: s.name || s.id,
+            type: s.type || 'quanzhang',
+            category: 'external',
+            icon: s.icon || ''
+          });
+        }
+      }
+    }
+
+    const intSkills = fs.readJson('internal-skills.json');
+    if (Array.isArray(intSkills)) {
+      for (const s of intSkills) {
+        if (s && s.id) {
+          this.skills.push({
+            id: s.id,
+            name: s.name || s.id,
+            type: 'neigong',
+            category: 'internal',
+            icon: s.icon || ''
+          });
+        }
+      }
+    }
+
+    // 4. 专属特技 (special-skills.json)
+    const spSkills = fs.readJson('special-skills.json');
+    if (Array.isArray(spSkills)) {
+      for (const sp of spSkills) {
+        if (sp && sp.id) {
+          this.specialSkills.push({
+            id: sp.id,
+            name: sp.name || sp.id,
+            description: sp.description || ''
+          });
+        }
+      }
+    }
+
+    // 5. 天赋索引 (talents.json)
+    const talentData = fs.readJson('talents.json');
+    if (Array.isArray(talentData)) {
+      for (const t of talentData) {
+        if (t && t.id) {
+          this.talents.push({
+            id: t.id,
+            name: t.name || t.id,
+            description: t.description || ''
+          });
+        }
+      }
+    }
+
+    // 6. 角色索引 (characters.json)
+    const charData = fs.readJson('characters.json');
+    if (Array.isArray(charData)) {
+      for (const c of charData) {
+        if (c && c.id) {
+          this.characters.push({
+            id: c.id,
+            name: c.name || c.id,
+            portrait: c.portrait || '',
+            level: c.level || 1
+          });
+        }
+      }
+    }
+
+    // 7. 增益状态 (buffs.json)
+    const buffData = fs.readJson('buffs.json');
+    if (Array.isArray(buffData)) {
+      for (const b of buffData) {
+        if (b && b.id) {
+          this.buffs.push({
+            id: b.id,
+            name: b.name || b.id
+          });
+        }
+      }
+    }
+
+    // 8. 剧情段落 (stories/main.story.json)
+    const mainStory = fs.readJson('stories/main.story.json');
+    if (mainStory && Array.isArray(mainStory.segments)) {
+      for (const seg of mainStory.segments) {
+        if (seg && seg.name) {
+          this.storySegments.push({
+            segmentName: seg.name,
+            storyFile: 'stories/main.story.json'
+          });
+        }
+      }
+    }
+
+    // 9. 战场索引 (battles.json)
+    const battleData = fs.readJson('battles.json');
+    if (Array.isArray(battleData)) {
+      for (const b of battleData) {
+        if (b && b.id) {
+          this.battles.push({
+            id: b.id,
+            name: b.name || b.id,
+            background: b.background || '',
+            music: b.music || '',
+            participantCount: (b.participants || []).length
+          });
+        }
+      }
+    }
+  }
+
+  getWeapons() {
+    return this.items.filter(i => i.slotType === 'weapon' || i.category === 'equipment');
+  }
+
+  getExternalSkills() {
+    return this.skills.filter(s => s.category === 'external');
+  }
+
+  getInternalSkills() {
+    return this.skills.filter(s => s.category === 'internal');
+  }
+}
+
+/**
+ * ModValidator: MOD 数据健康检查与悬空引用排查
+ */
+class ModValidator {
+  constructor(fs, refIndex) {
+    this.fs = fs;
+    this.refIndex = refIndex;
+  }
+
+  runFullAudit() {
+    const issues = [];
+    const charIds = new Set(this.refIndex.characters.map(c => c.id));
+    const skillIds = new Set(this.refIndex.skills.map(s => s.id));
+    const talentIds = new Set(this.refIndex.talents.map(t => t.id));
+    const itemIds = new Set(this.refIndex.items.map(i => i.id));
+
+    // 校验人物引用的技能与天赋
+    const chars = this.fs.readJson('characters.json') || [];
+    for (const c of chars) {
+      if (Array.isArray(c.externalSkills)) {
+        for (const es of c.externalSkills) {
+          const sid = typeof es === 'string' ? es : es.id;
+          if (sid && !skillIds.has(sid)) {
+            issues.push({
+              level: 'warn',
+              module: '角色',
+              title: `侠客《${c.name || c.id}》引用了不存在的外功`,
+              message: `引用的外功ID "${sid}" 未在 external-skills.json 中定义。`
+            });
+          }
+        }
+      }
+      if (Array.isArray(c.internalSkills)) {
+        for (const is of c.internalSkills) {
+          const sid = typeof is === 'string' ? is : is.id;
+          if (sid && !skillIds.has(sid)) {
+            issues.push({
+              level: 'warn',
+              module: '角色',
+              title: `侠客《${c.name || c.id}》引用了不存在的内功`,
+              message: `引用的内功ID "${sid}" 未在 internal-skills.json 中定义。`
+            });
+          }
+        }
+      }
+      if (Array.isArray(c.talentIds)) {
+        for (const tid of c.talentIds) {
+          if (tid && !talentIds.has(tid)) {
+            issues.push({
+              level: 'warn',
+              module: '角色',
+              title: `侠客《${c.name || c.id}》绑定了不存在的天赋`,
+              message: `天赋ID "${tid}" 未在 talents.json 中声明。`
+            });
+          }
+        }
+      }
+    }
+
+    // 校验战场引用的角色
+    const battles = this.fs.readJson('battles.json') || [];
+    for (const b of battles) {
+      if (Array.isArray(b.participants)) {
+        for (const p of b.participants) {
+          if (p.characterId && !charIds.has(p.characterId)) {
+            issues.push({
+              level: 'error',
+              module: '战棋',
+              title: `战场《${b.name || b.id}》布阵了不存在的人物`,
+              message: `阵营 ${p.team} 站位 (${p.position.x}, ${p.position.y}) 引用了未知人物ID "${p.characterId}"。`
+            });
+          }
+        }
+      }
+    }
+
+    return issues;
+  }
+}
+
+/**
+ * Schemas: 数据契约与默认模板
+ */
+const ItemSchema = {
+  kind: 'item',
+  title: '物品与神兵',
+  categories: [
+    { value: 'equipment', label: '神兵装备' },
+    { value: 'normal', label: '常规道具/药品/秘籍' }
+  ],
+  types: [
+    { value: 'equipment', label: '神兵装备 (equipment)' },
+    { value: 'skill_book', label: '武学秘籍 (skill_book)' },
+    { value: 'talent_book', label: '天赋残卷 (talent_book)' },
+    { value: 'consumable', label: '绝世灵药 (consumable)' },
+    { value: 'booster', label: '属性补丸 (booster)' },
+    { value: 'quest_item', label: '关键剧情物品 (quest_item)' },
+    { value: 'utility', label: '功能道具 (utility)' }
+  ],
+  slotTypes: [
+    { value: 'weapon', label: '武器 (weapon)' },
+    { value: 'armor', label: '防具/重甲 (armor)' },
+    { value: 'accessory', label: '饰品/佩玉 (accessory)' }
+  ],
+  statOptions: [
+    { value: 'attack', label: '攻击力 (attack)' },
+    { value: 'defence', label: '防御力 (defence)' },
+    { value: 'crit_chance', label: '暴击率 (crit_chance)' },
+    { value: 'crit_mult', label: '暴击伤害倍率 (crit_mult)' },
+    { value: 'anti_crit_chance', label: '抗暴率 (anti_crit_chance)' },
+    { value: 'evasion', label: '闪避率 (evasion)' },
+    { value: 'accuracy', label: '命中率 (accuracy)' },
+    { value: 'lifesteal', label: '吸血率 (lifesteal)' },
+    { value: 'max_hp', label: '生命上限 (max_hp)' },
+    { value: 'max_mp', label: '内力上限 (max_mp)' },
+    { value: 'shenfa', label: '身法移动 (shenfa)' },
+    { value: 'jianfa', label: '御剑造诣 (jianfa)' },
+    { value: 'daofa', label: '耍刀造诣 (daofa)' },
+    { value: 'quanzhang', label: '拳掌造诣 (quanzhang)' },
+    { value: 'qimen', label: '奇门造诣 (qimen)' }
+  ],
+  defaultItem: () => ({
+    category: 'equipment',
+    id: 'my_new_weapon',
+    name: '自创新神兵',
+    type: 'equipment',
+    consumeOnUse: false,
+    level: 1,
+    price: 600,
+    cooldown: 0,
+    canDrop: true,
+    description: '一把由陨铁精铸而成的宝刀。',
+    picture: '物品.木刀',
+    requirements: [],
+    useEffects: [],
+    slotType: 'weapon',
+    affixes: [
+      { type: 'stat_modifier', stat: 'attack', value: { op: 'add', delta: 50 } }
+    ],
+    tagIds: ['weapon']
+  })
+};
+
+const SkillSchema = {
+  kind: 'externalSkill',
+  title: '外功武学',
+  skillTypes: [
+    { value: 'jianfa', label: '剑法 (jianfa)' },
+    { value: 'daofa', label: '刀法 (daofa)' },
+    { value: 'quanzhang', label: '拳掌 (quanzhang)' },
+    { value: 'qimen', label: '奇门 (qimen)' }
+  ],
+  impactTypes: [
+    { value: 'single', label: '单体目标 (single)' },
+    { value: 'line', label: '直线穿透 (line)' },
+    { value: 'plus', label: '十字波及 (plus)' },
+    { value: 'cross', label: '对角延伸 (cross)' },
+    { value: 'star', label: '星芒大范围 (star)' },
+    { value: 'all', label: '全战场覆盖 (all)' }
+  ],
+  defaultSkill: () => ({
+    id: 'my_new_skill',
+    name: '自创新剑法',
+    description: '一门凌厉狠辣的无上剑道。',
+    icon: 'icon/icon_waigong_001',
+    type: 'jianfa',
+    isHarmony: true,
+    affinity: 0.0,
+    hard: 2.0,
+    cooldown: 0,
+    powerBase: 5.0,
+    powerStep: 0.5,
+    animation: 'kongmingquan',
+    audio: '音效.剑',
+    buffs: [],
+    levelOverrides: [],
+    formSkills: [
+      {
+        id: '起手式',
+        name: '起手式',
+        description: '基础贯穿招式',
+        hard: 1.0,
+        cooldown: 2,
+        cost: { rage: 2 },
+        powerExtra: 2.0,
+        animation: 'baozha_cheng',
+        audio: '音效.剑',
+        unlockLevel: 1,
+        buffs: [],
+        targeting: { castSize: 1, impactType: 'line', impactSize: 3 }
+      }
+    ],
+    affixes: [
+      { effect: { type: 'stat_modifier', stat: 'jianfa', value: { op: 'add', delta: 15 } }, minimumLevel: 5 }
+    ]
+  })
+};
+
+const CharacterSchema = {
+  kind: 'character',
+  title: '角色与宗师',
+  statFields: [
+    // 基础四维
+    { key: 'bili', label: '臂力 (bili)', group: '四维' },
+    { key: 'dingli', label: '定力 (dingli)', group: '四维' },
+    { key: 'gengu', label: '根骨 (gengu)', group: '四维' },
+    { key: 'shenfa', label: '身法 (shenfa)', group: '四维' },
+    // 进阶资质
+    { key: 'fuyuan', label: '福缘 (fuyuan)', group: '进阶' },
+    { key: 'wuxing', label: '悟性 (wuxing)', group: '进阶' },
+    { key: 'wuxue', label: '武学常识 (wuxue)', group: '进阶' },
+    // 四系专精
+    { key: 'quanzhang', label: '拳掌 (quanzhang)', group: '专精' },
+    { key: 'jianfa', label: '剑法 (jianfa)', group: '专精' },
+    { key: 'daofa', label: '刀法 (daofa)', group: '专精' },
+    { key: 'qimen', label: '奇门 (qimen)', group: '专精' },
+    // 状态上限
+    { key: 'max_hp', label: '最大气血 (HP)', group: '状态' },
+    { key: 'max_mp', label: '最大内力 (MP)', group: '状态' }
+  ],
+  defaultCharacter: () => ({
+    id: 'my_hero',
+    name: '自创新少侠',
+    level: 1,
+    portrait: '头像.主角',
+    model: 'xiake',
+    gender: 'male',
+    growTemplate: '主角',
+    arenaEnabled: false,
+    talentIds: ['异世人'],
+    stats: {
+      bili: 50, dingli: 50, gengu: 50, shenfa: 50,
+      fuyuan: 40, wuxing: 50, wuxue: 60,
+      quanzhang: 30, jianfa: 30, daofa: 30, qimen: 30,
+      max_hp: 400, max_mp: 300
+    },
+    specialSkillIds: ['打鸡血'],
+    internalSkills: [
+      { id: '基本内功', level: 1, maxLevel: 10, equipped: true }
+    ],
+    externalSkills: [
+      { id: '野球拳', level: 1, maxLevel: 10 }
+    ],
+    equipmentIds: []
+  })
+};
+
+const BattleSchema = {
+  kind: 'battle',
+  title: '战棋与战场',
+  defaultBattle: () => ({
+    id: 'battle_' + Math.random().toString(36).substring(2, 8),
+    name: '自创新战场',
+    background: 'battle_bg/city',
+    music: '战斗音乐.1',
+    experienceMultiplier: 1.0,
+    requiredCharacterIds: ['主角'],
+    participants: [
+      {
+        position: { x: 2, y: 2 },
+        team: 1,
+        facing: 1,
+        characterId: null,
+        partyIndex: 0
+      },
+      {
+        position: { x: 8, y: 2 },
+        team: 2,
+        facing: 0,
+        characterId: '木头人',
+        partyIndex: null
+      }
+    ],
+    randomParticipants: []
+  })
+};
+
+/**
+ * JsonDataAdapter: 底层 JSON 读写适配器
+ */
+class JsonDataAdapter {
+  constructor(fs) {
+    this.fs = fs;
+  }
+
+  loadItems() { return this.fs.readJson('items.json') || []; }
+  async saveItems(items) { return await this.fs.writeJson('items.json', items); }
+
+  loadExternalSkills() { return this.fs.readJson('external-skills.json') || []; }
+  async saveExternalSkills(skills) { return await this.fs.writeJson('external-skills.json', skills); }
+
+  loadCharacters() { return this.fs.readJson('characters.json') || []; }
+  async saveCharacters(characters) { return await this.fs.writeJson('characters.json', characters); }
+
+  loadBattles() { return this.fs.readJson('battles.json') || []; }
+  async saveBattles(battles) { return await this.fs.writeJson('battles.json', battles); }
+
+  loadMainStory() { return this.fs.readJson('stories/main.story.json') || { version: 3, segments: [] }; }
+  async saveMainStory(storyObj) { return await this.fs.writeJson('stories/main.story.json', storyObj); }
+}
+
+/**
+ * ItemView: 神兵与道具工坊
+ */
+class ItemView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.notify = onSaveNotification;
+    this.items = [];
+    this.selectedItem = null;
+    this.searchKeyword = '';
+    this.categoryFilter = 'all';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.items = this.adapter.loadItems();
+    if (this.items.length > 0 && !this.selectedItem) {
+      this.selectedItem = this.items[0];
+    }
+    this._renderLayout();
+  }
+
+  _getFilteredItems() {
+    return this.items.filter(item => {
+      const matchKey = !this.searchKeyword ||
+        (item.name && item.name.includes(this.searchKeyword)) ||
+        (item.id && item.id.includes(this.searchKeyword));
+      if (!matchKey) return false;
+
+      if (this.categoryFilter === 'all') return true;
+      if (this.categoryFilter === 'weapon') return item.slotType === 'weapon' || (Array.isArray(item.tagIds) && item.tagIds.includes('weapon'));
+      if (this.categoryFilter === 'armor_acc') return item.slotType === 'armor' || item.slotType === 'accessory';
+      if (this.categoryFilter === 'book') return item.type === 'skill_book' || item.type === 'talent_book' || item.type === 'special_skill_book';
+      if (this.categoryFilter === 'pill') return item.type === 'consumable' || item.type === 'booster';
+      if (this.categoryFilter === 'quest') return item.type === 'quest_item';
+      return true;
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <!-- 左侧物品列表 -->
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="itemSearch" class="search-input" placeholder="🔍 搜索神兵/道具名或ID..." value="${this.searchKeyword}">
+            <div class="filter-row">
+              <button class="filter-chip ${this.categoryFilter === 'all' ? 'active' : ''}" data-cat="all">全部</button>
+              <button class="filter-chip ${this.categoryFilter === 'weapon' ? 'active' : ''}" data-cat="weapon">神兵</button>
+              <button class="filter-chip ${this.categoryFilter === 'armor_acc' ? 'active' : ''}" data-cat="armor_acc">防具饰品</button>
+              <button class="filter-chip ${this.categoryFilter === 'book' ? 'active' : ''}" data-cat="book">秘籍</button>
+              <button class="filter-chip ${this.categoryFilter === 'pill' ? 'active' : ''}" data-cat="pill">灵药</button>
+              <button class="filter-chip ${this.categoryFilter === 'quest' ? 'active' : ''}" data-cat="quest">剧情</button>
+            </div>
+            <button id="addItemBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新建神兵/道具</button>
+          </div>
+          <div class="item-list-scroll" id="itemList">
+            ${this._renderItemListHtml()}
+          </div>
+        </div>
+
+        <!-- 右侧物品详情表单 -->
+        <div class="detail-panel" id="itemDetail">
+          ${this.selectedItem ? this._renderDetailHtml(this.selectedItem) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一个物品进行调校</div>'}
+        </div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _renderItemListHtml() {
+    const list = this._getFilteredItems();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的物品</div>';
+    return list.map(item => {
+      const isSelected = this.selectedItem && this.selectedItem.id === item.id;
+      let badgeCls = 'badge-gray';
+      let typeLabel = item.type || item.category || '道具';
+      if (item.slotType === 'weapon') { badgeCls = 'badge-gold'; typeLabel = '神兵'; }
+      else if (item.slotType === 'armor') { badgeCls = 'badge-blue'; typeLabel = '防具'; }
+      else if (item.slotType === 'accessory') { badgeCls = 'badge-purple'; typeLabel = '饰品'; }
+      else if (item.type === 'skill_book') { badgeCls = 'badge-green'; typeLabel = '秘籍'; }
+      else if (item.type === 'consumable') { badgeCls = 'badge-red'; typeLabel = '丹药'; }
+
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${item.id}">
+          ${this.resolver.renderImg(item.picture, item.name, 'item-list-thumb')}
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${item.name || item.id}</span>
+              <span class="item-badge ${badgeCls}">${typeLabel}</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${item.id}</span>
+              <span class="meta-price">💰 ${item.price || 0} 银两</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(it) {
+    const isEq = it.category === 'equipment' || it.type === 'equipment';
+    const affixes = it.affixes || [];
+
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header-bar">
+          <div>
+            <h2 class="detail-title text-gold">${it.name || it.id}</h2>
+            <div class="detail-subtitle">ID: <code>${it.id}</code> · 类别: ${it.category || 'normal'} · 细分: ${it.type || 'normal'}</div>
+          </div>
+          <div class="btn-group">
+            <button id="duplicateItemBtn" class="btn btn-secondary">克隆物品</button>
+            <button id="deleteItemBtn" class="btn btn-danger">删除</button>
+            <button id="saveItemsBtn" class="btn btn-primary">💾 保存更改</button>
+          </div>
+        </div>
+
+        <!-- 原画与基础卡片 -->
+        <div class="form-card">
+          <h3>神兵插画与基本属性</h3>
+          <div class="media-preview-header">
+            ${this.resolver.renderImg(it.picture, it.name, 'item-large-preview')}
+            <div>
+              <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">当前绑定图鉴: <code>${it.picture || '无'}</code></div>
+              <button id="pickItemPicBtn" class="btn btn-secondary btn-sm">🖼️ 更换神兵插画图鉴</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>物品名称 (name)</label>
+              <input type="text" class="input-field" id="it_name" value="${it.name || ''}">
+            </div>
+            <div class="form-group">
+              <label>唯一标识 (id)</label>
+              <input type="text" class="input-field" id="it_id" value="${it.id || ''}">
+            </div>
+            <div class="form-group">
+              <label>大类架构 (category)</label>
+              <select class="input-field" id="it_category">
+                <option value="equipment" ${it.category === 'equipment' ? 'selected' : ''}>神兵装备 (equipment)</option>
+                <option value="normal" ${it.category === 'normal' ? 'selected' : ''}>普通道具/秘籍/灵药 (normal)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>细分类型 (type)</label>
+              <select class="input-field" id="it_type">
+                ${ItemSchema.types.map(t => `<option value="${t.value}" ${it.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" id="slotTypeGroup" style="${isEq ? '' : 'display:none;'}">
+              <label>装备槽位 (slotType)</label>
+              <select class="input-field" id="it_slotType">
+                ${ItemSchema.slotTypes.map(s => `<option value="${s.value}" ${it.slotType === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>品阶等级 (level)</label>
+              <input type="number" class="input-field" id="it_level" value="${it.level || 1}" min="1">
+            </div>
+            <div class="form-group">
+              <label>购买售价 (price)</label>
+              <input type="number" class="input-field" id="it_price" value="${it.price || 0}" min="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>使用即消耗 (consumeOnUse)</label>
+              <select class="input-field" id="it_consumeOnUse">
+                <option value="false" ${!it.consumeOnUse ? 'selected' : ''}>否 (神兵/装备类)</option>
+                <option value="true" ${it.consumeOnUse ? 'selected' : ''}>是 (药品/秘籍类)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>允许掉落 (canDrop)</label>
+              <select class="input-field" id="it_canDrop">
+                <option value="true" ${it.canDrop !== false ? 'selected' : ''}>允许掉落</option>
+                <option value="false" ${it.canDrop === false ? 'selected' : ''}>不可掉落</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>物品详述文案 (description)</label>
+            <textarea class="input-field" id="it_description">${it.description || ''}</textarea>
+          </div>
+        </div>
+
+        <!-- 装备词条与天赋绑定 -->
+        <div class="form-card" id="affixCard" style="${isEq ? '' : 'display:none;'}">
+          <h3>
+            <span>神兵词条与附加天赋 (Affixes)</span>
+            <div class="btn-group">
+              <button id="addStatAffixBtn" class="btn btn-secondary btn-sm">+ 属性词条</button>
+              <button id="addTalentAffixBtn" class="btn btn-secondary btn-sm">+ 天赋词条</button>
+            </div>
+          </h3>
+          <div id="affixListContainer">
+            ${affixes.length === 0 ? '<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">当前神兵暂未附加特殊词条</div>' : `
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>词条类型</th>
+                    <th>加成目标 / 天赋</th>
+                    <th>数值</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${affixes.map((af, idx) => {
+                    if (af.type === 'grant_talent') {
+                      return `
+                        <tr>
+                          <td><span class="item-badge badge-purple">附加天赋</span></td>
+                          <td>
+                            <select class="input-field affix-talent-select" data-idx="${idx}">
+                              ${this.refIndex.talents.map(t => `<option value="${t.id}" ${af.talentId === t.id ? 'selected' : ''}>${t.name || t.id}</option>`).join('')}
+                            </select>
+                          </td>
+                          <td>--</td>
+                          <td><button class="btn btn-danger btn-sm remove-affix-btn" data-idx="${idx}">删除</button></td>
+                        </tr>
+                      `;
+                    } else {
+                      const stat = af.stat || 'attack';
+                      const delta = af.value ? (af.value.delta || 0) : 0;
+                      return `
+                        <tr>
+                          <td><span class="item-badge badge-gold">属性加成</span></td>
+                          <td>
+                            <select class="input-field affix-stat-select" data-idx="${idx}">
+                              ${ItemSchema.statOptions.map(opt => `<option value="${opt.value}" ${stat === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                            </select>
+                          </td>
+                          <td>
+                            <input type="number" class="input-field affix-delta-input" data-idx="${idx}" value="${delta}" style="width:100px;">
+                          </td>
+                          <td><button class="btn btn-danger btn-sm remove-affix-btn" data-idx="${idx}">删除</button></td>
+                        </tr>
+                      `;
+                    }
+                  }).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#itemSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#itemList').innerHTML = this._renderItemListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    this.container.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.onclick = () => {
+        this.categoryFilter = chip.dataset.cat;
+        this.container.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        this.container.querySelector('#itemList').innerHTML = this._renderItemListHtml();
+        this._bindListClickEvents();
+      };
+    });
+
+    const addBtn = this.container.querySelector('#addItemBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const newItem = ItemSchema.defaultItem();
+        newItem.id = 'item_' + Date.now().toString().slice(-4);
+        newItem.name = '自创新神兵';
+        this.items.unshift(newItem);
+        this.selectedItem = newItem;
+        this._renderLayout();
+        this.notify('已新建物品模版，请调校属性！');
+      };
+    }
+
+    this._bindListClickEvents();
+    this._bindFormEvents();
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedItem = this.items.find(i => i.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#itemDetail').innerHTML = this._renderDetailHtml(this.selectedItem);
+        this._bindFormEvents();
+      };
+    });
+  }
+
+  _bindFormEvents() {
+    if (!this.selectedItem) return;
+    const it = this.selectedItem;
+
+    const pickPicBtn = this.container.querySelector('#pickItemPicBtn');
+    if (pickPicBtn) {
+      pickPicBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'item',
+          title: '从图鉴挑选神兵道具原画',
+          current: it.picture,
+          refIndex: this.refIndex,
+          resourceResolver: this.resolver,
+          onSelect: (ref) => {
+            it.picture = ref;
+            this._renderLayout();
+          }
+        });
+      };
+    }
+
+    const catSelect = this.container.querySelector('#it_category');
+    if (catSelect) {
+      catSelect.onchange = (e) => {
+        it.category = e.target.value;
+        const isEq = it.category === 'equipment';
+        const slotGrp = this.container.querySelector('#slotTypeGroup');
+        const affixCard = this.container.querySelector('#affixCard');
+        if (slotGrp) slotGrp.style.display = isEq ? '' : 'none';
+        if (affixCard) affixCard.style.display = isEq ? '' : 'none';
+      };
+    }
+
+    const addStatBtn = this.container.querySelector('#addStatAffixBtn');
+    if (addStatBtn) {
+      addStatBtn.onclick = () => {
+        if (!Array.isArray(it.affixes)) it.affixes = [];
+        it.affixes.push({
+          type: 'stat_modifier',
+          stat: 'attack',
+          value: { op: 'add', delta: 30 }
+        });
+        this._renderLayout();
+      };
+    }
+
+    const addTalentBtn = this.container.querySelector('#addTalentAffixBtn');
+    if (addTalentBtn) {
+      addTalentBtn.onclick = () => {
+        if (!Array.isArray(it.affixes)) it.affixes = [];
+        const tid = this.refIndex.talents.length > 0 ? this.refIndex.talents[0].id : '刀系装备';
+        it.affixes.push({
+          type: 'grant_talent',
+          talentId: tid
+        });
+        this._renderLayout();
+      };
+    }
+
+    this.container.querySelectorAll('.remove-affix-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        it.affixes.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    this.container.querySelectorAll('.affix-stat-select').forEach(sel => {
+      sel.onchange = () => {
+        const idx = parseInt(sel.dataset.idx, 10);
+        if (it.affixes[idx]) it.affixes[idx].stat = sel.value;
+      };
+    });
+
+    this.container.querySelectorAll('.affix-delta-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (it.affixes[idx]) {
+          if (!it.affixes[idx].value) it.affixes[idx].value = { op: 'add', delta: 0 };
+          it.affixes[idx].value.delta = parseFloat(inp.value) || 0;
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.affix-talent-select').forEach(sel => {
+      sel.onchange = () => {
+        const idx = parseInt(sel.dataset.idx, 10);
+        if (it.affixes[idx]) it.affixes[idx].talentId = sel.value;
+      };
+    });
+
+    const dupBtn = this.container.querySelector('#duplicateItemBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(it));
+        cloned.id = it.id + '_copy';
+        cloned.name = (it.name || it.id) + ' (副本)';
+        this.items.unshift(cloned);
+        this.selectedItem = cloned;
+        this._renderLayout();
+        this.notify('物品克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#deleteItemBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (confirm(`确定要删除物品《${it.name || it.id}》吗？`)) {
+          const idx = this.items.findIndex(i => i.id === it.id);
+          if (idx !== -1) {
+            this.items.splice(idx, 1);
+            this.selectedItem = this.items[0] || null;
+            this._renderLayout();
+            this.notify('物品已成功删除');
+          }
+        }
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveItemsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        it.name = this.container.querySelector('#it_name').value.trim();
+        it.id = this.container.querySelector('#it_id').value.trim();
+        it.category = this.container.querySelector('#it_category').value;
+        it.type = this.container.querySelector('#it_type').value;
+        if (it.category === 'equipment') {
+          it.slotType = this.container.querySelector('#it_slotType').value;
+        }
+        it.level = parseInt(this.container.querySelector('#it_level').value, 10) || 1;
+        it.price = parseInt(this.container.querySelector('#it_price').value, 10) || 0;
+        it.consumeOnUse = this.container.querySelector('#it_consumeOnUse').value === 'true';
+        it.canDrop = this.container.querySelector('#it_canDrop').value === 'true';
+        it.description = this.container.querySelector('#it_description').value.trim();
+
+        const res = await this.adapter.saveItems(this.items);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.items.length} 件神兵与道具至 items.json！`);
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+}
+
+/**
+ * SkillView: 武学与招式工坊
+ */
+class SkillView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.notify = onSaveNotification;
+    this.skills = [];
+    this.selectedSkill = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.skills = this.adapter.loadExternalSkills();
+    if (this.skills.length > 0 && !this.selectedSkill) {
+      this.selectedSkill = this.skills[0];
+    }
+    this._renderLayout();
+  }
+
+  _getFilteredSkills() {
+    return this.skills.filter(s => {
+      return !this.searchKeyword ||
+        (s.name && s.name.includes(this.searchKeyword)) ||
+        (s.id && s.id.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <!-- 左侧武学列表 -->
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="skillSearch" class="search-input" placeholder="🔍 搜索武学功法名称或ID..." value="${this.searchKeyword}">
+            <button id="addSkillBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 自创新武学</button>
+          </div>
+          <div class="item-list-scroll" id="skillList">
+            ${this._renderSkillListHtml()}
+          </div>
+        </div>
+
+        <!-- 右侧武学表单 -->
+        <div class="detail-panel" id="skillDetail">
+          ${this.selectedSkill ? this._renderDetailHtml(this.selectedSkill) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一门武学进行调校</div>'}
+        </div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _renderSkillListHtml() {
+    const list = this._getFilteredSkills();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的武学</div>';
+    return list.map(s => {
+      const isSelected = this.selectedSkill && this.selectedSkill.id === s.id;
+      let badgeCls = 'badge-blue';
+      if (s.type === 'quanzhang') badgeCls = 'badge-gold';
+      if (s.type === 'daofa') badgeCls = 'badge-red';
+      if (s.type === 'qimen') badgeCls = 'badge-purple';
+
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${s.id}">
+          ${this.resolver.renderImg(s.icon, s.name, 'skill-list-thumb')}
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-blue">${s.name || s.id}</span>
+              <span class="item-badge ${badgeCls}">${s.type || '外功'}</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${s.id}</span>
+              <span class="meta-power">威力: ${s.powerBase || 0} (+${s.powerStep || 0}/级)</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(s) {
+    const forms = s.formSkills || [];
+
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header-bar">
+          <div>
+            <h2 class="detail-title text-blue">${s.name || s.id}</h2>
+            <div class="detail-subtitle">ID: <code>${s.id}</code> · 招式数: ${(s.formSkills || []).length} 招</div>
+          </div>
+          <div class="btn-group">
+            <button id="duplicateSkillBtn" class="btn btn-secondary">克隆武学</button>
+            <button id="deleteSkillBtn" class="btn btn-danger">删除</button>
+            <button id="saveSkillsBtn" class="btn btn-primary">💾 保存更改</button>
+          </div>
+        </div>
+
+        <!-- 基础信息与图标 -->
+        <div class="form-card">
+          <h3>功法纲要与图标</h3>
+          <div class="media-preview-header">
+            ${this.resolver.renderImg(s.icon, s.name, 'skill-large-preview')}
+            <div>
+              <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">绑定武学图标: <code>${s.icon || '无'}</code></div>
+              <button id="pickSkillIconBtn" class="btn btn-secondary btn-sm">🖼️ 更换武学图标</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>武学名称 (name)</label>
+              <input type="text" class="input-field" id="sk_name" value="${s.name || ''}">
+            </div>
+            <div class="form-group">
+              <label>唯一标识 (id)</label>
+              <input type="text" class="input-field" id="sk_id" value="${s.id || ''}">
+            </div>
+            <div class="form-group">
+              <label>兵刃系别 (type)</label>
+              <select class="input-field" id="sk_type">
+                ${SkillSchema.skillTypes.map(t => `<option value="${t.value}" ${s.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>威力基数 (powerBase)</label>
+              <input type="number" step="0.1" class="input-field" id="sk_powerBase" value="${s.powerBase || 5}">
+            </div>
+            <div class="form-group">
+              <label>每级威力增长 (powerStep)</label>
+              <input type="number" step="0.05" class="input-field" id="sk_powerStep" value="${s.powerStep || 0.5}">
+            </div>
+            <div class="form-group">
+              <label>消耗与难度系数 (hard)</label>
+              <input type="number" step="0.5" class="input-field" id="sk_hard" value="${s.hard || 2}">
+            </div>
+            <div class="form-group">
+              <label>冷却回合 (cooldown)</label>
+              <input type="number" class="input-field" id="sk_cooldown" value="${s.cooldown || 0}" min="0">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>功法描述 (description)</label>
+            <textarea class="input-field" id="sk_description">${s.description || ''}</textarea>
+          </div>
+        </div>
+
+        <!-- 进阶招式流派与攻击范围 -->
+        <div class="form-card">
+          <h3>
+            <span>进阶招式表与打击范围 (Form Skills)</span>
+            <button id="addFormBtn" class="btn btn-secondary btn-sm">+ 新增招式</button>
+          </h3>
+          <div id="formsContainer">
+            ${forms.length === 0 ? '<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">当前武学暂未配置专属招式</div>' : forms.map((f, idx) => {
+              const targeting = f.targeting || { castSize: 1, impactType: 'line', impactSize: 3 };
+              return `
+                <div class="form-card" style="background:var(--bg-dark); border-color:var(--border-light); margin-top:10px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <strong style="color:var(--accent-gold);">招式 #${idx + 1}: ${f.name || f.id}</strong>
+                    <button class="btn btn-danger btn-sm remove-form-btn" data-idx="${idx}">删除此招</button>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>招式名称</label>
+                      <input type="text" class="input-field form-name-input" data-idx="${idx}" value="${f.name || ''}">
+                    </div>
+                    <div class="form-group">
+                      <label>招式ID</label>
+                      <input type="text" class="input-field form-id-input" data-idx="${idx}" value="${f.id || ''}">
+                    </div>
+                    <div class="form-group">
+                      <label>消耗怒气 (rage)</label>
+                      <input type="number" class="input-field form-rage-input" data-idx="${idx}" value="${(f.cost && f.cost.rage) || 2}" min="0">
+                    </div>
+                    <div class="form-group">
+                      <label>冷却回合 (CD)</label>
+                      <input type="number" class="input-field form-cd-input" data-idx="${idx}" value="${f.cooldown || 2}" min="0">
+                    </div>
+                    <div class="form-group">
+                      <label>解锁等级</label>
+                      <input type="number" class="input-field form-unlock-input" data-idx="${idx}" value="${f.unlockLevel || 1}" min="1">
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>攻击范围模式 (impactType)</label>
+                      <select class="input-field form-impact-type-select" data-idx="${idx}">
+                        ${SkillSchema.impactTypes.map(it => `<option value="${it.value}" ${targeting.impactType === it.value ? 'selected' : ''}>${it.label}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>波及范围大小 (impactSize)</label>
+                      <input type="number" class="input-field form-impact-size-input" data-idx="${idx}" value="${targeting.impactSize || 3}" min="1" max="5">
+                    </div>
+                    <div class="form-group">
+                      <label>施法距离 (castSize)</label>
+                      <input type="number" class="input-field form-cast-size-input" data-idx="${idx}" value="${targeting.castSize !== null ? targeting.castSize : 1}" min="0" max="5">
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#skillSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#skillList').innerHTML = this._renderSkillListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addSkillBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const newSkill = SkillSchema.defaultSkill();
+        newSkill.id = 'skill_' + Date.now().toString().slice(-4);
+        newSkill.name = '自创新功法';
+        this.skills.unshift(newSkill);
+        this.selectedSkill = newSkill;
+        this._renderLayout();
+        this.notify('已新建武学模版，请调校参数！');
+      };
+    }
+
+    this._bindListClickEvents();
+    this._bindFormEvents();
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedSkill = this.skills.find(s => s.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#skillDetail').innerHTML = this._renderDetailHtml(this.selectedSkill);
+        this._bindFormEvents();
+      };
+    });
+  }
+
+  _bindFormEvents() {
+    if (!this.selectedSkill) return;
+    const s = this.selectedSkill;
+
+    const pickIconBtn = this.container.querySelector('#pickSkillIconBtn');
+    if (pickIconBtn) {
+      pickIconBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'icon',
+          title: '挑选武学招式图标',
+          current: s.icon,
+          refIndex: this.refIndex,
+          resourceResolver: this.resolver,
+          onSelect: (ref) => {
+            s.icon = ref;
+            this._renderLayout();
+          }
+        });
+      };
+    }
+
+    const addFormBtn = this.container.querySelector('#addFormBtn');
+    if (addFormBtn) {
+      addFormBtn.onclick = () => {
+        if (!Array.isArray(s.formSkills)) s.formSkills = [];
+        s.formSkills.push({
+          id: s.id + '.招式' + (s.formSkills.length + 1),
+          name: (s.name || '武学') + '新招',
+          description: '威力惊人的后发招式',
+          hard: s.hard || 2.0,
+          cooldown: 3,
+          cost: { rage: 3 },
+          powerExtra: 3.0,
+          animation: 'quantou_zadi',
+          audio: '音效.拳2',
+          unlockLevel: 5,
+          buffs: [],
+          targeting: { castSize: 1, impactType: 'line', impactSize: 3 }
+        });
+        this._renderLayout();
+      };
+    }
+
+    this.container.querySelectorAll('.remove-form-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        s.formSkills.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    this.container.querySelectorAll('.form-name-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) s.formSkills[idx].name = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.form-id-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) s.formSkills[idx].id = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.form-rage-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) {
+          if (!s.formSkills[idx].cost) s.formSkills[idx].cost = {};
+          s.formSkills[idx].cost.rage = parseInt(inp.value, 10) || 0;
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.form-cd-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) s.formSkills[idx].cooldown = parseInt(inp.value, 10) || 0;
+      };
+    });
+
+    this.container.querySelectorAll('.form-unlock-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) s.formSkills[idx].unlockLevel = parseInt(inp.value, 10) || 1;
+      };
+    });
+
+    this.container.querySelectorAll('.form-impact-type-select').forEach(sel => {
+      sel.onchange = () => {
+        const idx = parseInt(sel.dataset.idx, 10);
+        if (s.formSkills[idx]) {
+          if (!s.formSkills[idx].targeting) s.formSkills[idx].targeting = {};
+          s.formSkills[idx].targeting.impactType = sel.value;
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.form-impact-size-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) {
+          if (!s.formSkills[idx].targeting) s.formSkills[idx].targeting = {};
+          s.formSkills[idx].targeting.impactSize = parseInt(inp.value, 10) || 1;
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.form-cast-size-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (s.formSkills[idx]) {
+          if (!s.formSkills[idx].targeting) s.formSkills[idx].targeting = {};
+          s.formSkills[idx].targeting.castSize = parseInt(inp.value, 10) || 0;
+        }
+      };
+    });
+
+    const dupBtn = this.container.querySelector('#duplicateSkillBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(s));
+        cloned.id = s.id + '_copy';
+        cloned.name = (s.name || s.id) + ' (重制)';
+        this.skills.unshift(cloned);
+        this.selectedSkill = cloned;
+        this._renderLayout();
+        this.notify('武学克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#deleteSkillBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (confirm(`确定要删除武学《${s.name || s.id}》吗？`)) {
+          const idx = this.skills.findIndex(i => i.id === s.id);
+          if (idx !== -1) {
+            this.skills.splice(idx, 1);
+            this.selectedSkill = this.skills[0] || null;
+            this._renderLayout();
+            this.notify('武学已成功删除');
+          }
+        }
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveSkillsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        s.name = this.container.querySelector('#sk_name').value.trim();
+        s.id = this.container.querySelector('#sk_id').value.trim();
+        s.type = this.container.querySelector('#sk_type').value;
+        s.powerBase = parseFloat(this.container.querySelector('#sk_powerBase').value) || 5;
+        s.powerStep = parseFloat(this.container.querySelector('#sk_powerStep').value) || 0.5;
+        s.hard = parseFloat(this.container.querySelector('#sk_hard').value) || 2;
+        s.cooldown = parseInt(this.container.querySelector('#sk_cooldown').value, 10) || 0;
+        s.description = this.container.querySelector('#sk_description').value.trim();
+
+        const res = await this.adapter.saveExternalSkills(this.skills);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.skills.length} 门外功至 external-skills.json！`);
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+}
+
+/**
+ * CharacterView: 侠客与宗师工坊
+ */
+class CharacterView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.notify = onSaveNotification;
+    this.characters = [];
+    this.selectedChar = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.characters = this.adapter.loadCharacters();
+    if (this.characters.length > 0 && !this.selectedChar) {
+      this.selectedChar = this.characters[0];
+    }
+    this._renderLayout();
+  }
+
+  _getFilteredChars() {
+    return this.characters.filter(c => {
+      return !this.searchKeyword || 
+        (c.name && c.name.includes(this.searchKeyword)) ||
+        (c.id && c.id.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <!-- 左侧人物列表 -->
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="charSearch" class="search-input" placeholder="🔍 搜索少侠/宗师名或ID..." value="${this.searchKeyword}">
+            <button id="addCharBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新建原创侠客</button>
+          </div>
+          <div class="item-list-scroll" id="charList">
+            ${this._renderCharListHtml()}
+          </div>
+        </div>
+
+        <!-- 右侧人物表单 -->
+        <div class="detail-panel" id="charDetail">
+          ${this.selectedChar ? this._renderDetailHtml(this.selectedChar) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一位侠客进行调校</div>'}
+        </div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _renderCharListHtml() {
+    const list = this._getFilteredChars();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的侠客</div>';
+    return list.map(c => {
+      const isSelected = this.selectedChar && this.selectedChar.id === c.id;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${c.id}">
+          ${this.resolver.renderImg(c.portrait, c.name, 'char-list-avatar')}
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-green">${c.name || c.id}</span>
+              <span class="item-badge badge-green">Lv.${c.level || 1}</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${c.id}</span>
+              <span class="meta-grow">${c.growTemplate || '无模板'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(c) {
+    const stats = c.stats || {};
+    const internalSkills = c.internalSkills || [];
+    const externalSkills = c.externalSkills || [];
+    const specialSkills = c.specialSkillIds || [];
+    const talents = c.talentIds || [];
+    const equipments = c.equipmentIds || [];
+
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header-bar">
+          <div>
+            <h2 class="detail-title text-green">${c.name || c.id}</h2>
+            <div class="detail-subtitle">ID: <code>${c.id}</code> · 门派/成长: ${c.growTemplate || '无'} · 模型: ${c.model || 'xiake'}</div>
+          </div>
+          <div class="btn-group">
+            <button id="duplicateCharBtn" class="btn btn-secondary">克隆人物</button>
+            <button id="deleteCharBtn" class="btn btn-danger">删除</button>
+            <button id="saveCharsBtn" class="btn btn-primary">💾 保存更改</button>
+          </div>
+        </div>
+
+        <!-- 生平与立绘 -->
+        <div class="form-card">
+          <h3>生平、容貌与战斗模型</h3>
+          <div class="media-preview-header">
+            ${this.resolver.renderImg(c.portrait, c.name, 'avatar-large-preview')}
+            <div>
+              <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">绑定立绘: <code>${c.portrait || '无'}</code></div>
+              <button id="pickCharPortraitBtn" class="btn btn-secondary btn-sm">🖼️ 更换高清侠客立绘</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>侠客姓名 (name)</label>
+              <input type="text" class="input-field" id="ch_name" value="${c.name || ''}">
+            </div>
+            <div class="form-group">
+              <label>唯一标识 (id)</label>
+              <input type="text" class="input-field" id="ch_id" value="${c.id || ''}">
+            </div>
+            <div class="form-group">
+              <label>初始等级 (level)</label>
+              <input type="number" class="input-field" id="ch_level" value="${c.level || 1}" min="1" max="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>性别 (gender)</label>
+              <select class="input-field" id="ch_gender">
+                <option value="male" ${c.gender === 'male' ? 'selected' : ''}>男儿身 (male)</option>
+                <option value="female" ${c.gender === 'female' ? 'selected' : ''}>女儿娇 (female)</option>
+                <option value="neutral" ${c.gender === 'neutral' ? 'selected' : ''}>中性/异兽 (neutral)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>成长模板 (growTemplate)</label>
+              <input type="text" class="input-field" id="ch_growTemplate" value="${c.growTemplate || '主角'}">
+            </div>
+            <div class="form-group">
+              <label>战斗模型标识 (model)</label>
+              <input type="text" class="input-field" id="ch_model" value="${c.model || 'xiake'}">
+            </div>
+          </div>
+        </div>
+
+        <!-- 10大武学资质与状态上限全维度面板 -->
+        <div class="form-card">
+          <h3>全维度武学资质与气血真气</h3>
+          
+          <div class="stat-section-title">基础四维资质</div>
+          <div class="stat-grid-inputs">
+            ${CharacterSchema.statFields.filter(f => f.group === '四维').map(f => `
+              <div class="stat-cell">
+                <label>${f.label}</label>
+                <input type="number" class="stat-input" data-stat="${f.key}" value="${stats[f.key] || 0}">
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="stat-section-title">进阶天赋悟性</div>
+          <div class="stat-grid-inputs">
+            ${CharacterSchema.statFields.filter(f => f.group === '进阶').map(f => `
+              <div class="stat-cell">
+                <label>${f.label}</label>
+                <input type="number" class="stat-input" data-stat="${f.key}" value="${stats[f.key] || 0}">
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="stat-section-title">四系兵刃专精</div>
+          <div class="stat-grid-inputs">
+            ${CharacterSchema.statFields.filter(f => f.group === '专精').map(f => `
+              <div class="stat-cell">
+                <label>${f.label}</label>
+                <input type="number" class="stat-input" data-stat="${f.key}" value="${stats[f.key] || 0}">
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="stat-section-title">状态气血与真气上限</div>
+          <div class="stat-grid-inputs">
+            ${CharacterSchema.statFields.filter(f => f.group === '状态').map(f => `
+              <div class="stat-cell">
+                <label>${f.label}</label>
+                <input type="number" class="stat-input" data-stat="${f.key}" value="${stats[f.key] || 0}">
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- 功法秘籍配装 (已学内功 & 外功) -->
+        <div class="form-card">
+          <h3>
+            <span>功法秘籍配装 (已学内功 & 外功)</span>
+          </h3>
+          <div class="form-grid-2">
+            <!-- 已学内功 -->
+            <div class="form-card" style="background:var(--bg-dark); border-color:var(--border-light);">
+              <h4 style="color:var(--accent-purple); font-size:14px; margin-bottom:8px;">已学内功 (Internal Skills)</h4>
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>内功名</th>
+                    <th style="width:60px;">等级</th>
+                    <th style="width:60px;">上限</th>
+                    <th style="width:60px;">装备</th>
+                    <th style="width:40px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="internalSkillsTbody">
+                  ${internalSkills.map((sk, idx) => `
+                    <tr>
+                      <td><strong>${sk.id}</strong></td>
+                      <td><input type="number" class="input-field in-lvl-input" data-idx="${idx}" value="${sk.level || 1}" style="padding:2px 4px; width:50px;"></td>
+                      <td><input type="number" class="input-field in-max-input" data-idx="${idx}" value="${sk.maxLevel || 10}" style="padding:2px 4px; width:50px;"></td>
+                      <td style="text-align:center;">
+                        <input type="checkbox" class="in-eq-checkbox" data-idx="${idx}" ${sk.equipped ? 'checked' : ''}>
+                      </td>
+                      <td><button class="btn btn-danger btn-sm remove-in-btn" data-idx="${idx}">✕</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div style="display:flex; gap:6px; margin-top:10px;">
+                <select class="input-field" id="newInternalSelect" style="flex:1;">
+                  ${this.refIndex.getInternalSkills().map(s => `<option value="${s.id}">${s.name || s.id}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" id="addInternalBtn">+ 添加内功</button>
+              </div>
+            </div>
+
+            <!-- 已学外功 -->
+            <div class="form-card" style="background:var(--bg-dark); border-color:var(--border-light);">
+              <h4 style="color:var(--accent-gold); font-size:14px; margin-bottom:8px;">已学外功 (External Skills)</h4>
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>外功名</th>
+                    <th style="width:60px;">等级</th>
+                    <th style="width:60px;">上限</th>
+                    <th style="width:40px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="externalSkillsTbody">
+                  ${externalSkills.map((sk, idx) => `
+                    <tr>
+                      <td><strong>${sk.id}</strong></td>
+                      <td><input type="number" class="input-field ex-lvl-input" data-idx="${idx}" value="${sk.level || 1}" style="padding:2px 4px; width:50px;"></td>
+                      <td><input type="number" class="input-field ex-max-input" data-idx="${idx}" value="${sk.maxLevel || 10}" style="padding:2px 4px; width:50px;"></td>
+                      <td><button class="btn btn-danger btn-sm remove-ex-btn" data-idx="${idx}">✕</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div style="display:flex; gap:6px; margin-top:10px;">
+                <select class="input-field" id="newExternalSelect" style="flex:1;">
+                  ${this.refIndex.getExternalSkills().map(s => `<option value="${s.id}">${s.name || s.id}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" id="addExternalBtn">+ 添加外功</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 专属绝技、天赋与初始神兵 -->
+        <div class="form-card">
+          <h3>专属绝技、天赋词条与初始神兵</h3>
+
+          <!-- 绝技 -->
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>专属绝技 (specialSkillIds)</label>
+            <div class="tag-picker-wrap" id="specialSkillsWrap">
+              ${specialSkills.map((sp, idx) => `
+                <span class="tag-chip">${sp} <span class="tag-chip-remove remove-sp-chip" data-idx="${idx}">✕</span></span>
+              `).join('')}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <select class="input-field" id="newSpSelect" style="flex:1;">
+                ${this.refIndex.specialSkills.map(sp => `<option value="${sp.id}">${sp.name || sp.id}</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" id="addSpBtn">+ 绑定绝技</button>
+            </div>
+          </div>
+
+          <!-- 天赋 -->
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>已解锁天赋 (talentIds)</label>
+            <div class="tag-picker-wrap" id="talentsWrap">
+              ${talents.map((t, idx) => `
+                <span class="tag-chip">${t} <span class="tag-chip-remove remove-talent-chip" data-idx="${idx}">✕</span></span>
+              `).join('')}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <select class="input-field" id="newTalentSelect" style="flex:1;">
+                ${this.refIndex.talents.map(t => `<option value="${t.id}">${t.name || t.id} (${t.description ? t.description.slice(0, 20) + '...' : ''})</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" id="addTalentBtn">+ 添加天赋</button>
+            </div>
+          </div>
+
+          <!-- 初始穿戴神兵 -->
+          <div class="form-group">
+            <label>初始佩戴神兵装备 (equipmentIds)</label>
+            <div class="tag-picker-wrap" id="equipmentsWrap">
+              ${equipments.map((eq, idx) => `
+                <span class="tag-chip" style="background:rgba(88,166,255,0.15); border-color:rgba(88,166,255,0.3); color:var(--accent-blue);">
+                  ${eq} <span class="tag-chip-remove remove-eq-chip" data-idx="${idx}">✕</span>
+                </span>
+              `).join('')}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <select class="input-field" id="newEquipmentSelect" style="flex:1;">
+                ${this.refIndex.getWeapons().map(eq => `<option value="${eq.id}">${eq.name || eq.id} [${eq.slotType || '装备'}]</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" id="addEquipmentBtn">+ 穿戴装备</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#charSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#charList').innerHTML = this._renderCharListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addCharBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const newChar = CharacterSchema.defaultCharacter();
+        newChar.id = 'hero_' + Date.now().toString().slice(-4);
+        newChar.name = '自创新少侠';
+        this.characters.unshift(newChar);
+        this.selectedChar = newChar;
+        this._renderLayout();
+        this.notify('已新建侠客模版，请调校参数！');
+      };
+    }
+
+    this._bindListClickEvents();
+    this._bindFormEvents();
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedChar = this.characters.find(c => c.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#charDetail').innerHTML = this._renderDetailHtml(this.selectedChar);
+        this._bindFormEvents();
+      };
+    });
+  }
+
+  _bindFormEvents() {
+    if (!this.selectedChar) return;
+    const c = this.selectedChar;
+
+    const pickPortraitBtn = this.container.querySelector('#pickCharPortraitBtn');
+    if (pickPortraitBtn) {
+      pickPortraitBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'portrait',
+          title: '挑选侠客高清立绘头像',
+          current: c.portrait,
+          refIndex: this.refIndex,
+          resourceResolver: this.resolver,
+          onSelect: (ref) => {
+            c.portrait = ref;
+            this._renderLayout();
+          }
+        });
+      };
+    }
+
+    // 内功事件
+    const addInBtn = this.container.querySelector('#addInternalBtn');
+    if (addInBtn) {
+      addInBtn.onclick = () => {
+        const sel = this.container.querySelector('#newInternalSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(c.internalSkills)) c.internalSkills = [];
+          c.internalSkills.push({ id: sel.value, level: 1, maxLevel: 10, equipped: c.internalSkills.length === 0 });
+          this._renderLayout();
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-in-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        c.internalSkills.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    this.container.querySelectorAll('.in-lvl-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (c.internalSkills[idx]) c.internalSkills[idx].level = parseInt(inp.value, 10) || 1;
+      };
+    });
+
+    this.container.querySelectorAll('.in-max-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (c.internalSkills[idx]) c.internalSkills[idx].maxLevel = parseInt(inp.value, 10) || 10;
+      };
+    });
+
+    this.container.querySelectorAll('.in-eq-checkbox').forEach(chk => {
+      chk.onchange = () => {
+        const idx = parseInt(chk.dataset.idx, 10);
+        if (chk.checked) {
+          // 单一装备内功
+          c.internalSkills.forEach((is, i) => is.equipped = (i === idx));
+        } else {
+          if (c.internalSkills[idx]) c.internalSkills[idx].equipped = false;
+        }
+        this._renderLayout();
+      };
+    });
+
+    // 外功事件
+    const addExBtn = this.container.querySelector('#addExternalBtn');
+    if (addExBtn) {
+      addExBtn.onclick = () => {
+        const sel = this.container.querySelector('#newExternalSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(c.externalSkills)) c.externalSkills = [];
+          c.externalSkills.push({ id: sel.value, level: 1, maxLevel: 10 });
+          this._renderLayout();
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-ex-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        c.externalSkills.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    this.container.querySelectorAll('.ex-lvl-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (c.externalSkills[idx]) c.externalSkills[idx].level = parseInt(inp.value, 10) || 1;
+      };
+    });
+
+    this.container.querySelectorAll('.ex-max-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (c.externalSkills[idx]) c.externalSkills[idx].maxLevel = parseInt(inp.value, 10) || 10;
+      };
+    });
+
+    // 绝技事件
+    const addSpBtn = this.container.querySelector('#addSpBtn');
+    if (addSpBtn) {
+      addSpBtn.onclick = () => {
+        const sel = this.container.querySelector('#newSpSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(c.specialSkillIds)) c.specialSkillIds = [];
+          if (!c.specialSkillIds.includes(sel.value)) {
+            c.specialSkillIds.push(sel.value);
+            this._renderLayout();
+          }
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-sp-chip').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        c.specialSkillIds.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    // 天赋事件
+    const addTalentBtn = this.container.querySelector('#addTalentBtn');
+    if (addTalentBtn) {
+      addTalentBtn.onclick = () => {
+        const sel = this.container.querySelector('#newTalentSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(c.talentIds)) c.talentIds = [];
+          if (!c.talentIds.includes(sel.value)) {
+            c.talentIds.push(sel.value);
+            this._renderLayout();
+          }
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-talent-chip').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        c.talentIds.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    // 装备事件
+    const addEqBtn = this.container.querySelector('#addEquipmentBtn');
+    if (addEqBtn) {
+      addEqBtn.onclick = () => {
+        const sel = this.container.querySelector('#newEquipmentSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(c.equipmentIds)) c.equipmentIds = [];
+          if (!c.equipmentIds.includes(sel.value)) {
+            c.equipmentIds.push(sel.value);
+            this._renderLayout();
+          }
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-eq-chip').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        c.equipmentIds.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    // 克隆/删除/保存
+    const dupBtn = this.container.querySelector('#duplicateCharBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(c));
+        cloned.id = c.id + '_copy';
+        cloned.name = (c.name || c.id) + ' (分身)';
+        this.characters.unshift(cloned);
+        this.selectedChar = cloned;
+        this._renderLayout();
+        this.notify('侠客克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#deleteCharBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (confirm(`确定要删除侠客《${c.name || c.id}》吗？`)) {
+          const idx = this.characters.findIndex(i => i.id === c.id);
+          if (idx !== -1) {
+            this.characters.splice(idx, 1);
+            this.selectedChar = this.characters[0] || null;
+            this._renderLayout();
+            this.notify('侠客已成功删除');
+          }
+        }
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveCharsBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        c.name = this.container.querySelector('#ch_name').value.trim();
+        c.id = this.container.querySelector('#ch_id').value.trim();
+        c.level = parseInt(this.container.querySelector('#ch_level').value, 10) || 1;
+        c.gender = this.container.querySelector('#ch_gender').value;
+        c.growTemplate = this.container.querySelector('#ch_growTemplate').value.trim() || null;
+        c.model = this.container.querySelector('#ch_model').value.trim() || 'xiake';
+
+        if (!c.stats) c.stats = {};
+        this.container.querySelectorAll('.stat-input').forEach(inp => {
+          const statKey = inp.dataset.stat;
+          c.stats[statKey] = parseInt(inp.value, 10) || 0;
+        });
+
+        const res = await this.adapter.saveCharacters(this.characters);
+        saveBtn.innerText = '💾 保存更改';
+        if (res.success) {
+          this.notify(`成功保存 ${this.characters.length} 位侠客至 characters.json！`);
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+}
+
+/**
+ * BattleView: 11×4 战棋交互布阵与战场工坊
+ */
+class BattleView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.resolver = new ResourceResolver(refIndex);
+    this.notify = onSaveNotification;
+    this.battles = [];
+    this.selectedBattle = null;
+    this.searchKeyword = '';
+    this.selectedCell = null; // { x, y }
+    this.previewImpactType = 'single';
+    this.previewImpactSize = 2;
+    this.enableHoverRange = true;
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.battles = this.adapter.loadBattles();
+    if (this.battles.length === 0) {
+      const defaultB = BattleSchema.defaultBattle();
+      this.battles.push(defaultB);
+    }
+    if (!this.selectedBattle) {
+      this.selectedBattle = this.battles[0];
+    }
+    if (!this.selectedCell) {
+      this.selectedCell = { x: 2, y: 2 };
+    }
+    this._renderLayout();
+  }
+
+  _getFilteredBattles() {
+    return this.battles.filter(b => {
+      return !this.searchKeyword ||
+        (b.name && b.name.includes(this.searchKeyword)) ||
+        (b.id && b.id.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <!-- 左侧战场列表 -->
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="battleSearch" class="search-input" placeholder="🔍 搜索战役名称或ID..." value="${this.searchKeyword}">
+            <button id="addBattleBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新建战役场景</button>
+          </div>
+          <div class="item-list-scroll" id="battleList">
+            ${this._renderBattleListHtml()}
+          </div>
+        </div>
+
+        <!-- 右侧战棋棋盘与参数面板 -->
+        <div class="detail-panel" id="battleDetail">
+          ${this.selectedBattle ? this._renderDetailHtml(this.selectedBattle) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一场战役进行战棋布阵</div>'}
+        </div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _renderBattleListHtml() {
+    const list = this._getFilteredBattles();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的战役</div>';
+    return list.map(b => {
+      const isSelected = this.selectedBattle && this.selectedBattle.id === b.id;
+      const count = (b.participants || []).length;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-id="${b.id}">
+          <div class="item-card-content">
+            <div class="item-title-row">
+              <span class="item-name text-gold">${b.name || b.id}</span>
+              <span class="item-badge badge-gold">${count}人参战</span>
+            </div>
+            <div class="item-meta-row">
+              <span class="meta-id">ID: ${b.id}</span>
+              <span class="meta-bg">${(b.background || '').replace('battle_bg/', '')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderDetailHtml(b) {
+    const participants = b.participants || [];
+    const reqChars = b.requiredCharacterIds || [];
+
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header-bar">
+          <div>
+            <h2 class="detail-title text-gold">${b.name || b.id}</h2>
+            <div class="detail-subtitle">ID: <code>${b.id}</code> · 经验倍率: ${b.experienceMultiplier || 1.0}x · 参战单位: ${participants.length} 人</div>
+          </div>
+          <div class="btn-group">
+            <button id="duplicateBattleBtn" class="btn btn-secondary">克隆战役</button>
+            <button id="deleteBattleBtn" class="btn btn-danger">删除</button>
+            <button id="saveBattlesBtn" class="btn btn-primary">💾 保存战场配置</button>
+          </div>
+        </div>
+
+        <!-- 战场全局设置 -->
+        <div class="form-card">
+          <h3>战役环境与出战限制</h3>
+          <div class="media-preview-header">
+            ${this.resolver.renderImg(b.background, '战场背景', 'bg-large-preview')}
+            <div>
+              <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">当前战斗背景: <code>${b.background || '无'}</code></div>
+              <button id="pickBattleBgBtn" class="btn btn-secondary btn-sm">🖼️ 挑选战场背景图鉴</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>战役名称 (name)</label>
+              <input type="text" class="input-field" id="bt_name" value="${b.name || ''}">
+            </div>
+            <div class="form-group">
+              <label>战役唯一ID (id)</label>
+              <input type="text" class="input-field" id="bt_id" value="${b.id || ''}">
+            </div>
+            <div class="form-group">
+              <label>经验结算倍率 (experienceMultiplier)</label>
+              <input type="number" step="0.1" class="input-field" id="bt_exp" value="${b.experienceMultiplier || 1.0}" min="0.1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>背景音乐 (music)</label>
+              <select class="input-field" id="bt_music">
+                <option value="">-- 使用默认战场音乐 --</option>
+                ${this.refIndex.battleMusic.map(m => `<option value="${m.id}" ${b.music === m.id ? 'selected' : ''}>${m.name || m.id} (${m.path})</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>必出战主角/侠客 (requiredCharacterIds)</label>
+              <div class="tag-picker-wrap" id="reqCharsWrap" style="min-height:36px; max-height:80px;">
+                ${reqChars.map((rc, idx) => `
+                  <span class="tag-chip">${rc} <span class="tag-chip-remove remove-req-chip" data-idx="${idx}">✕</span></span>
+                `).join('')}
+              </div>
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <select class="input-field" id="newReqSelect" style="flex:1;">
+                  <option value="主角">主角</option>
+                  ${this.refIndex.characters.filter(c => c.id !== '主角').map(c => `<option value="${c.id}">${c.name || c.id}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" id="addReqBtn">+ 添加必出战</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 11×4 战棋布阵棋盘 -->
+        <div class="form-card">
+          <div class="battle-board-header">
+            <div>
+              <strong style="color:var(--accent-gold); font-size:15px;">⚔️ 11×4 半即时战棋布阵交互棋盘</strong>
+              <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">点击棋盘格子放置或调校单位；悬停可模拟测试招式杀伤范围</div>
+            </div>
+            <div class="battle-legend">
+              <div class="legend-item"><span class="legend-dot dot-ally"></span> 我方阵营 (Team 1, 靠左 0~4列)</div>
+              <div class="legend-item"><span class="legend-dot dot-enemy"></span> 敌方阵营 (Team 2, 靠右 6~10列)</div>
+              <div class="legend-item"><span style="color:var(--accent-gold); font-weight:bold;">▶</span> 朝右 / <span style="color:var(--accent-blue); font-weight:bold;">◀</span> 朝左</div>
+              <button class="btn btn-secondary btn-sm" id="resetBasicBattleBtn">↺ 重置为基础单挑</button>
+              <button class="btn btn-danger btn-sm" id="clearAllUnitsBtn">清空棋盘</button>
+            </div>
+          </div>
+
+          <!-- 招式范围模拟栏 -->
+          <div style="display:flex; align-items:center; gap:12px; background:var(--bg-dark); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:12px;">
+            <span style="color:var(--accent-purple); font-weight:bold;">🎯 招式范围演练：</span>
+            <span>范围模式:</span>
+            <select class="input-field" id="rangeModeSelect" style="padding:2px 8px; font-size:12px; width:130px;">
+              <option value="single" ${this.previewImpactType === 'single' ? 'selected' : ''}>单体打击 (single)</option>
+              <option value="line" ${this.previewImpactType === 'line' ? 'selected' : ''}>直线贯穿 (line)</option>
+              <option value="plus" ${this.previewImpactType === 'plus' ? 'selected' : ''}>十字波及 (plus)</option>
+              <option value="star" ${this.previewImpactType === 'star' ? 'selected' : ''}>周身星芒 (star)</option>
+              <option value="all" ${this.previewImpactType === 'all' ? 'selected' : ''}>全战场覆盖 (all)</option>
+            </select>
+            <span>覆盖半径:</span>
+            <input type="number" id="rangeSizeInput" class="input-field" value="${this.previewImpactSize}" min="1" max="5" style="padding:2px 8px; width:60px; font-size:12px;">
+            <label style="display:flex; align-items:center; gap:4px; margin-left:auto; cursor:pointer;">
+              <input type="checkbox" id="toggleHoverRange" ${this.enableHoverRange ? 'checked' : ''}>
+              <span>开启鼠标悬停高亮演示</span>
+            </label>
+          </div>
+
+          <!-- 11×4 网格棋盘 -->
+          <div class="battle-grid-container">
+            <div class="battle-grid-board" id="battleGridBoard">
+              ${this._renderBoardHtml(b)}
+            </div>
+          </div>
+
+          <!-- 选中格子单位调校台 -->
+          <div id="unitInspectorContainer">
+            ${this._renderInspectorHtml(b)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderBoardHtml(b) {
+    const participants = b.participants || [];
+    let html = '';
+
+    // 第一行：列坐标 (X = 0..10)
+    html += '<div class="grid-axis-label">Y \\ X</div>';
+    for (let x = 0; x < 11; x++) {
+      let zoneCls = '';
+      if (x <= 4) zoneCls = 'zone-ally';
+      else if (x >= 6) zoneCls = 'zone-enemy';
+      html += `<div class="grid-axis-label axis-col-label ${zoneCls}">${x}</div>`;
+    }
+
+    // 4 行格子 (Y = 0..3)
+    for (let y = 0; y < 4; y++) {
+      html += `<div class="grid-axis-label axis-row-label">${y}</div>`;
+
+      for (let x = 0; x < 11; x++) {
+        const isSelected = this.selectedCell && this.selectedCell.x === x && this.selectedCell.y === y;
+        let zoneCls = '';
+        if (x <= 4) zoneCls = 'zone-ally';
+        else if (x >= 6) zoneCls = 'zone-enemy';
+
+        const unit = participants.find(p => p.position && p.position.x === x && p.position.y === y);
+
+        html += `
+          <div class="battle-cell ${zoneCls} ${isSelected ? 'selected-cell' : ''}" data-x="${x}" data-y="${y}">
+            <span class="cell-coord-tag">${x},${y}</span>
+            ${unit ? this._renderUnitTokenHtml(unit) : '<span class="empty-cell-add">+</span>'}
+          </div>
+        `;
+      }
+    }
+
+    return html;
+  }
+
+  _renderUnitTokenHtml(u) {
+    let portrait = 'head/zhujue2';
+    let name = '未知单位';
+
+    if (u.partyIndex === 0) {
+      name = '⭐ 主角';
+      portrait = '头像.主角';
+    } else if (u.partyIndex !== null && u.partyIndex !== undefined) {
+      name = `👥 队友 [P${u.partyIndex}]`;
+      portrait = '头像.主角';
+    } else if (u.characterId) {
+      name = u.characterId;
+      const charObj = this.refIndex.characters.find(c => c.id === u.characterId);
+      if (charObj && charObj.portrait) {
+        portrait = charObj.portrait;
+      } else {
+        portrait = `头像.${u.characterId}`;
+      }
+    }
+
+    const teamCls = u.team === 1 ? 'team-1' : 'team-2';
+    const facingArrow = u.facing === 1 ? '▶' : '◀';
+    const facingCls = u.facing === 1 ? 'facing-right' : 'facing-left';
+
+    return `
+      <div class="unit-token ${teamCls}">
+        <div class="unit-avatar-wrap">
+          <img src="${this.resolver.resolveArtUrl(portrait)}" alt="${name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy">
+          <div class="img-placeholder" style="display:none; width:100%; height:100%;"><span>${name.charAt(0)}</span></div>
+          <span class="facing-badge ${facingCls}">${facingArrow}</span>
+        </div>
+        <div class="unit-name-label" title="${name}">${name}</div>
+      </div>
+    `;
+  }
+
+  _renderInspectorHtml(b) {
+    if (!this.selectedCell) return '<div class="empty-hint" style="text-align:center; padding:12px; color:var(--text-dim);">点击上方棋盘任意格子以放置或调校单位</div>';
+    const { x, y } = this.selectedCell;
+    const participants = b.participants || [];
+    const unitIndex = participants.findIndex(p => p.position && p.position.x === x && p.position.y === y);
+    const u = unitIndex !== -1 ? participants[unitIndex] : null;
+
+    if (u) {
+      // 存在单位：调校面板
+      let identityType = 'character';
+      if (u.partyIndex === 0) identityType = 'protagonist';
+      else if (u.partyIndex !== null && u.partyIndex !== undefined) identityType = 'follower';
+
+      return `
+        <div class="form-card" style="background:var(--bg-dark); border-color:var(--accent-gold); margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="color:var(--accent-gold); font-size:15px;">
+              <span>参战单位调校 · 坐标 <code>(${x}, ${y})</code></span>
+            </h4>
+            <button class="btn btn-danger btn-sm" id="removeUnitFromBoardBtn">🗑️ 从棋盘撤下</button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>所属阵营 (team)</label>
+              <select class="input-field" id="ins_team">
+                <option value="1" ${u.team === 1 ? 'selected' : ''}>🔵 我方编队 (Team 1)</option>
+                <option value="2" ${u.team === 2 ? 'selected' : ''}>🔴 敌方阵营 (Team 2)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>布阵朝向 (facing)</label>
+              <select class="input-field" id="ins_facing">
+                <option value="1" ${u.facing === 1 ? 'selected' : ''}>▶ 朝右 (Facing: 1)</option>
+                <option value="0" ${u.facing === 0 ? 'selected' : ''}>◀ 朝左 (Facing: 0)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>参战身份定位</label>
+              <select class="input-field" id="ins_identity">
+                <option value="protagonist" ${identityType === 'protagonist' ? 'selected' : ''}>⭐ 玩家主角 (PartyIndex: 0)</option>
+                <option value="follower" ${identityType === 'follower' ? 'selected' : ''}>👥 随行队友 (PartyIndex: 1~5)</option>
+                <option value="character" ${identityType === 'character' ? 'selected' : ''}>👤 固定侠客/首领 (指定角色ID)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" id="insCharIdGroup" style="${identityType === 'character' ? '' : 'display:none;'}">
+              <label>指定侠客角色 (characterId)</label>
+              <select class="input-field" id="ins_characterId">
+                ${this.refIndex.characters.map(c => `<option value="${c.id}" ${u.characterId === c.id ? 'selected' : ''}>${c.name || c.id} (${c.id})</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" id="insPartyIndexGroup" style="${identityType === 'follower' ? '' : 'display:none;'}">
+              <label>队友出战槽位索引 (partyIndex)</label>
+              <input type="number" class="input-field" id="ins_partyIndex" value="${u.partyIndex !== null && u.partyIndex !== undefined ? u.partyIndex : 1}" min="1" max="5">
+            </div>
+            <div class="form-group">
+              <label>快速移动坐标</label>
+              <div style="display:flex; gap:6px;">
+                <input type="number" class="input-field" id="ins_x" value="${x}" min="0" max="10" style="width:70px;">
+                <input type="number" class="input-field" id="ins_y" value="${y}" min="0" max="3" style="width:70px;">
+                <button class="btn btn-secondary btn-sm" id="insMoveBtn">移动至此坐标</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // 空白格子：放置菜单
+      const defaultTeam = x <= 4 ? 1 : 2;
+      const defaultFacing = x <= 4 ? 1 : 0;
+      return `
+        <div class="form-card" style="background:var(--bg-dark); border-color:var(--border-color); margin-top:12px;">
+          <h4 style="color:var(--text-main); font-size:14px; margin-bottom:10px;">
+            <span>在坐标 <code>(${x}, ${y})</code> 放置新参战单位</span>
+          </h4>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <button class="btn btn-primary btn-sm" id="placeProtagonistBtn">⭐ 放置主角 (P0, 朝右, 我方)</button>
+            <button class="btn btn-secondary btn-sm" id="placeFollowerBtn">👥 放置队友 (P1, 朝右, 我方)</button>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <select class="input-field" id="quickEnemySelect" style="width:180px; font-size:12px;">
+                ${this.refIndex.characters.map(c => `<option value="${c.id}" ${c.id === '木头人' ? 'selected' : ''}>${c.name || c.id}</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" id="placeEnemyBtn">🔴 放置为敌方 (朝左)</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#battleSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#battleList').innerHTML = this._renderBattleListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addBtn = this.container.querySelector('#addBattleBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const newBattle = BattleSchema.defaultBattle();
+        newBattle.id = 'battle_' + Date.now().toString().slice(-4);
+        newBattle.name = '自创新战役';
+        this.battles.unshift(newBattle);
+        this.selectedBattle = newBattle;
+        this.selectedCell = { x: 2, y: 2 };
+        this._renderLayout();
+        this.notify('已新建战役，请进行战棋布阵！');
+      };
+    }
+
+    this._bindListClickEvents();
+    this._bindFormEvents();
+    this._bindBoardEvents();
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const id = card.dataset.id;
+        this.selectedBattle = this.battles.find(b => b.id === id);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#battleDetail').innerHTML = this._renderDetailHtml(this.selectedBattle);
+        this._bindFormEvents();
+        this._bindBoardEvents();
+      };
+    });
+  }
+
+  _bindFormEvents() {
+    if (!this.selectedBattle) return;
+    const b = this.selectedBattle;
+
+    const pickBgBtn = this.container.querySelector('#pickBattleBgBtn');
+    if (pickBgBtn) {
+      pickBgBtn.onclick = () => {
+        MediaPickerModal.open({
+          type: 'battle_bg',
+          title: '挑选战棋战场高清背景',
+          current: b.background,
+          refIndex: this.refIndex,
+          resourceResolver: this.resolver,
+          onSelect: (ref) => {
+            b.background = ref;
+            this._renderLayout();
+          }
+        });
+      };
+    }
+
+    const addReqBtn = this.container.querySelector('#addReqBtn');
+    if (addReqBtn) {
+      addReqBtn.onclick = () => {
+        const sel = this.container.querySelector('#newReqSelect');
+        if (sel && sel.value) {
+          if (!Array.isArray(b.requiredCharacterIds)) b.requiredCharacterIds = [];
+          if (!b.requiredCharacterIds.includes(sel.value)) {
+            b.requiredCharacterIds.push(sel.value);
+            this._renderLayout();
+          }
+        }
+      };
+    }
+
+    this.container.querySelectorAll('.remove-req-chip').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        b.requiredCharacterIds.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    const resetBasicBtn = this.container.querySelector('#resetBasicBattleBtn');
+    if (resetBasicBtn) {
+      resetBasicBtn.onclick = () => {
+        b.participants = [
+          { position: { x: 2, y: 2 }, team: 1, facing: 1, characterId: null, partyIndex: 0 },
+          { position: { x: 8, y: 2 }, team: 2, facing: 0, characterId: '木头人', partyIndex: null }
+        ];
+        this._renderLayout();
+        this.notify('已重置为标准单挑站位 (主角 vs 木人)');
+      };
+    }
+
+    const clearAllBtn = this.container.querySelector('#clearAllUnitsBtn');
+    if (clearAllBtn) {
+      clearAllBtn.onclick = () => {
+        if (confirm('确定要清空当前棋盘上的所有参战站位吗？')) {
+          b.participants = [];
+          this._renderLayout();
+          this.notify('已清空棋盘所有站位');
+        }
+      };
+    }
+
+    const rangeModeSelect = this.container.querySelector('#rangeModeSelect');
+    if (rangeModeSelect) {
+      rangeModeSelect.onchange = (e) => {
+        this.previewImpactType = e.target.value;
+      };
+    }
+
+    const rangeSizeInput = this.container.querySelector('#rangeSizeInput');
+    if (rangeSizeInput) {
+      rangeSizeInput.onchange = (e) => {
+        this.previewImpactSize = parseInt(e.target.value, 10) || 1;
+      };
+    }
+
+    const toggleHoverRange = this.container.querySelector('#toggleHoverRange');
+    if (toggleHoverRange) {
+      toggleHoverRange.onchange = (e) => {
+        this.enableHoverRange = e.target.checked;
+      };
+    }
+
+    const dupBtn = this.container.querySelector('#duplicateBattleBtn');
+    if (dupBtn) {
+      dupBtn.onclick = () => {
+        const cloned = JSON.parse(JSON.stringify(b));
+        cloned.id = b.id + '_copy';
+        cloned.name = (b.name || b.id) + ' (副本)';
+        this.battles.unshift(cloned);
+        this.selectedBattle = cloned;
+        this._renderLayout();
+        this.notify('战役场景克隆成功！');
+      };
+    }
+
+    const delBtn = this.container.querySelector('#deleteBattleBtn');
+    if (delBtn) {
+      delBtn.onclick = () => {
+        if (confirm(`确定要删除战役《${b.name || b.id}》吗？`)) {
+          const idx = this.battles.findIndex(i => i.id === b.id);
+          if (idx !== -1) {
+            this.battles.splice(idx, 1);
+            this.selectedBattle = this.battles[0] || null;
+            this._renderLayout();
+            this.notify('战役场景已删除');
+          }
+        }
+      };
+    }
+
+    const saveBtn = this.container.querySelector('#saveBattlesBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        b.name = this.container.querySelector('#bt_name').value.trim();
+        b.id = this.container.querySelector('#bt_id').value.trim();
+        b.experienceMultiplier = parseFloat(this.container.querySelector('#bt_exp').value) || 1.0;
+        b.music = this.container.querySelector('#bt_music').value || null;
+
+        const res = await this.adapter.saveBattles(this.battles);
+        saveBtn.innerText = '💾 保存战场配置';
+        if (res.success) {
+          this.notify(`成功保存 ${this.battles.length} 场战役至 battles.json！`);
+          this._renderLayout();
+        } else {
+          this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+
+  _bindBoardEvents() {
+    if (!this.selectedBattle) return;
+    const b = this.selectedBattle;
+
+    // 点击棋盘格子
+    this.container.querySelectorAll('.battle-cell').forEach(cell => {
+      const x = parseInt(cell.dataset.x, 10);
+      const y = parseInt(cell.dataset.y, 10);
+
+      cell.onclick = () => {
+        this.selectedCell = { x, y };
+        this.container.querySelectorAll('.battle-cell').forEach(c => c.classList.remove('selected-cell'));
+        cell.classList.add('selected-cell');
+        this.container.querySelector('#unitInspectorContainer').innerHTML = this._renderInspectorHtml(b);
+        this._bindInspectorEvents();
+      };
+
+      // 悬停招式范围演练
+      cell.onmouseenter = () => {
+        if (!this.enableHoverRange) return;
+        this._highlightSkillRange(x, y);
+      };
+
+      cell.onmouseleave = () => {
+        this._clearRangeHighlight();
+      };
+    });
+
+    this._bindInspectorEvents();
+  }
+
+  _highlightSkillRange(cx, cy) {
+    this._clearRangeHighlight();
+    const type = this.previewImpactType;
+    const size = this.previewImpactSize;
+
+    const hitCells = [];
+
+    if (type === 'single') {
+      hitCells.push({ x: cx, y: cy });
+    } else if (type === 'line') {
+      const dir = cx <= 5 ? 1 : -1;
+      for (let s = 0; s <= size; s++) {
+        const nx = cx + s * dir;
+        if (nx >= 0 && nx < 11) hitCells.push({ x: nx, y: cy });
+      }
+    } else if (type === 'plus') {
+      hitCells.push({ x: cx, y: cy });
+      for (let s = 1; s <= size; s++) {
+        if (cx + s < 11) hitCells.push({ x: cx + s, y: cy });
+        if (cx - s >= 0) hitCells.push({ x: cx - s, y: cy });
+        if (cy + s < 4) hitCells.push({ x: cx, y: cy + s });
+        if (cy - s >= 0) hitCells.push({ x: cx, y: cy - s });
+      }
+    } else if (type === 'star') {
+      for (let x = 0; x < 11; x++) {
+        for (let y = 0; y < 4; y++) {
+          if (Math.abs(x - cx) + Math.abs(y - cy) <= size) {
+            hitCells.push({ x, y });
+          }
+        }
+      }
+    } else if (type === 'all') {
+      for (let x = 0; x < 11; x++) {
+        for (let y = 0; y < 4; y++) {
+          hitCells.push({ x, y });
+        }
+      }
+    }
+
+    hitCells.forEach(p => {
+      const el = this.container.querySelector(`.battle-cell[data-x="${p.x}"][data-y="${p.y}"]`);
+      if (el) {
+        if (p.x === cx && p.y === cy) el.classList.add('cell-range-origin');
+        else el.classList.add('cell-range-hit');
+      }
+    });
+  }
+
+  _clearRangeHighlight() {
+    this.container.querySelectorAll('.battle-cell').forEach(c => {
+      c.classList.remove('cell-range-hit', 'cell-range-origin');
+    });
+  }
+
+  _bindInspectorEvents() {
+    if (!this.selectedBattle || !this.selectedCell) return;
+    const b = this.selectedBattle;
+    const { x, y } = this.selectedCell;
+    const participants = b.participants || [];
+    const unitIndex = participants.findIndex(p => p.position && p.position.x === x && p.position.y === y);
+    const u = unitIndex !== -1 ? participants[unitIndex] : null;
+
+    if (u) {
+      const insTeam = this.container.querySelector('#ins_team');
+      if (insTeam) insTeam.onchange = (e) => { u.team = parseInt(e.target.value, 10); this._updateBoardAndInspector(b); };
+
+      const insFacing = this.container.querySelector('#ins_facing');
+      if (insFacing) insFacing.onchange = (e) => { u.facing = parseInt(e.target.value, 10); this._updateBoardAndInspector(b); };
+
+      const insIdentity = this.container.querySelector('#ins_identity');
+      if (insIdentity) {
+        insIdentity.onchange = (e) => {
+          const val = e.target.value;
+          if (val === 'protagonist') {
+            u.partyIndex = 0;
+            u.characterId = null;
+            u.team = 1;
+            u.facing = 1;
+          } else if (val === 'follower') {
+            u.partyIndex = 1;
+            u.characterId = null;
+            u.team = 1;
+            u.facing = 1;
+          } else {
+            u.partyIndex = null;
+            u.characterId = this.refIndex.characters.length > 0 ? this.refIndex.characters[0].id : '木头人';
+          }
+          this._updateBoardAndInspector(b);
+        };
+      }
+
+      const insCharId = this.container.querySelector('#ins_characterId');
+      if (insCharId) insCharId.onchange = (e) => { u.characterId = e.target.value; this._updateBoardAndInspector(b); };
+
+      const insPartyIndex = this.container.querySelector('#ins_partyIndex');
+      if (insPartyIndex) insPartyIndex.onchange = (e) => { u.partyIndex = parseInt(e.target.value, 10) || 1; this._updateBoardAndInspector(b); };
+
+      const insMoveBtn = this.container.querySelector('#insMoveBtn');
+      if (insMoveBtn) {
+        insMoveBtn.onclick = () => {
+          const nx = parseInt(this.container.querySelector('#ins_x').value, 10) || 0;
+          const ny = parseInt(this.container.querySelector('#ins_y').value, 10) || 0;
+          if (nx < 0 || nx > 10 || ny < 0 || ny > 3) {
+            alert('坐标超出 11×4 网格范围！');
+            return;
+          }
+          // 检查目标格是否有单位
+          const occupier = participants.find(p => p !== u && p.position.x === nx && p.position.y === ny);
+          if (occupier) {
+            // 交换位置
+            occupier.position = { x, y };
+          }
+          u.position = { x: nx, y: ny };
+          this.selectedCell = { x: nx, y: ny };
+          this._updateBoardAndInspector(b);
+        };
+      }
+
+      const removeBtn = this.container.querySelector('#removeUnitFromBoardBtn');
+      if (removeBtn) {
+        removeBtn.onclick = () => {
+          participants.splice(unitIndex, 1);
+          this._updateBoardAndInspector(b);
+          this.notify('已将该单位从战场撤下');
+        };
+      }
+    } else {
+      // 快捷放置事件
+      const placeProtoBtn = this.container.querySelector('#placeProtagonistBtn');
+      if (placeProtoBtn) {
+        placeProtoBtn.onclick = () => {
+          participants.push({
+            position: { x, y },
+            team: 1,
+            facing: 1,
+            characterId: null,
+            partyIndex: 0
+          });
+          this._updateBoardAndInspector(b);
+        };
+      }
+
+      const placeFollowerBtn = this.container.querySelector('#placeFollowerBtn');
+      if (placeFollowerBtn) {
+        placeFollowerBtn.onclick = () => {
+          participants.push({
+            position: { x, y },
+            team: 1,
+            facing: 1,
+            characterId: null,
+            partyIndex: 1
+          });
+          this._updateBoardAndInspector(b);
+        };
+      }
+
+      const placeEnemyBtn = this.container.querySelector('#placeEnemyBtn');
+      if (placeEnemyBtn) {
+        placeEnemyBtn.onclick = () => {
+          const sel = this.container.querySelector('#quickEnemySelect');
+          const cid = sel ? sel.value : '木头人';
+          participants.push({
+            position: { x, y },
+            team: 2,
+            facing: 0,
+            characterId: cid,
+            partyIndex: null
+          });
+          this._updateBoardAndInspector(b);
+        };
+      }
+    }
+  }
+
+  _updateBoardAndInspector(b) {
+    const board = this.container.querySelector('#battleGridBoard');
+    if (board) board.innerHTML = this._renderBoardHtml(b);
+    const insp = this.container.querySelector('#unitInspectorContainer');
+    if (insp) insp.innerHTML = this._renderInspectorHtml(b);
+    this._bindBoardEvents();
+  }
+}
+
+/**
+ * StoryView: 剧情对白流编排器
+ */
+class StoryView {
+  constructor(adapter, refIndex, onSaveNotification) {
+    this.adapter = adapter;
+    this.refIndex = refIndex;
+    this.notify = onSaveNotification;
+    this.storyDoc = null;
+    this.selectedSegment = null;
+    this.searchKeyword = '';
+    this.container = null;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    this.storyDoc = this.adapter.loadMainStory();
+    if (this.storyDoc && Array.isArray(this.storyDoc.segments) && this.storyDoc.segments.length > 0) {
+      if (!this.selectedSegment) {
+        this.selectedSegment = this.storyDoc.segments[0];
+      }
+    }
+    this._renderLayout();
+  }
+
+  _getFilteredSegments() {
+    if (!this.storyDoc || !Array.isArray(this.storyDoc.segments)) return [];
+    return this.storyDoc.segments.filter(s => {
+      return !this.searchKeyword || (s.name && s.name.includes(this.searchKeyword));
+    });
+  }
+
+  _renderLayout() {
+    this.container.innerHTML = `
+      <div class="view-split-layout">
+        <!-- 左侧段落列表 -->
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <input type="text" id="segSearch" class="search-input" placeholder="🔍 搜索剧情段落名称..." value="${this.searchKeyword}">
+            <button id="addSegBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">+ 新建故事段落</button>
+          </div>
+          <div class="item-list-scroll" id="segList">
+            ${this._renderSegmentListHtml()}
+          </div>
+        </div>
+
+        <!-- 右侧对白时间线画布 -->
+        <div class="detail-panel" id="storyTimeline">
+          ${this.selectedSegment ? this._renderTimelineHtml(this.selectedSegment) : '<div class="empty-hint" style="padding:40px; text-align:center; color:var(--text-muted);">请选择一个剧情段落展开对话流</div>'}
+        </div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _renderSegmentListHtml() {
+    const list = this._getFilteredSegments();
+    if (list.length === 0) return '<div class="empty-list" style="padding:40px; text-align:center; color:var(--text-muted);">未找到匹配的剧情段落</div>';
+    return list.map(s => {
+      const isSelected = this.selectedSegment && this.selectedSegment.name === s.name;
+      return `
+        <div class="list-item-card ${isSelected ? 'active' : ''}" data-name="${s.name}">
+          <div class="item-title-row">
+            <span class="item-name text-purple">${s.name}</span>
+            <span class="item-badge badge-purple">${(s.steps || []).length} 幕</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _renderTimelineHtml(seg) {
+    const steps = seg.steps || [];
+    return `
+      <div class="form-scroll-wrapper">
+        <div class="detail-header-bar">
+          <div>
+            <h2 class="detail-title text-purple">${seg.name}</h2>
+            <div class="detail-subtitle">剧情节点 · 共 ${steps.length} 个执行步骤</div>
+          </div>
+          <div class="btn-group">
+            <button id="addDialogueStepBtn" class="btn btn-secondary">+ 插入对白 (Dialogue)</button>
+            <button id="addChoiceStepBtn" class="btn btn-secondary">+ 插入抉择 (Choice)</button>
+            <button id="addCommandStepBtn" class="btn btn-secondary">+ 插入指令 (Command)</button>
+            <button id="saveStoryBtn" class="btn btn-primary">💾 保存剧本</button>
+          </div>
+        </div>
+
+        <div class="timeline-step-list" id="stepListContainer">
+          ${steps.length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center; padding:60px 0;">当前段落暂无对话或步骤，请点击上方按钮插入对白</div>' : steps.map((step, idx) => `
+            <div class="story-step-card" data-idx="${idx}">
+              <div class="step-header">
+                <div>
+                  <span class="step-tag ${step.kind === 'dialogue' ? 'badge-purple' : (step.kind === 'choice' ? 'badge-gold' : 'badge-blue')}">
+                    #${idx + 1} · ${step.kind.toUpperCase()}
+                  </span>
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-danger btn-sm remove-step-btn" data-idx="${idx}">删除此幕</button>
+                </div>
+              </div>
+
+              ${step.kind === 'dialogue' ? `
+                <div class="form-row">
+                  <div class="form-group" style="flex:1;">
+                    <label>说话者姓名/ID (speaker)</label>
+                    <input type="text" class="input-field step-speaker-input" data-idx="${idx}" value="${step.speaker || ''}" placeholder="例如: 小虾米、南贤、mysterious">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>台词文本 (text)</label>
+                  <textarea class="input-field step-text-input" data-idx="${idx}" style="min-height:60px;">${step.text || ''}</textarea>
+                </div>
+              ` : ''}
+
+              ${step.kind === 'choice' ? `
+                <div class="form-group">
+                  <label>题干引言 (prompt)</label>
+                  <input type="text" class="input-field step-prompt-input" data-idx="${idx}" value="${step.prompt || ''}">
+                </div>
+                <div style="margin-top:8px;">
+                  <label style="font-size:12px; color:var(--text-muted);">选择题分支选项 (Options)</label>
+                  ${((step.groups && step.groups[0] && step.groups[0].options) || []).map((opt, oIdx) => `
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                      <input type="text" class="input-field opt-text-input" data-idx="${idx}" data-oidx="${oIdx}" value="${opt.text || ''}" style="flex:1;" placeholder="选项描述">
+                      <input type="text" class="input-field opt-target-input" data-idx="${idx}" data-oidx="${oIdx}" value="${opt.target || ''}" style="width:180px;" placeholder="跳转段落 (target)">
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${step.kind === 'command' ? `
+                <div class="form-row">
+                  <div class="form-group" style="flex:1;">
+                    <label>指令名称 (command)</label>
+                    <input type="text" class="input-field step-cmd-name" data-idx="${idx}" value="${step.command || 'item'}">
+                  </div>
+                  <div class="form-group" style="flex:2;">
+                    <label>指令参数 (args: 以空格或逗号分隔)</label>
+                    <input type="text" class="input-field step-cmd-args" data-idx="${idx}" value="${Array.isArray(step.args) ? step.args.join(' ') : (step.args || '')}">
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  _bindEvents() {
+    const searchInput = this.container.querySelector('#segSearch');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.searchKeyword = e.target.value.trim();
+        this.container.querySelector('#segList').innerHTML = this._renderSegmentListHtml();
+        this._bindListClickEvents();
+      };
+    }
+
+    const addSegBtn = this.container.querySelector('#addSegBtn');
+    if (addSegBtn) {
+      addSegBtn.onclick = () => {
+        const segName = prompt('请输入新故事段落名称 (例如 "新手村_客栈对饮"):');
+        if (segName && segName.trim()) {
+          const newSeg = {
+            name: segName.trim(),
+            steps: [
+              { kind: 'dialogue', speaker: '主角', text: '初入江湖，不知天高地厚……' }
+            ]
+          };
+          if (!this.storyDoc.segments) this.storyDoc.segments = [];
+          this.storyDoc.segments.push(newSeg);
+          this.selectedSegment = newSeg;
+          this._renderLayout();
+          this.notify(`已创建新段落《${newSeg.name}》`);
+        }
+      };
+    }
+
+    this._bindListClickEvents();
+    this._bindTimelineEvents();
+  }
+
+  _bindListClickEvents() {
+    this.container.querySelectorAll('.list-item-card').forEach(card => {
+      card.onclick = () => {
+        const name = card.dataset.name;
+        this.selectedSegment = this.storyDoc.segments.find(s => s.name === name);
+        this.container.querySelectorAll('.list-item-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.container.querySelector('#storyTimeline').innerHTML = this._renderTimelineHtml(this.selectedSegment);
+        this._bindTimelineEvents();
+      };
+    });
+  }
+
+  _bindTimelineEvents() {
+    if (!this.selectedSegment) return;
+    const seg = this.selectedSegment;
+
+    const addDiaBtn = this.container.querySelector('#addDialogueStepBtn');
+    if (addDiaBtn) {
+      addDiaBtn.onclick = () => {
+        if (!seg.steps) seg.steps = [];
+        seg.steps.push({ kind: 'dialogue', speaker: '小虾米', text: '请问阁下高姓大名？' });
+        this._renderLayout();
+      };
+    }
+
+    const addChoiceBtn = this.container.querySelector('#addChoiceStepBtn');
+    if (addChoiceBtn) {
+      addChoiceBtn.onclick = () => {
+        if (!seg.steps) seg.steps = [];
+        seg.steps.push({
+          kind: 'choice',
+          prompt: '你决定如何应对当下的局势？',
+          groups: [
+            {
+              options: [
+                { index: 0, text: '拔刀相助，绝不退缩！', target: '新手村_行侠仗义' },
+                { index: 1, text: '暂且隐忍，徐图后计。', target: '新手村_避其锋芒' }
+              ]
+            }
+          ]
+        });
+        this._renderLayout();
+      };
+    }
+
+    const addCmdBtn = this.container.querySelector('#addCommandStepBtn');
+    if (addCmdBtn) {
+      addCmdBtn.onclick = () => {
+        if (!seg.steps) seg.steps = [];
+        seg.steps.push({ kind: 'command', command: 'item', args: ['木刀', '1'] });
+        this._renderLayout();
+      };
+    }
+
+    this.container.querySelectorAll('.remove-step-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        seg.steps.splice(idx, 1);
+        this._renderLayout();
+      };
+    });
+
+    this.container.querySelectorAll('.step-speaker-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (seg.steps[idx]) seg.steps[idx].speaker = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.step-text-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (seg.steps[idx]) seg.steps[idx].text = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.step-prompt-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (seg.steps[idx]) seg.steps[idx].prompt = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.opt-text-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        const oidx = parseInt(inp.dataset.oidx, 10);
+        if (seg.steps[idx] && seg.steps[idx].groups && seg.steps[idx].groups[0].options[oidx]) {
+          seg.steps[idx].groups[0].options[oidx].text = inp.value.trim();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.opt-target-input').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        const oidx = parseInt(inp.dataset.oidx, 10);
+        if (seg.steps[idx] && seg.steps[idx].groups && seg.steps[idx].groups[0].options[oidx]) {
+          seg.steps[idx].groups[0].options[oidx].target = inp.value.trim();
+        }
+      };
+    });
+
+    this.container.querySelectorAll('.step-cmd-name').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (seg.steps[idx]) seg.steps[idx].command = inp.value.trim();
+      };
+    });
+
+    this.container.querySelectorAll('.step-cmd-args').forEach(inp => {
+      inp.onchange = () => {
+        const idx = parseInt(inp.dataset.idx, 10);
+        if (seg.steps[idx]) {
+          const parts = inp.value.trim().split(/[\s,]+/).filter(Boolean);
+          seg.steps[idx].args = parts;
+        }
+      };
+    });
+
+    const saveBtn = this.container.querySelector('#saveStoryBtn');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.innerText = '⏳ 保存中...';
+        const res = await this.adapter.saveMainStory(this.storyDoc);
+        saveBtn.innerText = '💾 保存剧本';
+        if (res.success) {
+          this.notify(`成功保存剧情段落至 stories/main.story.json！`);
+          this._renderLayout();
+        } else {
+          this.notify('剧本保存失败: ' + (res.error || '未知错误'), 'error');
+        }
+      };
+    }
+  }
+}
+
+/**
+ * HealthView: 全局数据健康检查
+ */
+class HealthView {
+  constructor(validator, onNavigate) {
+    this.validator = validator;
+    this.navigate = onNavigate;
+    this.issues = [];
+    this.container = null;
+    this.hasAudited = false;
+  }
+
+  render(parentEl) {
+    this.container = parentEl;
+    if (!this.hasAudited) {
+      this.issues = this.validator.runFullAudit();
+      this.hasAudited = true;
+    }
+    this._renderLayout();
+  }
+
+  _renderLayout() {
+    const errors = this.issues.filter(i => i.level === 'error');
+    const warns = this.issues.filter(i => i.level === 'warn');
+
+    this.container.innerHTML = `
+      <div class="health-check-layout">
+        <div class="health-header-card">
+          <div class="health-title-group">
+            <h2>🔍 全局数据健康检查与悬空引用排查</h2>
+            <p>自动扫描角色、武学、神兵、战棋、剧情对白与资源别名之间的引用链，杜绝因拼写错误导致的游戏崩溃。</p>
+          </div>
+          <button id="recheckBtn" class="btn btn-primary">重新全面体检</button>
+        </div>
+
+        <div class="health-stats-row">
+          <div class="health-stat-card ${errors.length > 0 ? 'card-error' : 'card-ok'}">
+            <div class="stat-num">${errors.length}</div>
+            <div class="stat-desc">致命引用断裂 (Error)</div>
+          </div>
+          <div class="health-stat-card ${warns.length > 0 ? 'card-warn' : 'card-ok'}">
+            <div class="stat-num">${warns.length}</div>
+            <div class="stat-desc">悬空或缺失警告 (Warning)</div>
+          </div>
+          <div class="health-stat-card card-ok">
+            <div class="stat-num">100%</div>
+            <div class="stat-desc">JSON 语法合规率</div>
+          </div>
+        </div>
+
+        <div class="health-issues-list">
+          ${this.issues.length === 0 ? `
+            <div class="health-clean-box">
+              <div class="clean-icon">🎉</div>
+              <h3>完美！当前 MOD 未发现任何断裂引用或致命问题</h3>
+              <p>所有角色头像、技能、物品、战棋布阵和剧情跳转段落均能严密对应。</p>
+            </div>
+          ` : this.issues.map(iss => `
+            <div class="issue-card ${iss.level === 'error' ? 'issue-error' : 'issue-warn'}">
+              <div class="issue-badge">${iss.module} · ${iss.level.toUpperCase()}</div>
+              <div class="issue-content">
+                <h4>${iss.title}</h4>
+                <p>${iss.message}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    const recheckBtn = this.container.querySelector('#recheckBtn');
+    if (recheckBtn) {
+      recheckBtn.onclick = () => {
+        recheckBtn.innerText = '正在排查...';
+        this.issues = this.validator.runFullAudit();
+        this._renderLayout();
+      };
+    }
+  }
+}
+
+/**
+ * ModStudioApp: MOD 创作者工坊应用中枢
+ */
+class ModStudioApp {
+  constructor() {
+    this.fs = new FileSystemDriver();
+    this.refIndex = new ReferenceIndex();
+    this.adapter = new JsonDataAdapter(this.fs);
+    this.validator = new ModValidator(this.fs, this.refIndex);
+
+    this.currentTab = 'items';
+    this.views = {};
+    this.isLoaded = false;
+  }
+
+  init() {
+    this._bindGlobalEvents();
+    this._showWelcome();
+  }
+
+  showToast(message, type = 'info') {
+    const toast = document.getElementById('toastNotification');
+    if (!toast) return;
+    toast.innerText = message;
+    toast.className = `show toast-${type}`;
+    setTimeout(() => {
+      toast.className = '';
+    }, 3000);
+  }
+
+  async handleLoadPreset(modId = 'wuxia-legend') {
+    const label = document.getElementById('currentModLabel');
+    if (label) label.innerText = '⏳ 正在加载预设...';
+    try {
+      const res = await this.fs.loadPresetMod(modId);
+      if (res.success) {
+        if (label) label.innerText = `当前项目: ${res.name} (HTTP极速模式)`;
+        this._onModLoaded(res);
+        const openBtn = document.getElementById('openModDirBtn');
+        if (openBtn) openBtn.innerText = '📂 切换 MOD 目录';
+        this.showToast(`成功载入 MOD《${res.name}》，已读取 ${res.count} 个数据文件并构建图鉴索引！`, 'success');
+      } else {
+        if (label) label.innerText = this.isLoaded ? `当前项目: ${this.fs.currentModName}` : '未打开 MOD 目录';
+        this.showToast(res.error || '未能加载预设，请选择本地目录', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      if (label) label.innerText = this.isLoaded ? `当前项目: ${this.fs.currentModName}` : '未打开 MOD 目录';
+      this.showToast('加载预设异常: ' + e.message, 'error');
+    }
+  }
+
+  async handleOpenDirectory() {
+    const openBtn = document.getElementById('openModDirBtn');
+    if (openBtn) openBtn.innerText = '⏳ 正在加载...';
+    try {
+      const res = await this.fs.selectDirectory();
+      if (res.success) {
+        if (openBtn) openBtn.innerText = '📂 切换 MOD 目录';
+        const modeLabel = res.mode === 'native' ? '原生直写' : '内存模式';
+        document.getElementById('currentModLabel').innerText = `当前项目: ${res.name} (${modeLabel})`;
+        this._onModLoaded(res);
+        this.showToast(`成功载入 MOD《${res.name}》，已构建全局引用与原画图鉴网络！`, 'success');
+      } else {
+        if (openBtn) openBtn.innerText = this.isLoaded ? '📂 切换 MOD 目录' : '📂 打开 MOD 目录';
+        if (!res.cancelled) {
+          this.showToast('未能读取所选目录，请确认目录内包含 JSON 数据', 'warning');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      if (openBtn) openBtn.innerText = this.isLoaded ? '📂 切换 MOD 目录' : '📂 打开 MOD 目录';
+      this.showToast('选择目录异常: ' + e.message, 'error');
+    }
+  }
+
+  _onModLoaded(res) {
+    this.refIndex.rebuildIndex(this.fs);
+    this.isLoaded = true;
+
+    // 初始化各个工坊子视图
+    this.views = {
+      items: new ItemView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      skills: new SkillView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      characters: new CharacterView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      battles: new BattleView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      stories: new StoryView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
+      health: new HealthView(this.validator, (tab) => this.switchTab(tab))
+    };
+
+    this.switchTab(this.currentTab);
+  }
+
+  _bindGlobalEvents() {
+    const openBtn = document.getElementById('openModDirBtn');
+    if (openBtn) {
+      openBtn.onclick = () => this.handleOpenDirectory();
+    }
+
+    const quickBtn = document.getElementById('quickLoadWuxiaBtn');
+    if (quickBtn) {
+      quickBtn.onclick = () => this.handleLoadPreset('wuxia-legend');
+    }
+
+    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        if (!this.isLoaded) {
+          this.showToast('请先选择 MOD：可点击上方【⚡ 载入《武侠传奇》】或【📂 打开 MOD 目录】！');
+          return;
+        }
+        const tab = btn.dataset.tab;
+        this.switchTab(tab);
+      };
+    });
+  }
+
+  switchTab(tabName) {
+    this.currentTab = tabName;
+    document.querySelectorAll('.nav-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabName);
+    });
+
+    const mainContainer = document.getElementById('mainAppContainer');
+    if (!this.views[tabName]) return;
+
+    mainContainer.innerHTML = '';
+    this.views[tabName].render(mainContainer);
+  }
+
+  _showWelcome() {
+    const isFileProtocol = location.protocol === 'file:';
+    const mainContainer = document.getElementById('mainAppContainer');
+    mainContainer.innerHTML = `
+      <div class="welcome-hero-box">
+        <div class="welcome-card">
+          <div class="welcome-badge">纯前端 · 零服务依赖 · 本地安全直写 · 原画图鉴直显</div>
+          <h1>《金庸群侠传XR》MOD 创作者工坊</h1>
+          <p class="welcome-subtitle">专为神兵塑造、武学创新、侠客资质配置与 11×4 战棋布阵量身打造的可视化创作中心</p>
+
+          <div class="feature-card-grid">
+            <div class="f-card">
+              <div class="f-icon">🗡️</div>
+              <h4>神兵与道具工坊</h4>
+              <p>自由挑选神兵插画、调整属性词条、暴击率与专属天赋。</p>
+            </div>
+            <div class="f-card">
+              <div class="f-icon">🥋</div>
+              <h4>武学与招式工坊</h4>
+              <p>直观选择直线、星芒群攻范围，设置怒气消耗与招式解锁。</p>
+            </div>
+            <div class="f-card">
+              <div class="f-icon">👤</div>
+              <h4>侠客与宗师工坊</h4>
+              <p>高清立绘可视化选定，四维专精与内功外功一键装配。</p>
+            </div>
+            <div class="f-card">
+              <div class="f-icon">⚔️</div>
+              <h4>11×4 战棋工坊</h4>
+              <p>微型棋盘直观布阵、调整阵营与面向，招式范围即时演练。</p>
+            </div>
+            <div class="f-card">
+              <div class="f-icon">📜</div>
+              <h4>剧情对白流编排</h4>
+              <p>气泡化撰写剧情对话、选择题分支与银两道具奖励。</p>
+            </div>
+          </div>
+
+          <div class="welcome-action-box" style="display:flex; flex-direction:column; align-items:center; gap:12px; max-width:560px; margin:0 auto;">
+            <button id="welcomeLoadWuxiaBtn" class="btn btn-primary btn-lg" style="width:100%; font-size:1.05rem; background:linear-gradient(135deg, #059669, #10b981); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+              ⚡ 一键极速载入《武侠传奇》MOD (推荐)
+            </button>
+            <div style="display:flex; gap:12px; width:100%;">
+              <button id="welcomeLoadBaseBtn" class="btn btn-secondary" style="flex:1; padding:10px;">
+                📦 载入《基础数据包》(jyxr-base)
+              </button>
+              <button id="welcomeOpenModBtn" class="btn btn-secondary" style="flex:1; padding:10px;">
+                📂 手动选择本地 MOD 目录...
+              </button>
+            </div>
+            <div class="welcome-hint" style="margin-top:6px; color:var(--text-muted); font-size:0.85rem;">
+              全面适配 Chrome / Safari / Edge / Firefox 现代浏览器，支持零等待一键载入与本地磁盘直写
+            </div>
+            ${isFileProtocol ? `
+              <div class="protocol-tip" style="margin-top: 16px; text-align:left; font-size:0.85rem; padding:12px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); border-radius:8px;">
+                💡 <strong>直写磁盘体验提示</strong>：您当前是通过 <code>file://</code> 打开。<br>
+                在 Mac 上只需在 Finder 双击运行 <code>tools/mod_editor/启动MOD编辑器.command</code>，即可通过 <code>localhost</code> 获得一键极速载入与原生磁盘直写体验！
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    const welcomeLoadWuxiaBtn = mainContainer.querySelector('#welcomeLoadWuxiaBtn');
+    if (welcomeLoadWuxiaBtn) {
+      welcomeLoadWuxiaBtn.onclick = () => this.handleLoadPreset('wuxia-legend');
+    }
+
+    const welcomeLoadBaseBtn = mainContainer.querySelector('#welcomeLoadBaseBtn');
+    if (welcomeLoadBaseBtn) {
+      welcomeLoadBaseBtn.onclick = () => this.handleLoadPreset('jyxr-base');
+    }
+
+    const welcomeBtn = mainContainer.querySelector('#welcomeOpenModBtn');
+    if (welcomeBtn) {
+      welcomeBtn.onclick = () => this.handleOpenDirectory();
+    }
+  }
+}
+
+
+// 启动应用
+window.addEventListener('DOMContentLoaded', () => {
+  const app = new ModStudioApp();
+  app.init();
+});
+
+  </script>
 </body>
 </html>

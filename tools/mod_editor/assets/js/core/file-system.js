@@ -1,127 +1,276 @@
 /**
- * FileSystemDriver: 纯前端文件访问与持久化驱动
- * 
- * 优先使用现代浏览器原生 File System Access API (showDirectoryPicker)，
- * 取得授权后可直接读写用户本地磁盘中的 MOD 文件夹，实现无缝存盘。
- * 当环境不支持时，平滑降级为基于内存加载与一键导出下载。
+ * FileSystemDriver: 纯前端文件访问与本地磁盘直写驱动 (首要原则：全浏览器兼容、自适应层级、原生直写与极速预设)
  */
 export class FileSystemDriver {
   constructor() {
     this.dirHandle = null;
-    this.memoryFiles = new Map(); // 存储 relativePath -> content (用于降级或缓存)
+    this.memoryFiles = new Map();
     this.isNativeAccessSupported = typeof window.showDirectoryPicker === 'function';
     this.currentModName = '';
+    this.detectedDataPrefix = '';
+    this.mode = 'idle'; // 'native' | 'memory' | 'http' | 'idle'
   }
 
-  /**
-   * 打开并授权访问本地 MOD 目录
-   */
+  // 检测当前运行环境是否支持原生目录直写
+  canUseNativePicker() {
+    return window.isSecureContext && typeof window.showDirectoryPicker === 'function' && location.protocol !== 'file:';
+  }
+
   async selectDirectory() {
-    if (this.isNativeAccessSupported) {
+    if (this.canUseNativePicker()) {
       try {
-        this.dirHandle = await window.showDirectoryPicker({
+        const handle = await window.showDirectoryPicker({
           id: 'jyxr-mod-dir',
           mode: 'readwrite',
           startIn: 'documents'
         });
-        this.currentModName = this.dirHandle.name;
+        this.dirHandle = handle;
+        this.currentModName = handle.name;
         await this._scanNativeDirectory();
+        this.mode = 'native';
         return { success: true, mode: 'native', name: this.currentModName };
       } catch (err) {
         if (err.name === 'AbortError') {
           return { success: false, cancelled: true };
         }
-        console.warn('Native File System Access failed, fallback to memory mode:', err);
+        console.warn('Native File System Access failed, fallback to input:', err);
       }
     }
 
-    // 降级模式：触发隐藏的目录选择 input
+    return await this._selectDirectoryViaInput();
+  }
+
+  _selectDirectoryViaInput() {
     return new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.webkitdirectory = true;
-      input.multiple = true;
-      input.style.display = 'none';
+      let input = document.getElementById('directFolderPickerInput');
+      if (!input) {
+        input = document.createElement('input');
+        input.id = 'directFolderPickerInput';
+        input.type = 'file';
+        input.webkitdirectory = true;
+        input.multiple = true;
+        // 关键：WebKit (Safari) 禁止对 display:none 的 input 触发 click()，采用透明脱标渲染
+        input.style.position = 'fixed';
+        input.style.top = '-9999px';
+        input.style.left = '-9999px';
+        input.style.width = '1px';
+        input.style.height = '1px';
+        input.style.opacity = '0.001';
+        input.style.pointerEvents = 'none';
+        input.setAttribute('aria-hidden', 'true');
+        input.tabIndex = -1;
+        document.body.appendChild(input);
+      }
+
+      // 重置 value，确保选择相同目录或重试时能正确触发 onchange
+      input.value = '';
+
+      let resolved = false;
+      const finish = (result) => {
+        if (resolved) return;
+        resolved = true;
+        window.removeEventListener('focus', onWindowFocus);
+        resolve(result);
+      };
 
       input.onchange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (!files || files.length === 0) {
-          resolve({ success: false, cancelled: true });
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) {
+          finish({ success: false, cancelled: true });
           return;
         }
 
         this.memoryFiles.clear();
-        const rootName = files[0].webkitRelativePath.split('/')[0] || 'MOD';
-        this.currentModName = rootName;
+        this.dirHandle = null;
+        this.mode = 'memory';
+
+        const firstRel = files[0].webkitRelativePath || '';
+        const rootFolder = firstRel.split('/')[0] || 'MOD';
+        this.currentModName = rootFolder;
 
         for (const file of files) {
+          const lower = file.name.toLowerCase();
+          if (!lower.endsWith('.json') && !lower.endsWith('.txt') && !lower.endsWith('.md')) {
+            continue;
+          }
           const parts = file.webkitRelativePath.split('/');
-          parts.shift(); // 移除根文件夹名
+          parts.shift(); // 移除首层顶级目录名
           const relPath = parts.join('/');
           const text = await file.text();
           this.memoryFiles.set(relPath, text);
         }
 
-        document.body.removeChild(input);
-        resolve({ success: true, mode: 'memory', name: this.currentModName });
+        this._detectDataPrefix();
+        finish({ success: true, mode: 'memory', name: this.currentModName });
       };
 
       input.oncancel = () => {
-        document.body.removeChild(input);
-        resolve({ success: false, cancelled: true });
+        finish({ success: false, cancelled: true });
       };
 
-      document.body.appendChild(input);
+      // 针对部分浏览器（如 Safari）不触发 oncancel 的窗口焦点看门狗
+      const onWindowFocus = () => {
+        setTimeout(() => {
+          if (!resolved && (!input.files || input.files.length === 0)) {
+            finish({ success: false, cancelled: true });
+          }
+        }, 800);
+      };
+      window.addEventListener('focus', onWindowFocus, { once: true });
+
       input.click();
     });
   }
 
   async _scanNativeDirectory() {
     this.memoryFiles.clear();
-    await this._readDirectoryRecursive(this.dirHandle, '');
+    const scanDir = async (dirHandle, currentPath = '') => {
+      for await (const entry of dirHandle.values()) {
+        const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+        if (entry.kind === 'file') {
+          const lower = entry.name.toLowerCase();
+          if (lower.endsWith('.json') || lower.endsWith('.txt') || lower.endsWith('.md')) {
+            const file = await entry.getFile();
+            const text = await file.text();
+            this.memoryFiles.set(entryPath, text);
+          }
+        } else if (entry.kind === 'directory') {
+          if (entry.name !== '.git' && entry.name !== '.godot' && entry.name !== 'node_modules' && entry.name !== '.gemini') {
+            await scanDir(entry, entryPath);
+          }
+        }
+      }
+    };
+    await scanDir(this.dirHandle);
+    this._detectDataPrefix();
   }
 
-  async _readDirectoryRecursive(dirHandle, pathPrefix) {
-    for await (const entry of dirHandle.values()) {
-      const entryPath = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
-      if (entry.kind === 'file') {
-        if (entry.name.endsWith('.json') || entry.name.endsWith('.md')) {
-          const file = await entry.getFile();
-          const text = await file.text();
-          this.memoryFiles.set(entryPath, text);
-        }
-      } else if (entry.kind === 'directory') {
-        if (entry.name !== '.git' && entry.name !== 'node_modules') {
-          await this._readDirectoryRecursive(entry, entryPath);
-        }
+  _detectDataPrefix() {
+    this.detectedDataPrefix = '';
+    for (const key of this.memoryFiles.keys()) {
+      if (key === 'characters.json' || key === 'items.json') {
+        this.detectedDataPrefix = '';
+        return;
+      }
+      if (key.endsWith('/characters.json')) {
+        this.detectedDataPrefix = key.slice(0, key.length - 'characters.json'.length);
+        return;
+      }
+      if (key.endsWith('/items.json')) {
+        this.detectedDataPrefix = key.slice(0, key.length - 'items.json'.length);
+        return;
       }
     }
   }
 
-  /**
-   * 读取指定路径的文件内容（支持自动定位 data/ 前缀）
-   */
-  readFile(relativePath) {
-    const cleanPath = relativePath.replace(/^\/+/, '');
-    // 优先匹配标准路径，再匹配 data/ 下路径
-    if (this.memoryFiles.has(cleanPath)) {
-      return this.memoryFiles.get(cleanPath);
+  async loadPresetMod(modId = 'wuxia-legend') {
+    const modFiles = [
+      'mod.json',
+      'data/resources.json',
+      'data/items.json',
+      'data/characters.json',
+      'data/external-skills.json',
+      'data/internal-skills.json',
+      'data/special-skills.json',
+      'data/legend-skills.json',
+      'data/battles.json',
+      'data/buffs.json',
+      'data/talents.json',
+      'data/scoped-battle-effects.json',
+      'data/item-tags.json',
+      'data/random-affix-tables.json',
+      'data/sects.json',
+      'data/grow-templates.json',
+      'data/towers.json',
+      'data/game-tips.json',
+      'data/world-triggers.json',
+      'data/maps/large.json',
+      'data/maps/small.json',
+      'data/stories/main.story.json',
+      'data/stories/starting-quiz.story.json',
+      'data/stories/jyxr.story.json',
+      'data/stories/debug.story.json',
+      'data/stories/py.story.json',
+      'data/stories/cg.story.json'
+    ];
+
+    this.memoryFiles.clear();
+    this.dirHandle = null;
+    this.mode = 'http';
+    this.currentModName = modId === 'wuxia-legend' ? '武侠传奇 (wuxia-legend)' : modId;
+    this.detectedDataPrefix = 'data/';
+
+    let loadedCount = 0;
+    const baseUrl = `../../mods/${modId}`;
+
+    const fetchPromises = modFiles.map(async (fileRelPath) => {
+      try {
+        const resp = await fetch(`${baseUrl}/${fileRelPath}?_t=${Date.now()}`);
+        if (resp.ok) {
+          const text = await resp.text();
+          this.memoryFiles.set(fileRelPath, text);
+          loadedCount++;
+        }
+      } catch (e) {
+        // 可选文件缺失跳过
+      }
+    });
+
+    await Promise.all(fetchPromises);
+
+    if (loadedCount === 0) {
+      return {
+        success: false,
+        error: '未能通过 HTTP 获取预设 MOD。若您在本地运行，请双击运行 tools/mod_editor/启动MOD编辑器.command；若在外部环境请直接点击【打开 MOD 目录】选择文件夹。'
+      };
     }
-    const withData = `data/${cleanPath}`;
+
+    return { success: true, mode: 'http', name: this.currentModName, count: loadedCount };
+  }
+
+  readFile(relativePath) {
+    if (!relativePath) return null;
+    const clean = relativePath.replace(/^[\/]+/, '').replace(/\\/g, '/');
+
+    // 1. 直接全路径命中
+    if (this.memoryFiles.has(clean)) {
+      return this.memoryFiles.get(clean);
+    }
+
+    // 2. 去除 data/ 前缀命中
+    const noData = clean.replace(/^data\//, '');
+    if (this.memoryFiles.has(noData)) {
+      return this.memoryFiles.get(noData);
+    }
+
+    // 3. 补齐 data/ 前缀命中
+    const withData = `data/${noData}`;
     if (this.memoryFiles.has(withData)) {
       return this.memoryFiles.get(withData);
     }
+
+    // 4. 使用自动检测的前缀命中
+    if (this.detectedDataPrefix) {
+      const withDetected = `${this.detectedDataPrefix}${noData}`;
+      if (this.memoryFiles.has(withDetected)) {
+        return this.memoryFiles.get(withDetected);
+      }
+    }
+
+    // 5. 后缀安全匹配
+    for (const [k, v] of this.memoryFiles.entries()) {
+      if (k.endsWith('/' + noData) || k === noData) {
+        return v;
+      }
+    }
+
     return null;
   }
 
-  /**
-   * 读取并解析 JSON（自动剔除 // 单行注释）
-   */
   readJson(relativePath) {
     const raw = this.readFile(relativePath);
     if (!raw) return null;
     try {
-      // 兼容 JSON 中可能存在的 // 注释
       const cleanJson = raw.replace(/^\s*\/\/.*$/gm, '');
       return JSON.parse(cleanJson);
     } catch (err) {
@@ -130,22 +279,34 @@ export class FileSystemDriver {
     }
   }
 
-  /**
-   * 写入保存文件
-   */
   async writeFile(relativePath, contentString) {
-    const cleanPath = relativePath.replace(/^\/+/, '');
-    // 更新内存缓存
-    let targetPath = cleanPath;
-    if (!this.memoryFiles.has(cleanPath) && this.memoryFiles.has(`data/${cleanPath}`)) {
-      targetPath = `data/${cleanPath}`;
-    }
-    this.memoryFiles.set(targetPath, contentString);
+    if (!relativePath) return { success: false, error: 'Empty path' };
+    const clean = relativePath.replace(/^[\/]+/, '').replace(/\\/g, '/');
+    const noData = clean.replace(/^data\//, '');
 
-    // 如果拥有原生目录句柄，直接持久化写入硬盘
+    let targetKey = clean;
+    if (this.memoryFiles.has(clean)) {
+      targetKey = clean;
+    } else if (this.memoryFiles.has(`data/${noData}`)) {
+      targetKey = `data/${noData}`;
+    } else if (this.memoryFiles.has(noData)) {
+      targetKey = noData;
+    } else if (this.detectedDataPrefix && this.memoryFiles.has(`${this.detectedDataPrefix}${noData}`)) {
+      targetKey = `${this.detectedDataPrefix}${noData}`;
+    } else {
+      for (const k of this.memoryFiles.keys()) {
+        if (k.endsWith('/' + noData) || k === noData) {
+          targetKey = k;
+          break;
+        }
+      }
+    }
+
+    this.memoryFiles.set(targetKey, contentString);
+
     if (this.dirHandle && this.isNativeAccessSupported) {
       try {
-        const parts = targetPath.split('/');
+        const parts = targetKey.split('/');
         const fileName = parts.pop();
         let curDir = this.dirHandle;
 
@@ -157,37 +318,35 @@ export class FileSystemDriver {
         const writable = await fileHandle.createWritable();
         await writable.write(contentString);
         await writable.close();
-        return { success: true, mode: 'native' };
+        return { success: true, mode: 'native', path: targetKey };
       } catch (err) {
-        console.error(`Native write failed for ${targetPath}:`, err);
-        return { success: false, error: err.message };
+        console.error(`Native write failed for ${targetKey}:`, err);
+        return { success: false, error: err.message, path: targetKey };
       }
     }
 
-    // 降级模式：触发浏览器下载单个更新后的文件
-    return { success: true, mode: 'memory' };
+    return { success: true, mode: this.mode, path: targetKey };
   }
 
-  /**
-   * 将修改过的 JSON 格式化写回
-   */
   async writeJson(relativePath, dataObj) {
     const formatted = JSON.stringify(dataObj, null, 2);
     return await this.writeFile(relativePath, formatted);
   }
 
-  /**
-   * 降级模式下一键导出当前整个数据包
-   */
-  exportSingleFile(relativePath) {
+  exportFile(relativePath) {
     const content = this.readFile(relativePath);
-    if (!content) return;
-    const blob = new Blob([content], { type: 'application/json' });
+    if (!content) return false;
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = relativePath.split('/').pop();
+    a.download = relativePath.split('/').pop() || 'mod_data.json';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    return true;
   }
 }
