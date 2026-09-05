@@ -1077,6 +1077,29 @@ textarea.input-field {
 }
 .step-bubble-speaker { font-weight: bold; color: var(--accent-gold); margin-bottom: 4px; font-size: 13px; }
 .step-bubble-text { font-size: 14px; line-height: 1.5; color: var(--text-main); }
+
+/* 未落盘更改 / 草稿恢复 状态条 */
+#dirtyStateBar { display: none; }
+#dirtyStateBar.dsb-visible {
+  display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 16px; font-size: 13px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(120, 53, 15, 0.45);
+  color: #fcd34d;
+}
+#dirtyStateBar.dsb-clean {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 7px 16px; font-size: 12.5px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(6, 78, 59, 0.35);
+  color: #6ee7b7;
+}
+#dirtyStateBar .dsb-btn {
+  font-size: 12.5px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid rgba(252, 211, 150, 0.4); background: rgba(252, 211, 150, 0.12); color: #fde68a;
+}
+#dirtyStateBar .dsb-btn:hover { background: rgba(252, 211, 150, 0.22); }
+#dirtyStateBar .dsb-btn.primary { background: var(--accent-gold); color: #1f2937; border-color: var(--accent-gold); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -1107,6 +1130,9 @@ textarea.input-field {
     </div>
   </header>
 
+  <!-- 未落盘更改 / 草稿恢复 状态条 -->
+  <div id="dirtyStateBar"></div>
+
   <!-- 主编辑工作台 -->
   <main id="mainAppContainer"></main>
 
@@ -1130,6 +1156,10 @@ class FileSystemDriver {
     this.currentModName = '';
     this.detectedDataPrefix = '';
     this.mode = 'idle'; // 'native' | 'memory' | 'http' | 'idle'
+    // 已修改但尚未写入物理磁盘的文件（native 模式下 writeFile 成功即移除）
+    this.dirtyFiles = new Set();
+    // localStorage 草稿命名空间：modstudio.draft.<modName>.<relativePath>
+    this.draftPrefix = 'modstudio.draft.';
   }
 
   // 检测当前运行环境是否支持原生目录直写
@@ -1202,6 +1232,7 @@ class FileSystemDriver {
         }
 
         this.memoryFiles.clear();
+        this.dirtyFiles.clear();
         this.dirHandle = null;
         this.mode = 'memory';
 
@@ -1245,6 +1276,7 @@ class FileSystemDriver {
 
   async _scanNativeDirectory() {
     this.memoryFiles.clear();
+    this.dirtyFiles.clear();
     const scanDir = async (dirHandle, currentPath = '') => {
       for await (const entry of dirHandle.values()) {
         const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
@@ -1316,6 +1348,7 @@ class FileSystemDriver {
     ];
 
     this.memoryFiles.clear();
+    this.dirtyFiles.clear();
     this.dirHandle = null;
     this.mode = 'http';
     this.currentModName = modId === 'wuxia-legend' ? '武侠传奇 (wuxia-legend)' : modId;
@@ -1424,29 +1457,41 @@ class FileSystemDriver {
     }
 
     this.memoryFiles.set(targetKey, contentString);
+    this.dirtyFiles.add(targetKey);
+    this._saveDraft(targetKey, contentString);
 
     if (this.dirHandle && this.isNativeAccessSupported) {
-      try {
-        const parts = targetKey.split('/');
-        const fileName = parts.pop();
-        let curDir = this.dirHandle;
-
-        for (const dirName of parts) {
-          curDir = await curDir.getDirectoryHandle(dirName, { create: true });
-        }
-
-        const fileHandle = await curDir.getFileHandle(fileName, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(contentString);
-        await writable.close();
-        return { success: true, mode: 'native', path: targetKey };
-      } catch (err) {
-        console.error(`Native write failed for ${targetKey}:`, err);
-        return { success: false, error: err.message, path: targetKey };
+      const nativeResult = await this._writeNative(targetKey, contentString);
+      if (nativeResult.success) {
+        this.dirtyFiles.delete(targetKey);
+        this._removeDraft(targetKey);
       }
+      return nativeResult;
     }
 
     return { success: true, mode: this.mode, path: targetKey };
+  }
+
+  // 通过已授权的目录句柄把单个文件写回物理磁盘
+  async _writeNative(targetKey, contentString) {
+    try {
+      const parts = targetKey.split('/');
+      const fileName = parts.pop();
+      let curDir = this.dirHandle;
+
+      for (const dirName of parts) {
+        curDir = await curDir.getDirectoryHandle(dirName, { create: true });
+      }
+
+      const fileHandle = await curDir.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(contentString);
+      await writable.close();
+      return { success: true, mode: 'native', path: targetKey };
+    } catch (err) {
+      console.error(`Native write failed for ${targetKey}:`, err);
+      return { success: false, error: err.message, path: targetKey };
+    }
   }
 
   async writeJson(relativePath, dataObj) {
@@ -1461,7 +1506,7 @@ class FileSystemDriver {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = relativePath.split('/').pop() || 'mod_data.json';
+    a.download = relativePath.split('/').join('_');
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
@@ -1469,6 +1514,128 @@ class FileSystemDriver {
       URL.revokeObjectURL(url);
     }, 100);
     return true;
+  }
+
+  // ===== 未落盘更改：导出与挂载回写 =====
+
+  // 把所有仅存在于浏览器内存的更改逐个下载到本地
+  async exportChangedFiles() {
+    if (this.dirtyFiles.size === 0) return { success: true, count: 0 };
+    const paths = Array.from(this.dirtyFiles).sort();
+    let exported = 0;
+    for (const p of paths) {
+      if (this.exportFile(p)) exported++;
+      await new Promise(r => setTimeout(r, 250)); // 避免浏览器拦截连续下载
+    }
+    if (exported === paths.length) {
+      for (const p of paths) {
+        this.dirtyFiles.delete(p);
+        this._removeDraft(p);
+      }
+    }
+    return { success: exported === paths.length, count: exported, total: paths.length };
+  }
+
+  // 让用户挂载本地 MOD 目录，把所有内存中的更改一次性写回磁盘
+  async mountAndFlush() {
+    if (!this.canUseNativePicker()) {
+      return { success: false, error: '当前浏览器不支持原生目录写入，请改用 Chrome / Edge，或使用【导出更改文件】。' };
+    }
+    let handle;
+    try {
+      handle = await window.showDirectoryPicker({
+        id: 'jyxr-mod-flush',
+        mode: 'readwrite',
+        startIn: 'documents'
+      });
+    } catch (err) {
+      if (err.name === 'AbortError') return { success: false, cancelled: true };
+      return { success: false, error: err.message };
+    }
+    if (handle.name !== this.currentModName) {
+      const goOn = confirm(
+        `所选目录「${handle.name}」与当前 MOD「${this.currentModName}」名称不一致。\n` +
+        `确定仍要把 ${this.dirtyFiles.size} 个更改文件写入该目录吗？`
+      );
+      if (!goOn) return { success: false, cancelled: true };
+    }
+    this.dirHandle = handle;
+    const paths = Array.from(this.dirtyFiles).sort();
+    let written = 0;
+    for (const p of paths) {
+      const content = this.memoryFiles.get(p);
+      if (content == null) continue;
+      const res = await this._writeNative(p, content);
+      if (res.success) {
+        this.dirtyFiles.delete(p);
+        this._removeDraft(p);
+        written++;
+      } else {
+        return { success: false, error: `写入 ${p} 失败：${res.error}`, written };
+      }
+    }
+    this.mode = 'native';
+    return { success: true, count: written };
+  }
+
+  // ===== localStorage 草稿：防止浏览器刷新/崩溃丢稿 =====
+
+  _draftKey(relativePath) {
+    return `${this.draftPrefix}${this.currentModName}.${relativePath}`;
+  }
+
+  _saveDraft(relativePath, contentString) {
+    try {
+      localStorage.setItem(this._draftKey(relativePath), JSON.stringify({ t: Date.now(), c: contentString }));
+    } catch (e) {
+      // 容量超限等场景静默降级：大文件（如 main.story.json）可能超出 localStorage 配额
+      console.warn(`Draft save skipped for ${relativePath}:`, e);
+    }
+  }
+
+  _removeDraft(relativePath) {
+    try {
+      localStorage.removeItem(this._draftKey(relativePath));
+    } catch (e) { /* ignore */ }
+  }
+
+  // 列出当前 MOD 名下所有未落盘草稿
+  listDrafts() {
+    const out = [];
+    const prefix = `${this.draftPrefix}${this.currentModName}.`;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) {
+          const path = k.slice(prefix.length);
+          try {
+            const val = JSON.parse(localStorage.getItem(k));
+            out.push({ path, time: val.t || 0, size: (val.c || '').length });
+          } catch (e) { /* 跳过坏草稿 */ }
+        }
+      }
+    } catch (e) { /* localStorage 不可用 */ }
+    return out.sort((a, b) => a.path.localeCompare(b.path));
+  }
+
+  // 把草稿内容恢复进内存工作区（调用方负责随后刷新引用索引与视图）
+  restoreDrafts(drafts) {
+    for (const d of drafts) {
+      try {
+        const val = JSON.parse(localStorage.getItem(this._draftKey(d.path)));
+        if (val && typeof val.c === 'string') {
+          this.memoryFiles.set(d.path, val.c);
+          this.dirtyFiles.add(d.path);
+        }
+      } catch (e) { /* 跳过坏草稿 */ }
+    }
+  }
+
+  discardDrafts(drafts) {
+    for (const d of drafts) {
+      this._removeDraft(d.path);
+      this.dirtyFiles.delete(d.path);
+    }
   }
 }
 
@@ -2226,6 +2393,17 @@ const BattleSchema = {
 /**
  * JsonDataAdapter: 底层 JSON 读写适配器
  */
+// 保存结果文案：native 模式已写磁盘；memory/http 模式仅存浏览器内存，需要用户导出或挂载落盘
+function describeSaveState(res) {
+  if (!res || !res.success) return '';
+  return res.mode === 'native'
+    ? '（✅ 已直接写入磁盘）'
+    : '（⚠️ 仅存于浏览器内存，请通过顶部状态条导出或挂载落盘）';
+}
+function saveToastType(res) {
+  return res && res.success && res.mode === 'native' ? 'success' : 'warning';
+}
+
 class JsonDataAdapter {
   constructor(fs) {
     this.fs = fs;
@@ -2697,7 +2875,7 @@ class ItemView {
         const res = await this.adapter.saveItems(this.items);
         saveBtn.innerText = '💾 保存更改';
         if (res.success) {
-          this.notify(`成功保存 ${this.items.length} 件神兵与道具至 items.json！`);
+          this.notify(`成功保存 ${this.items.length} 件神兵与道具至 items.json！${describeSaveState(res)}`, saveToastType(res));
           this._renderLayout();
         } else {
           this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
@@ -3127,7 +3305,7 @@ class SkillView {
         const res = await this.adapter.saveExternalSkills(this.skills);
         saveBtn.innerText = '💾 保存更改';
         if (res.success) {
-          this.notify(`成功保存 ${this.skills.length} 门外功至 external-skills.json！`);
+          this.notify(`成功保存 ${this.skills.length} 门外功至 external-skills.json！${describeSaveState(res)}`, saveToastType(res));
           this._renderLayout();
         } else {
           this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
@@ -3723,7 +3901,7 @@ class CharacterView {
         const res = await this.adapter.saveCharacters(this.characters);
         saveBtn.innerText = '💾 保存更改';
         if (res.success) {
-          this.notify(`成功保存 ${this.characters.length} 位侠客至 characters.json！`);
+          this.notify(`成功保存 ${this.characters.length} 位侠客至 characters.json！${describeSaveState(res)}`, saveToastType(res));
           this._renderLayout();
         } else {
           this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
@@ -4280,7 +4458,7 @@ class BattleView {
         const res = await this.adapter.saveBattles(this.battles);
         saveBtn.innerText = '💾 保存战场配置';
         if (res.success) {
-          this.notify(`成功保存 ${this.battles.length} 场战役至 battles.json！`);
+          this.notify(`成功保存 ${this.battles.length} 场战役至 battles.json！${describeSaveState(res)}`, saveToastType(res));
           this._renderLayout();
         } else {
           this.notify('保存失败: ' + (res.error || '未知错误'), 'error');
@@ -4816,7 +4994,7 @@ class StoryView {
         const res = await this.adapter.saveMainStory(this.storyDoc);
         saveBtn.innerText = '💾 保存剧本';
         if (res.success) {
-          this.notify(`成功保存剧情段落至 stories/main.story.json！`);
+          this.notify(`成功保存剧情段落至 stories/main.story.json！${describeSaveState(res)}`, saveToastType(res));
           this._renderLayout();
         } else {
           this.notify('剧本保存失败: ' + (res.error || '未知错误'), 'error');
@@ -4935,6 +5113,104 @@ class ModStudioApp {
     setTimeout(() => {
       toast.className = '';
     }, 3000);
+    this.refreshDirtyBar();
+  }
+
+  // 顶部状态条：展示未落盘更改数量与草稿恢复入口
+  refreshDirtyBar() {
+    const bar = document.getElementById('dirtyStateBar');
+    if (!bar) return;
+    const fs = this.fs;
+    const dirtyCount = fs.dirtyFiles ? fs.dirtyFiles.size : 0;
+    // 只提示不属于当前内存工作区的历史草稿；已在内存 dirty 集合中的草稿以内存为准
+    const pendingRestore = this.isLoaded
+      ? fs.listDrafts().filter(d => !fs.dirtyFiles.has(d.path))
+      : [];
+
+    if (pendingRestore.length > 0) {
+      const names = pendingRestore.map(d => d.path).join('、');
+      bar.className = 'dsb-visible';
+      bar.innerHTML = `
+        <span>📜 检测到上次未落盘的 ${pendingRestore.length} 个草稿：${names}</span>
+        <button class="dsb-btn primary" id="dsbRestoreBtn">♻️ 恢复草稿继续编辑</button>
+        <button class="dsb-btn" id="dsbDiscardBtn">🗑️ 丢弃草稿</button>
+      `;
+      const restoreBtn = bar.querySelector('#dsbRestoreBtn');
+      const discardBtn = bar.querySelector('#dsbDiscardBtn');
+      if (restoreBtn) restoreBtn.onclick = () => this.handleRestoreDrafts(pendingRestore);
+      if (discardBtn) discardBtn.onclick = () => this.handleDiscardDrafts(pendingRestore);
+      return;
+    }
+
+    if (dirtyCount > 0) {
+      const modeLabel = fs.mode === 'http' ? 'HTTP 预设模式' : '内存模式';
+      bar.className = 'dsb-visible';
+      bar.innerHTML = `
+        <span>⚠️ ${dirtyCount} 个文件的更改仅保存在浏览器内存中（${modeLabel}），刷新页面将丢失</span>
+        <button class="dsb-btn primary" id="dsbExportBtn">⬇️ 导出更改文件</button>
+        <button class="dsb-btn" id="dsbFlushBtn">📂 挂载 MOD 目录并落盘</button>
+      `;
+      const exportBtn = bar.querySelector('#dsbExportBtn');
+      const flushBtn = bar.querySelector('#dsbFlushBtn');
+      if (exportBtn) exportBtn.onclick = () => this.handleExportChanged();
+      if (flushBtn) flushBtn.onclick = () => this.handleMountFlush();
+      return;
+    }
+
+    if (this.isLoaded && fs.mode === 'native') {
+      bar.className = 'dsb-clean';
+      bar.innerHTML = '<span>✅ 所有更改已同步写入本地 MOD 目录</span>';
+      return;
+    }
+
+    bar.className = '';
+    bar.innerHTML = '';
+  }
+
+  async handleExportChanged() {
+    const res = await this.fs.exportChangedFiles();
+    if (res.success && res.count > 0) {
+      this.showToast(`已导出 ${res.count} 个更改文件到浏览器下载目录，请手动放回 MOD 目录对应位置`, 'success');
+      this.refreshDirtyBar();
+    } else if (res.success) {
+      this.showToast('当前没有需要导出的更改', 'info');
+    } else {
+      this.showToast('导出中断：部分文件未成功下载，请重试', 'error');
+    }
+  }
+
+  async handleMountFlush() {
+    if (this.fs.dirtyFiles.size === 0) {
+      this.showToast('当前没有未落盘的更改', 'info');
+      return;
+    }
+    const goOn = confirm(`将把 ${this.fs.dirtyFiles.size} 个更改文件写入你选择的 MOD 根目录。\n请务必选中包含 data/ 子目录的 MOD 根目录，继续吗？`);
+    if (!goOn) return;
+    const res = await this.fs.mountAndFlush();
+    if (res.success) {
+      this.showToast(`✅ 已把 ${res.count} 个文件写入本地 MOD 目录`, 'success');
+      document.getElementById('currentModLabel').innerText = `当前项目: ${this.fs.currentModName} (原生直写)`;
+    } else if (!res.cancelled) {
+      this.showToast('落盘失败: ' + (res.error || '未知错误'), 'error');
+    }
+    this.refreshDirtyBar();
+  }
+
+  handleRestoreDrafts(drafts) {
+    this.fs.restoreDrafts(drafts);
+    this.refIndex.rebuildIndex(this.fs);
+    this.views = this._createViews();
+    this.switchTab(this.currentTab);
+    this.showToast(`已恢复 ${drafts.length} 个草稿文件，确认内容无误后请导出或挂载落盘`, 'success');
+    this.refreshDirtyBar();
+  }
+
+  handleDiscardDrafts(drafts) {
+    const goOn = confirm(`确定丢弃 ${drafts.length} 个未落盘草稿吗？此操作不可撤销。`);
+    if (!goOn) return;
+    this.fs.discardDrafts(drafts);
+    this.showToast('草稿已丢弃', 'info');
+    this.refreshDirtyBar();
   }
 
   async handleLoadPreset(modId = 'wuxia-legend') {
@@ -4983,12 +5259,8 @@ class ModStudioApp {
     }
   }
 
-  _onModLoaded(res) {
-    this.refIndex.rebuildIndex(this.fs);
-    this.isLoaded = true;
-
-    // 初始化各个工坊子视图
-    this.views = {
+  _createViews() {
+    return {
       items: new ItemView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       skills: new SkillView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       characters: new CharacterView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
@@ -4996,8 +5268,18 @@ class ModStudioApp {
       stories: new StoryView(this.adapter, this.refIndex, (msg, type) => this.showToast(msg, type)),
       health: new HealthView(this.validator, (tab) => this.switchTab(tab))
     };
+  }
+
+  _onModLoaded(res) {
+    this.refIndex.rebuildIndex(this.fs);
+    this.isLoaded = true;
+
+    // 初始化各个工坊子视图
+    this.views = this._createViews();
 
     this.switchTab(this.currentTab);
+    // 载入后立刻检查：同名 MOD 是否留有上次未落盘的草稿
+    this.refreshDirtyBar();
   }
 
   _bindGlobalEvents() {
