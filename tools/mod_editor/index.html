@@ -2167,74 +2167,238 @@ class ModValidator {
     this.refIndex = refIndex;
   }
 
+  // 宽松解析：对齐游戏侧 ModContentLoader（// 行注释 + /* */ 块注释 + 尾逗号均合法）
+  _lenientParse(raw) {
+    const noBlock = raw.replace(/\/\*[\s\S]*?\*\//g, '');
+    const noLine = noBlock.replace(/^\s*\/\/.*$/gm, '');
+    const noTrailing = noLine.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(noTrailing);
+  }
+
   runFullAudit() {
     const issues = [];
+    const stats = { filesScanned: 0, jsonFailed: 0, checks: 0 };
+
+    // ===== 1. 全量 JSON 合规（扫描所有已载入文件，而非固定清单）=====
+    for (const [path, content] of this.fs.memoryFiles) {
+      if (!path.endsWith('.json')) continue;
+      stats.filesScanned++;
+      try {
+        this._lenientParse(content);
+        stats.checks++;
+      } catch (err) {
+        stats.jsonFailed++;
+        issues.push({
+          level: 'error',
+          module: 'JSON',
+          title: `${path} 语法错误`,
+          message: `宽松解析仍失败（游戏加载器同样会拒绝）：${err.message}`
+        });
+      }
+    }
+
+    // ===== 引用索引集合 =====
     const charIds = new Set(this.refIndex.characters.map(c => c.id));
-    const skillIds = new Set(this.refIndex.skills.map(s => s.id));
+    const extSkillIds = new Set(this.refIndex.skills.filter(s => s.category === 'external').map(s => s.id));
+    const intSkillIds = new Set(this.refIndex.skills.filter(s => s.category === 'internal').map(s => s.id));
+    const allSkillIds = new Set([...extSkillIds, ...intSkillIds]);
     const talentIds = new Set(this.refIndex.talents.map(t => t.id));
     const itemIds = new Set(this.refIndex.items.map(i => i.id));
+    const buffIds = new Set(this.refIndex.buffs.map(b => b.id));
+    const battleIds = new Set(this.refIndex.battles.map(b => b.id));
+    const specialIds = new Set(this.refIndex.specialSkills.map(s => s.id));
+    const tagIds = new Set(((this.fs.readJson('item-tags.json')) || []).map(t => t.id));
+    const storyNames = new Set(this._collectStoryNames());
+    const battleBgIds = new Set(this.refIndex.battleBackgrounds.map(b => b.id));
 
-    // 校验人物引用的技能与天赋
+    const push = (level, module, title, message) => issues.push({ level, module, title, message });
+
+    // ===== 2. 侠客 (characters.json) =====
     const chars = this.fs.readJson('characters.json') || [];
     for (const c of chars) {
-      if (Array.isArray(c.externalSkills)) {
-        for (const es of c.externalSkills) {
-          const sid = typeof es === 'string' ? es : es.id;
-          if (sid && !skillIds.has(sid)) {
-            issues.push({
-              level: 'warn',
-              module: '角色',
-              title: `侠客《${c.name || c.id}》引用了不存在的外功`,
-              message: `引用的外功ID "${sid}" 未在 external-skills.json 中定义。`
-            });
-          }
-        }
+      const who = c.name || c.id;
+      for (const es of c.externalSkills || []) {
+        const sid = typeof es === 'string' ? es : es.id;
+        if (sid && !extSkillIds.has(sid)) push('warn', '角色', `侠客《${who}》引用了不存在的外功`, `外功ID "${sid}" 未在 external-skills.json 中定义。`);
       }
-      if (Array.isArray(c.internalSkills)) {
-        for (const is of c.internalSkills) {
-          const sid = typeof is === 'string' ? is : is.id;
-          if (sid && !skillIds.has(sid)) {
-            issues.push({
-              level: 'warn',
-              module: '角色',
-              title: `侠客《${c.name || c.id}》引用了不存在的内功`,
-              message: `引用的内功ID "${sid}" 未在 internal-skills.json 中定义。`
-            });
-          }
-        }
+      for (const is of c.internalSkills || []) {
+        const sid = typeof is === 'string' ? is : is.id;
+        if (sid && !intSkillIds.has(sid)) push('warn', '角色', `侠客《${who}》引用了不存在的内功`, `内功ID "${sid}" 未在 internal-skills.json 中定义。`);
       }
-      if (Array.isArray(c.talentIds)) {
-        for (const tid of c.talentIds) {
-          if (tid && !talentIds.has(tid)) {
-            issues.push({
-              level: 'warn',
-              module: '角色',
-              title: `侠客《${c.name || c.id}》绑定了不存在的天赋`,
-              message: `天赋ID "${tid}" 未在 talents.json 中声明。`
-            });
-          }
-        }
+      for (const tid of c.talentIds || []) {
+        if (tid && !talentIds.has(tid)) push('warn', '角色', `侠客《${who}》绑定了不存在的天赋`, `天赋ID "${tid}" 未在 talents.json 中声明。`);
       }
+      stats.checks++;
     }
 
-    // 校验战场引用的角色
+    // ===== 3. 战棋 (battles.json) =====
     const battles = this.fs.readJson('battles.json') || [];
     for (const b of battles) {
-      if (Array.isArray(b.participants)) {
-        for (const p of b.participants) {
-          if (p.characterId && !charIds.has(p.characterId)) {
-            issues.push({
-              level: 'error',
-              module: '战棋',
-              title: `战场《${b.name || b.id}》布阵了不存在的人物`,
-              message: `阵营 ${p.team} 站位 (${p.position.x}, ${p.position.y}) 引用了未知人物ID "${p.characterId}"。`
-            });
-          }
+      const bid = b.name || b.id;
+      const occupied = new Map();
+      const checkPos = (pos, owner) => {
+        if (!pos || typeof pos.x !== 'number' || typeof pos.y !== 'number') return;
+        if (pos.x < 0 || pos.x > 10 || pos.y < 0 || pos.y > 3) {
+          push('error', '战棋', `战场《${bid}》${owner} 站位越界`, `坐标 (${pos.x}, ${pos.y}) 超出 11×4 棋盘范围。`);
         }
+        const key = `${pos.x},${pos.y}`;
+        if (occupied.has(key)) {
+          push('warn', '战棋', `战场《${bid}》站位重叠`, `${owner} 与 ${occupied.get(key)} 同时占用 (${pos.x}, ${pos.y})，游戏校验会拒绝。`);
+        } else {
+          occupied.set(key, owner);
+        }
+      };
+
+      for (const p of b.participants || []) {
+        checkPos(p.position, `单位 ${p.characterId || 'P' + (p.partyIndex ?? '?')}`);
+        if (p.characterId && !charIds.has(p.characterId)) {
+          push('error', '战棋', `战场《${bid}》布阵了不存在的人物`, `阵营 ${p.team} 站位 (${p.position && p.position.x}, ${p.position && p.position.y}) 引用了未知人物ID "${p.characterId}"。`);
+        }
+      }
+      for (const rp of b.randomParticipants || []) {
+        checkPos(rp.position, `随机怪组 ${rp.name || '?'}`);
+        const tier = rp.tier || 0;
+        if (tier < 0) push('error', '战棋', `战场《${bid}》随机怪组 tier 为负`, `${rp.name || '怪组'} tier=${tier} 不合法。`);
+        if (!rp.boss && tier > 3) push('error', '战棋', `战场《${bid}》非头目怪组 tier 超上限`, `${rp.name || '怪组'} tier=${tier}，非 Boss 上限为 3。`);
+        if (rp.team !== 1 && rp.team !== 2) push('error', '战棋', `战场《${bid}》随机怪组阵营非法`, `${rp.name || '怪组'} team=${rp.team}，仅允许 1 或 2。`);
+      }
+      if (b.background && battleBgIds.size > 0 && !battleBgIds.has(b.background)) {
+        push('warn', '战棋', `战场《${bid}》背景图不在已知图鉴中`, `background "${b.background}" 未匹配到预置战场背景，运行时可能显示为空。`);
+      }
+      stats.checks++;
+    }
+
+    // ===== 4. 武学体系 =====
+    const checkBuffs = (arr, owner, module) => {
+      for (const bf of arr || []) {
+        if (bf && bf.id && !buffIds.has(bf.id)) {
+          push('warn', module, `《${owner}》附加了未知状态`, `状态ID "${bf.id}" 未在 buffs.json 中声明。`);
+        }
+      }
+    };
+    const checkAffixTalent = (affixes, owner, module) => {
+      for (const af of affixes || []) {
+        const e = af && af.effect;
+        if (e && e.type === 'grant_talent' && e.talentId && !talentIds.has(e.talentId)) {
+          push('error', module, `《${owner}》词条授予了不存在的天赋`, `grant_talent 指向 "${e.talentId}"，未在 talents.json 中声明。`);
+        }
+      }
+    };
+
+    for (const s of this.fs.readJson('external-skills.json') || []) {
+      checkBuffs(s.buffs, s.name || s.id, '武学');
+      for (const fs2 of s.formSkills || []) checkBuffs(fs2.buffs, `${s.name || s.id}.${fs2.id || ''}`, '武学');
+      stats.checks++;
+    }
+    for (const s of this.fs.readJson('internal-skills.json') || []) {
+      checkBuffs(s.buffs, s.name || s.id, '内功');
+      for (const fs2 of s.formSkills || []) checkBuffs(fs2.buffs, `${s.name || s.id}.${fs2.id || ''}`, '内功');
+      checkAffixTalent(s.affixes, s.name || s.id, '内功');
+      stats.checks++;
+    }
+    for (const s of this.fs.readJson('special-skills.json') || []) {
+      checkBuffs(s.buffs, s.name || s.id, '绝技');
+      stats.checks++;
+    }
+    for (const s of this.fs.readJson('legend-skills.json') || []) {
+      const who = s.name || s.id;
+      checkBuffs(s.buffs, who, '传奇技');
+      if (s.startSkill && !extSkillIds.has(s.startSkill)) {
+        push('error', '传奇技', `传奇技《${who}》绑定了无法触发的外功`, `startSkill "${s.startSkill}" 不是外功ID。战斗侧按外功ID精确匹配（LegendSkillResolver），当前值若指向招式/内功ID，该传奇技将永远不会触发。`);
+      }
+      for (const c of s.conditions || []) {
+        const bad = (c.type === 'skill' && !extSkillIds.has(c.targetId)) ||
+          (c.type === 'internal_skill' && !intSkillIds.has(c.targetId)) ||
+          (c.type === 'talent' && !talentIds.has(c.targetId)) ||
+          (c.type === 'special_skill' && !specialIds.has(c.targetId));
+        if (bad) {
+          push('error', '传奇技', `传奇技《${who}》触发条件指向不存在的目标`, `条件类型 ${c.type} 的目标 "${c.targetId}" 未在对应数据文件中定义。`);
+        }
+      }
+      stats.checks++;
+    }
+
+    // ===== 5. 物品 (items.json) =====
+    for (const it of this.fs.readJson('items.json') || []) {
+      const who = it.name || it.id;
+      for (const tid of it.tagIds || []) {
+        if (tid && tagIds.size > 0 && !tagIds.has(tid)) push('warn', '物品', `物品《${who}》挂了未知标签`, `tagId "${tid}" 未在 item-tags.json 中声明。`);
+      }
+      checkAffixTalent(it.affixes, who, '物品');
+      stats.checks++;
+    }
+
+    // ===== 6. 天赋 (talents.json) =====
+    for (const t of this.fs.readJson('talents.json') || []) {
+      for (const rid of t.replaceTalentIds || []) {
+        if (rid && !talentIds.has(rid)) push('error', '天赋', `天赋《${t.name || t.id}》互斥指向不存在`, `replaceTalentIds 含未知天赋 "${rid}"。`);
+      }
+      checkAffixTalent(t.affixes, t.name || t.id, '天赋');
+      stats.checks++;
+    }
+
+    // ===== 7. 商店 (shops.json) =====
+    for (const shop of this.fs.readJson('shops.json') || []) {
+      const sname = shop.name || shop.id;
+      for (const p of shop.products || []) {
+        const r = p.reward || {};
+        if (r.kind === 'item' && r.itemId && !itemIds.has(r.itemId)) {
+          push('error', '商店', `商店《${sname}》上架了不存在的物品`, `商品 "${p.id}" 的 reward.itemId "${r.itemId}" 未在 items.json 中定义。`);
+        }
+        if (r.kind === 'skill_max_level' && r.skillId && !allSkillIds.has(r.skillId)) {
+          push('error', '商店', `商店《${sname}》上架了不存在的武学残章`, `商品 "${p.id}" 的 skillId "${r.skillId}" 未在外功/内功中定义。`);
+        }
+      }
+      stats.checks++;
+    }
+
+    // ===== 8. 剧情 (stories/*.story.json) =====
+    const walkStory = (steps, segName, fileName) => {
+      for (const st of steps || []) {
+        if (st.kind === 'jump' && st.target && !storyNames.has(st.target)) {
+          push('error', '剧情', `段落《${segName}》跳转目标不存在`, `${fileName} 中 jump target "${st.target}" 未匹配到任何段落名。`);
+        }
+        if (st.kind === 'battle' && st.battleId && !battleIds.has(st.battleId)) {
+          push('error', '剧情', `段落《${segName}》触发的战斗不存在`, `${fileName} 中 battleId "${st.battleId}" 未在 battles.json 中定义。`);
+        }
+        if (st.kind === 'branch') {
+          for (const c of st.cases || []) walkStory(c.steps, segName, fileName);
+          walkStory(st.fallback, segName, fileName);
+        }
+        if (st.kind === 'choice') {
+          for (const b of st.blocks || []) for (const o of b.options || []) walkStory(o.steps, segName, fileName);
+        }
+      }
+    };
+    for (const fileId of StoryView.FILES) {
+      const doc = this.fs.readJson(`stories/${fileId}.story.json`);
+      if (!doc) continue;
+      for (const seg of doc.segments || []) {
+        walkStory(seg.steps, seg.name, `${fileId}.story.json`);
+        stats.checks++;
       }
     }
 
-    return issues;
+    // ===== 9. 门派 (sects.json) =====
+    for (const sect of this.fs.readJson('sects.json') || []) {
+      if (sect.storyId && !storyNames.has(sect.storyId)) {
+        push('warn', '门派', `门派《${sect.name || sect.id}》开局剧情不存在`, `storyId "${sect.storyId}" 未匹配到任何剧情段落。`);
+      }
+      stats.checks++;
+    }
+
+    return { issues, stats };
+  }
+
+  _collectStoryNames() {
+    const names = [];
+    for (const fileId of StoryView.FILES) {
+      const doc = this.fs.readJson(`stories/${fileId}.story.json`);
+      for (const seg of (doc && doc.segments) || []) {
+        if (seg && seg.name) names.push(seg.name);
+      }
+    }
+    return names;
   }
 }
 
@@ -7275,6 +7439,7 @@ class HealthView {
     this.validator = validator;
     this.navigate = onNavigate;
     this.issues = [];
+    this.stats = null;
     this.container = null;
     this.hasAudited = false;
   }
@@ -7282,22 +7447,32 @@ class HealthView {
   render(parentEl) {
     this.container = parentEl;
     if (!this.hasAudited) {
-      this.issues = this.validator.runFullAudit();
+      this._runAudit();
       this.hasAudited = true;
     }
     this._renderLayout();
   }
 
+  _runAudit() {
+    const result = this.validator.runFullAudit();
+    this.issues = result.issues;
+    this.stats = result.stats;
+  }
+
   _renderLayout() {
     const errors = this.issues.filter(i => i.level === 'error');
     const warns = this.issues.filter(i => i.level === 'warn');
+    const stats = this.stats || { filesScanned: 0, jsonFailed: 0, checks: 0 };
+    const compliance = stats.filesScanned > 0
+      ? Math.round(((stats.filesScanned - stats.jsonFailed) / stats.filesScanned) * 100)
+      : 100;
 
     this.container.innerHTML = `
       <div class="health-check-layout">
         <div class="health-header-card">
           <div class="health-title-group">
             <h2>🔍 全局数据健康检查与悬空引用排查</h2>
-            <p>自动扫描角色、武学、神兵、战棋、剧情对白与资源别名之间的引用链，杜绝因拼写错误导致的游戏崩溃。</p>
+            <p>已扫描 <strong>${stats.filesScanned}</strong> 个 JSON 文件、执行 <strong>${stats.checks}</strong> 项引用检查：覆盖角色技能/天赋、战棋布阵与站位规则、四类武学状态与触发条件、物品标签、商店商品、剧情跳转与战斗触发、门派开局剧情。解析规则与游戏加载器一致（容忍 // 注释与尾逗号）。</p>
           </div>
           <button id="recheckBtn" class="btn btn-primary">重新全面体检</button>
         </div>
@@ -7311,9 +7486,9 @@ class HealthView {
             <div class="stat-num">${warns.length}</div>
             <div class="stat-desc">悬空或缺失警告 (Warning)</div>
           </div>
-          <div class="health-stat-card card-ok">
-            <div class="stat-num">100%</div>
-            <div class="stat-desc">JSON 语法合规率</div>
+          <div class="health-stat-card ${stats.jsonFailed > 0 ? 'card-error' : 'card-ok'}">
+            <div class="stat-num">${compliance}%</div>
+            <div class="stat-desc">JSON 语法合规率 (${stats.filesScanned - stats.jsonFailed}/${stats.filesScanned})</div>
           </div>
         </div>
 
@@ -7322,7 +7497,7 @@ class HealthView {
             <div class="health-clean-box">
               <div class="clean-icon">🎉</div>
               <h3>完美！当前 MOD 未发现任何断裂引用或致命问题</h3>
-              <p>所有角色头像、技能、物品、战棋布阵和剧情跳转段落均能严密对应。</p>
+              <p>角色技能与天赋、战棋布阵、武学状态、商店商品、剧情跳转段落均能严密对应。</p>
             </div>
           ` : this.issues.map(iss => `
             <div class="issue-card ${iss.level === 'error' ? 'issue-error' : 'issue-warn'}">
@@ -7341,7 +7516,7 @@ class HealthView {
     if (recheckBtn) {
       recheckBtn.onclick = () => {
         recheckBtn.innerText = '正在排查...';
-        this.issues = this.validator.runFullAudit();
+        this._runAudit();
         this._renderLayout();
       };
     }
